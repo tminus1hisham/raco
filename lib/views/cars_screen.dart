@@ -1,4 +1,5 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/views/selected_car_screen.dart';
 import 'package:atom/views/widgets/car_info_card.dart';
 import 'package:atom/views/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -24,42 +25,108 @@ class _CarsScreenState extends State<CarsScreen> {
               child: ListView(
                 children: [
                   CarInfoCard(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectedCarScreen(
+                            carModel: 'BMW X6',
+                            licensePlate: 'AG 5758 SS',
+                            batteryLevel: 4,
+                            stats: [
+                              StatCardData(
+                                icon: Icons.location_on,
+                                value: '10.8 km',
+                              ),
+                              StatCardData(
+                                icon: Icons.speed,
+                                value: '100 km/h',
+                              ),
+                              StatCardData(
+                                icon: Icons.thermostat,
+                                value: '20°C',
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                     carModel: 'BMW X3',
                     licensePlate: "KDB002A",
-                    batteryLevel: 4,
+                    batteryLevel: 6,
                     stats: [
                       StatCardData(icon: Icons.location_on, value: '20 km'),
                       StatCardData(icon: Icons.speed, value: '100 km/h'),
-                      StatCardData(
-                        icon: Icons.battery_charging_full,
-                        value: '60%',
-                      ),
                     ],
                   ),
                   CarInfoCard(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectedCarScreen(
+                            carModel: 'BMW X6',
+                            licensePlate: 'AG 5758 SS',
+                            batteryLevel: 4,
+                            stats: [
+                              StatCardData(
+                                icon: Icons.location_on,
+                                value: '10.8 km',
+                              ),
+                              StatCardData(
+                                icon: Icons.speed,
+                                value: '100 km/h',
+                              ),
+                              StatCardData(
+                                icon: Icons.thermostat,
+                                value: '20°C',
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    carModel: 'Tesla',
+                    licensePlate: "KDB001A",
+                    batteryLevel: 2,
+                    stats: [
+                      StatCardData(icon: Icons.location_on, value: '25.3 km'),
+                      StatCardData(icon: Icons.speed, value: '85 km/h'),
+                    ],
+                  ),
+                  CarInfoCard(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectedCarScreen(
+                            carModel: 'BMW X6',
+                            licensePlate: 'AG 5758 SS',
+                            batteryLevel: 4,
+                            stats: [
+                              StatCardData(
+                                icon: Icons.location_on,
+                                value: '10.8 km',
+                              ),
+                              StatCardData(
+                                icon: Icons.speed,
+                                value: '100 km/h',
+                              ),
+                              StatCardData(
+                                icon: Icons.thermostat,
+                                value: '20°C',
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                     carModel: 'Tesla',
                     licensePlate: "KDB001A",
                     batteryLevel: 4,
                     stats: [
                       StatCardData(icon: Icons.location_on, value: '25.3 km'),
                       StatCardData(icon: Icons.speed, value: '85 km/h'),
-                      StatCardData(
-                        icon: Icons.battery_charging_full,
-                        value: '78%',
-                      ),
-                    ],
-                  ),
-                  CarInfoCard(
-                    carModel: 'Tesla',
-                    licensePlate: "KDB001A",
-                    batteryLevel: 4,
-                    stats: [
-                      StatCardData(icon: Icons.location_on, value: '25.3 km'),
-                      StatCardData(icon: Icons.speed, value: '85 km/h'),
-                      StatCardData(
-                        icon: Icons.battery_charging_full,
-                        value: '78%',
-                      ),
                     ],
                   ),
                 ],
