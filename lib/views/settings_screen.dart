@@ -5,7 +5,9 @@ import 'package:atom/views/settings/change_password.dart';
 import 'package:atom/views/settings/contact_us.dart';
 import 'package:atom/views/settings/delete_account.dart';
 import 'package:atom/views/settings/privacy_policy.dart';
+import 'package:atom/views/widgets/custom_alert.dart';
 import 'package:atom/views/widgets/custom_header.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -132,6 +134,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => ContactUs(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildDivider(),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 32),
+
+                  _buildSectionHeader('Logout'),
+                  _buildSettingsCard(
+                    child: Column(
+                      children: [
+                        _buildSettingsItem(
+                          icon: Icons.logout,
+                          title: 'Logout',
+                          subtitle: 'Sign out of Atom',
+                          textColor: Colors.red.shade600,
+                          iconColor: Colors.red.shade600,
+                          onTap: () {
+                            showCupertinoDialog(
+                              context: context,
+                              builder: (context) => ActionDialog(
+                                title: "Logout",
+                                message: "Are you sure you want to logout?",
+                                confirmText: "Logout",
+                                cancelText: "Cancel",
+                                onConfirm: () {},
                               ),
                             );
                           },
