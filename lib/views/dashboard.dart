@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
 import 'home_screen.dart';
-import 'map_screen.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -25,12 +24,7 @@ class _DashboardState extends State<Dashboard> {
   }
 
   List<Widget> _buildScreens() {
-    return [
-      HomeScreen(),
-      CarsScreen(),
-      HistoryScreen(),
-      SettingsScreen(),
-    ];
+    return [HomeScreen(), CarsScreen(), HistoryScreen(), SettingsScreen()];
   }
 
   List<PersistentBottomNavBarItem> _navBarItems() {
@@ -42,14 +36,14 @@ class _DashboardState extends State<Dashboard> {
         inactiveColorPrimary: Colors.grey,
       ),
       PersistentBottomNavBarItem(
-        icon: Icon(Icons.history),
-        title: "Reports",
+        icon: Icon(Icons.directions_car_rounded),
+        title: "Car",
         activeColorPrimary: kBlue,
         inactiveColorPrimary: Colors.grey,
       ),
       PersistentBottomNavBarItem(
-        icon: Icon(Icons.directions_car_rounded),
-        title: "Car",
+        icon: Icon(Icons.history),
+        title: "Reports",
         activeColorPrimary: kBlue,
         inactiveColorPrimary: Colors.grey,
       ),
@@ -61,7 +55,6 @@ class _DashboardState extends State<Dashboard> {
       ),
     ];
   }
-
 
   @override
   Widget build(BuildContext context) {

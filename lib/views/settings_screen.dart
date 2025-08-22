@@ -5,6 +5,7 @@ import 'package:atom/views/settings/change_password.dart';
 import 'package:atom/views/settings/contact_us.dart';
 import 'package:atom/views/settings/delete_account.dart';
 import 'package:atom/views/settings/privacy_policy.dart';
+import 'package:atom/views/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -15,59 +16,13 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: kBgGrey,
       body: SafeArea(
         child: Column(
           children: [
-            SizedBox(height: 10,),
-        Container(
-        margin: EdgeInsets.symmetric(horizontal: 20),
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [kBlue, kBlue.withOpacity(0.3)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Settings',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 25,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: 70,
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.settings,
-                color: Colors.white,
-                size: 30,
-              ),
-            ),
-          ],
-        ),
-      ),
-
-            // Content
+            SizedBox(height: 10),
+            customHeader(label: "Settings", icon: Icons.settings),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.symmetric(vertical: 20),
@@ -84,7 +39,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => AccountScreen()),
+                              MaterialPageRoute(
+                                builder: (context) => AccountScreen(),
+                              ),
                             );
                           },
                         ),
@@ -96,7 +53,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => ChangePassword()),
+                              MaterialPageRoute(
+                                builder: (context) => ChangePassword(),
+                              ),
                             );
                           },
                         ),
@@ -110,7 +69,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => DeleteAccount()),
+                              MaterialPageRoute(
+                                builder: (context) => DeleteAccount(),
+                              ),
                             );
                           },
                         ),
@@ -125,7 +86,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildSettingsCard(
                     child: Column(
                       children: [
-
                         _buildSettingsItem(
                           icon: Icons.privacy_tip_outlined,
                           title: 'Privacy Policy',
@@ -208,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSettingsCard({required Widget child, VoidCallback? onTap}) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20,),
+      margin: EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -252,11 +212,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: (iconColor ?? kBlue).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                icon,
-                color: iconColor ?? kBlue,
-                size: 20,
-              ),
+              child: Icon(icon, color: iconColor ?? kBlue, size: 20),
             ),
             SizedBox(width: 16),
             Expanded(
@@ -274,19 +230,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: Colors.grey.shade400,
-              size: 20,
-            ),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
           ],
         ),
       ),
