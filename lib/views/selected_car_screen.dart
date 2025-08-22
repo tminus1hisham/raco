@@ -1,20 +1,19 @@
 import 'package:atom/config/constants.dart';
-import 'package:atom/views/widgets/car_info_card.dart';
+import 'package:atom/views/widgets/custom_alert.dart';
 import 'package:atom/views/widgets/custom_header.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class SelectedCarScreen extends StatefulWidget {
   final String carModel;
   final String licensePlate;
   final int batteryLevel;
-  final List<StatCardData> stats;
 
   const SelectedCarScreen({
     super.key,
     required this.carModel,
     required this.licensePlate,
     required this.batteryLevel,
-    required this.stats,
   });
 
   @override
@@ -35,7 +34,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
             Expanded(
               child: ListView(
                 children: [
-                  SizedBox(height: 24),
+                  SizedBox(height: 16),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
@@ -44,9 +43,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                         Text(
                           'Quick Actions',
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: kGrey,
                           ),
                         ),
                         SizedBox(height: 16),
@@ -58,8 +57,19 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                 icon: Icons.lock_outline,
                                 color: Colors.red,
                                 onPressed: () {
-                                  // Handle lock action
-                                  _showActionDialog('Lock Vehicle');
+                                  showCupertinoDialog(
+                                    context: context,
+                                    builder: (context) => ActionDialog(
+                                      title: "Confirm Action",
+                                      message:
+                                          "Are you sure you want to lock the car?",
+                                      confirmText: "Yes",
+                                      cancelText: "No",
+                                      onConfirm: () {
+                                        print("Car locked!");
+                                      },
+                                    ),
+                                  );
                                 },
                               ),
                             ),
@@ -70,8 +80,19 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                 icon: Icons.lock_open_outlined,
                                 color: Colors.green,
                                 onPressed: () {
-                                  // Handle unlock action
-                                  _showActionDialog('Unlock Vehicle');
+                                  showCupertinoDialog(
+                                    context: context,
+                                    builder: (context) => ActionDialog(
+                                      title: "Confirm Action",
+                                      message:
+                                          "Are you sure you want to lock the car?",
+                                      confirmText: "Yes",
+                                      cancelText: "No",
+                                      onConfirm: () {
+                                        print("un Car locked!");
+                                      },
+                                    ),
+                                  );
                                 },
                               ),
                             ),
@@ -82,8 +103,19 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                 icon: Icons.power_settings_new,
                                 color: kBlue,
                                 onPressed: () {
-                                  // Handle start engine action
-                                  _showActionDialog('Start Engine');
+                                  showCupertinoDialog(
+                                    context: context,
+                                    builder: (context) => ActionDialog(
+                                      title: "Start engine",
+                                      message:
+                                          "Are you sure you want to start the car?",
+                                      confirmText: "Start",
+                                      cancelText: "Stop",
+                                      onConfirm: () {
+                                        print("Car strated!");
+                                      },
+                                    ),
+                                  );
                                 },
                               ),
                             ),
@@ -93,9 +125,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                         Text(
                           'Vehicle Management',
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: kGrey,
                           ),
                         ),
                         SizedBox(height: 16),
@@ -285,53 +317,6 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  void _showActionDialog(String action) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Text(
-            'Confirm Action',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Text('Are you sure you want to $action?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                // Perform the action
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$action command sent successfully!'),
-                    backgroundColor: Colors.green,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kBlue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text('Confirm', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
     );
   }
 }

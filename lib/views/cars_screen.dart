@@ -33,20 +33,6 @@ class _CarsScreenState extends State<CarsScreen> {
                             carModel: 'BMW X6',
                             licensePlate: 'AG 5758 SS',
                             batteryLevel: 4,
-                            stats: [
-                              StatCardData(
-                                icon: Icons.location_on,
-                                value: '10.8 km',
-                              ),
-                              StatCardData(
-                                icon: Icons.speed,
-                                value: '100 km/h',
-                              ),
-                              StatCardData(
-                                icon: Icons.thermostat,
-                                value: '20°C',
-                              ),
-                            ],
                           ),
                         ),
                       );
@@ -68,20 +54,6 @@ class _CarsScreenState extends State<CarsScreen> {
                             carModel: 'BMW X6',
                             licensePlate: 'AG 5758 SS',
                             batteryLevel: 4,
-                            stats: [
-                              StatCardData(
-                                icon: Icons.location_on,
-                                value: '10.8 km',
-                              ),
-                              StatCardData(
-                                icon: Icons.speed,
-                                value: '100 km/h',
-                              ),
-                              StatCardData(
-                                icon: Icons.thermostat,
-                                value: '20°C',
-                              ),
-                            ],
                           ),
                         ),
                       );
@@ -103,20 +75,6 @@ class _CarsScreenState extends State<CarsScreen> {
                             carModel: 'BMW X6',
                             licensePlate: 'AG 5758 SS',
                             batteryLevel: 4,
-                            stats: [
-                              StatCardData(
-                                icon: Icons.location_on,
-                                value: '10.8 km',
-                              ),
-                              StatCardData(
-                                icon: Icons.speed,
-                                value: '100 km/h',
-                              ),
-                              StatCardData(
-                                icon: Icons.thermostat,
-                                value: '20°C',
-                              ),
-                            ],
                           ),
                         ),
                       );
