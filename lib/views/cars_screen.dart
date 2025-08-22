@@ -1,5 +1,6 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/views/widgets/car_info_card.dart';
+import 'package:atom/views/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 
 class CarsScreen extends StatefulWidget {
@@ -14,31 +15,58 @@ class _CarsScreenState extends State<CarsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgGrey,
-      body: Column(
-        children: [
-          CarInfoCard(
-            carModel: 'Tesla',
-            licensePlate: "KDB001A",
-            batteryLevel: 4,
-            stats: [
-              StatCardData(
-                icon: Icons.location_on,
-                value: '25.3 km',
-                label: 'Distance',
+      body: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(height: 10),
+            customHeader(label: "My Cars", icon: Icons.directions_car),
+            Expanded(
+              child: ListView(
+                children: [
+                  CarInfoCard(
+                    carModel: 'BMW X3',
+                    licensePlate: "KDB002A",
+                    batteryLevel: 4,
+                    stats: [
+                      StatCardData(icon: Icons.location_on, value: '20 km'),
+                      StatCardData(icon: Icons.speed, value: '100 km/h'),
+                      StatCardData(
+                        icon: Icons.battery_charging_full,
+                        value: '60%',
+                      ),
+                    ],
+                  ),
+                  CarInfoCard(
+                    carModel: 'Tesla',
+                    licensePlate: "KDB001A",
+                    batteryLevel: 4,
+                    stats: [
+                      StatCardData(icon: Icons.location_on, value: '25.3 km'),
+                      StatCardData(icon: Icons.speed, value: '85 km/h'),
+                      StatCardData(
+                        icon: Icons.battery_charging_full,
+                        value: '78%',
+                      ),
+                    ],
+                  ),
+                  CarInfoCard(
+                    carModel: 'Tesla',
+                    licensePlate: "KDB001A",
+                    batteryLevel: 4,
+                    stats: [
+                      StatCardData(icon: Icons.location_on, value: '25.3 km'),
+                      StatCardData(icon: Icons.speed, value: '85 km/h'),
+                      StatCardData(
+                        icon: Icons.battery_charging_full,
+                        value: '78%',
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              StatCardData(
-                icon: Icons.speed,
-                value: '85 km/h',
-                label: 'Average Speed',
-              ),
-              StatCardData(
-                icon: Icons.battery_charging_full,
-                value: '78%',
-                label: 'Battery',
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
