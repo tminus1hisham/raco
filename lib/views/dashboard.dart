@@ -3,7 +3,8 @@ import 'package:atom/views/cars_screen.dart';
 import 'package:atom/views/history_screen.dart';
 import 'package:atom/views/settings_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:motion_tab_bar/MotionTabBar.dart';
+import 'package:motion_tab_bar/MotionTabBarController.dart';
 
 import 'home_screen.dart';
 
@@ -14,66 +15,69 @@ class Dashboard extends StatefulWidget {
   State<Dashboard> createState() => _DashboardState();
 }
 
-class _DashboardState extends State<Dashboard> {
-  late PersistentTabController _controller;
+class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
+  late MotionTabBarController _motionTabBarController;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _controller = PersistentTabController(initialIndex: 0);
+    _motionTabBarController = MotionTabBarController(
+      initialIndex: 0,
+      length: 4,
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _motionTabBarController.dispose();
+    super.dispose();
   }
 
   List<Widget> _buildScreens() {
     return [HomeScreen(), CarsScreen(), HistoryScreen(), SettingsScreen()];
   }
 
-  List<PersistentBottomNavBarItem> _navBarItems() {
-    return [
-      PersistentBottomNavBarItem(
-        icon: Icon(Icons.home),
-        title: "Home",
-        activeColorPrimary: kBlue,
-        inactiveColorPrimary: Colors.grey,
-      ),
-      PersistentBottomNavBarItem(
-        icon: Icon(Icons.directions_car_rounded),
-        title: "Car",
-        activeColorPrimary: kBlue,
-        inactiveColorPrimary: Colors.grey,
-      ),
-      PersistentBottomNavBarItem(
-        icon: Icon(Icons.history),
-        title: "Reports",
-        activeColorPrimary: kBlue,
-        inactiveColorPrimary: Colors.grey,
-      ),
-      PersistentBottomNavBarItem(
-        icon: Icon(Icons.settings),
-        title: "Settings",
-        activeColorPrimary: kBlue,
-        inactiveColorPrimary: Colors.grey,
-      ),
-    ];
+  void _onTabTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return PersistentTabView(
-      context,
-      controller: _controller,
-      screens: _buildScreens(),
-      items: _navBarItems(),
-      // confineInSafeArea: true,
-      backgroundColor: Colors.white,
-      handleAndroidBackButtonPress: true,
-      resizeToAvoidBottomInset: true,
-      stateManagement: true,
-      // hideNavigationBarWhenKeyboardShows: true,
-      decoration: NavBarDecoration(
-        borderRadius: BorderRadius.circular(10.0),
-        colorBehindNavBar: Colors.white,
+    return Scaffold(
+      body: IndexedStack(index: _selectedIndex, children: _buildScreens()),
+      bottomNavigationBar: MotionTabBar(
+        controller: _motionTabBarController,
+        initialSelectedTab: "Home",
+        useSafeArea: true,
+        labels: const ["Home", "Car", "Reports", "Settings"],
+        icons: const [
+          Icons.home,
+          Icons.directions_car_rounded,
+          Icons.history,
+          Icons.settings,
+        ],
+
+        // Styling
+        tabSize: 50,
+        tabBarHeight: 55,
+        textStyle: const TextStyle(
+          fontSize: 12,
+          color: Colors.black,
+          fontWeight: FontWeight.w500,
+        ),
+        tabIconColor: Colors.grey,
+        tabIconSize: 28.0,
+        tabIconSelectedSize: 26.0,
+        tabSelectedColor: kBlue,
+        tabIconSelectedColor: Colors.white,
+        tabBarColor: Colors.white,
+
+        onTabItemSelected: _onTabTapped,
       ),
-      navBarStyle: NavBarStyle.style3,
     );
   }
 }
