@@ -1,4 +1,5 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/routes/routes.dart';
 import 'package:atom/views/widgets/custom_alert.dart';
 import 'package:atom/views/widgets/custom_header.dart';
 import 'package:flutter/cupertino.dart';
@@ -163,7 +164,10 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               icon: Icons.location_on_outlined,
                               color: Colors.green,
                               onTap: () {
-                                // Navigate to geo fence
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.geofencingScreen,
+                                );
                               },
                             ),
                             _buildFeatureTile(
