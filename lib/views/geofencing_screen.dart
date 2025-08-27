@@ -33,7 +33,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
-          'Geofencing Setup',
+          'Geofencing',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.white,
@@ -41,7 +41,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
         elevation: 0.5,
         actions: [
           IconButton(
-            icon: Icon(Icons.clear_all),
+            icon: Icon(Icons.format_clear_rounded),
             onPressed: _clearAllZones,
             tooltip: 'Clear All Zones',
           ),
