@@ -1,6 +1,6 @@
 import 'package:atom/config/constants.dart';
-import 'package:atom/views/widgets/custom_header.dart';
-import 'package:atom/views/widgets/notifications_card.dart';
+import 'package:atom/widgets/custom_header.dart';
+import 'package:atom/widgets/notifications_card.dart';
 import 'package:flutter/material.dart';
 
 class NotificationScreen extends StatefulWidget {

@@ -5,8 +5,8 @@ import 'package:atom/views/settings/change_password.dart';
 import 'package:atom/views/settings/contact_us.dart';
 import 'package:atom/views/settings/delete_account.dart';
 import 'package:atom/views/settings/privacy_policy.dart';
-import 'package:atom/views/widgets/custom_alert.dart';
-import 'package:atom/views/widgets/custom_header.dart';
+import 'package:atom/widgets/custom_alert.dart';
+import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 

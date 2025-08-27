@@ -1,7 +1,7 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/views/selected_car_screen.dart';
-import 'package:atom/views/widgets/car_info_card.dart';
-import 'package:atom/views/widgets/custom_header.dart';
+import 'package:atom/widgets/car_info_card.dart';
+import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 
 class CarsScreen extends StatefulWidget {
