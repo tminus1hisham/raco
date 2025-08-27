@@ -51,11 +51,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
           children: [
             const SizedBox(height: 10),
             customHeader(label: "Notifications", icon: Icons.notifications),
+            const SizedBox(height: 10),
             Expanded(
               child: notifications.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       itemCount: notifications.length,
                       itemBuilder: (context, index) {
                         return NotificationCard(

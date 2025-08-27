@@ -129,96 +129,173 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeaderBanner() {
     return Container(
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.fromLTRB(20, 50, 20, 20),
+      // Added top padding for status bar
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [kBlue, kBlue],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        // borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 10),
-                Text(
-                  'Good Morning,',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: kWhite,
-                  ),
-                ),
-                Row(
+          // Top row with greeting and actions
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'John Doe',
+                      _getGreeting(),
                       style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: kWhite,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        color: kWhite.withOpacity(0.9),
                       ),
                     ),
-                    SizedBox(width: 8),
-                    Container(
-                      height: 40,
-                      width: 40,
-                      child: Lottie.asset(
-                        'assets/animations/hand.json',
-                        fit: BoxFit.contain,
-                      ),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          'John Doe',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: kWhite,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Container(
+                          height: 28,
+                          width: 28,
+                          child: Lottie.asset(
+                            'assets/animations/hand.json',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(context, AppRoutes.notifications);
-                },
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.notifications_outlined,
-                    size: 28,
-                    color: kWhite,
-                  ),
-                ),
               ),
-              SizedBox(width: 10),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.person, color: Colors.white, size: 30),
+              Row(
+                children: [
+                  _buildHeaderButton(
+                    icon: Icons.notifications_outlined,
+                    onTap: () =>
+                        Navigator.pushNamed(context, AppRoutes.notifications),
+                    hasNotification: true, // You can make this dynamic
+                  ),
+                  SizedBox(width: 12),
+                  _buildHeaderButton(
+                    icon: Icons.person_outline,
+                    onTap: () {
+                      // Handle profile tap
+                    },
+                  ),
+                ],
               ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildHeaderButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    bool hasNotification = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+        ),
+        child: Stack(
+          children: [
+            Center(child: Icon(icon, size: 22, color: kWhite)),
+            if (hasNotification)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: kWhite, width: 1),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: kWhite, size: 20),
+          SizedBox(height: 6),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: kWhite,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: kWhite.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
   }
 
   Widget _buildVehicleList() {
