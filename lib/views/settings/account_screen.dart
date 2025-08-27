@@ -3,6 +3,7 @@ import 'package:atom/widgets/buttons/custom_border_button.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 class AccountScreen extends StatelessWidget {
   @override
@@ -14,7 +15,7 @@ class AccountScreen extends StatelessWidget {
           children: [
             SizedBox(height: 10),
             customHeader(label: "Profile", icon: Icons.person),
-            SizedBox(height: 20),
+            SizedBox(height: 10),
             _buildProfileCard(context),
           ],
         ),
@@ -25,7 +26,7 @@ class AccountScreen extends StatelessWidget {
   Widget _buildProfileCard(context) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20),
-      padding: EdgeInsets.all(24),
+      padding: EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -40,10 +41,13 @@ class AccountScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundColor: kBlue.withOpacity(0.1),
-            child: Icon(Icons.person, size: 50, color: kBlue),
+          Container(
+            height: 150,
+            width: double.infinity,
+            child: Lottie.asset(
+              'assets/animations/profile.json',
+              fit: BoxFit.contain,
+            ),
           ),
           SizedBox(height: 24),
 
