@@ -1,4 +1,5 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/routes/routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -58,7 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
           Column(
             children: [
-              // SizedBox(height: 10),
               _buildHeaderBanner(),
               Spacer(), // This pushes the vehicle list to the bottom
               _buildVehicleList(),
@@ -77,9 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
         options: MapOptions(
           initialCenter: vehicles[selectedVehicleIndex].position,
           initialZoom: 13.0,
-          interactionOptions: InteractionOptions(
-            flags: InteractiveFlag.all,
-          ),
+          interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
         ),
         children: [
           TileLayer(
@@ -153,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 10,),
+                SizedBox(height: 10),
                 Text(
                   'Good Morning,',
                   style: TextStyle(
@@ -188,14 +186,23 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(12),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, AppRoutes.notifications);
+                },
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.notifications_outlined,
+                    size: 28,
+                    color: kWhite,
+                  ),
                 ),
-                child: Icon(Icons.notifications_outlined, size: 28, color: kWhite),
               ),
               SizedBox(width: 10),
               Container(
@@ -205,11 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.white24,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 30,
-                ),
+                child: Icon(Icons.person, color: Colors.white, size: 30),
               ),
             ],
           ),
@@ -236,7 +239,8 @@ class _HomeScreenState extends State<HomeScreen> {
               margin: EdgeInsets.only(right: 12),
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.95), // Made slightly transparent
+                color: Colors.white.withOpacity(0.95),
+                // Made slightly transparent
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: isSelected ? kBlue : Colors.transparent,
@@ -278,7 +282,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         Row(
                           children: [
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: vehicle.status == VehicleStatus.moving
                                     ? kBlue
@@ -320,7 +327,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 60,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: isSelected ? kBlue.withOpacity(0.1) : Colors.grey[100],
+                      color: isSelected
+                          ? kBlue.withOpacity(0.1)
+                          : Colors.grey[100],
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(

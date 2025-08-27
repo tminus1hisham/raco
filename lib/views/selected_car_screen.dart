@@ -189,8 +189,8 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               },
                             ),
                             _buildFeatureTile(
-                              title: 'Analytics',
-                              subtitle: 'Usage statistics',
+                              title: 'Reports',
+                              subtitle: 'Vehicle reports',
                               icon: Icons.analytics_outlined,
                               color: Colors.teal,
                               onTap: () {
