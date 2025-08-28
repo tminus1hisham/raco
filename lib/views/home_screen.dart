@@ -194,13 +194,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.notifications_outlined,
                     onTap: () =>
                         Navigator.pushNamed(context, AppRoutes.notifications),
-                    hasNotification: true, // You can make this dynamic
+                    hasNotification: true,
                   ),
                   SizedBox(width: 12),
                   _buildHeaderButton(
                     icon: Icons.person_outline,
                     onTap: () {
-                      // Handle profile tap
+                      Navigator.pushNamed(context, AppRoutes.account);
                     },
                   ),
                 ],

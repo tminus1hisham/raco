@@ -6,6 +6,7 @@ import 'package:atom/views/auth/reset_password_screen.dart';
 import 'package:atom/views/dashboard.dart';
 import 'package:atom/views/geofencing_screen.dart';
 import 'package:atom/views/notification_screen.dart';
+import 'package:atom/views/settings/account_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -18,6 +19,7 @@ class AppRoutes {
   static const String dashboard = '/dashboard';
   static const String geofencingScreen = 'geofencingScreen';
   static const String notifications = 'notifications';
+  static const String account = 'account';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -45,6 +47,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => GeofencingScreen());
       case notifications:
         return MaterialPageRoute(builder: (_) => NotificationScreen());
+      case account:
+        return MaterialPageRoute(builder: (_) => AccountScreen());
       default:
         return MaterialPageRoute(
           builder: (_) =>
