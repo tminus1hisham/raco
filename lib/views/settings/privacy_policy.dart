@@ -116,6 +116,7 @@ class PrivacyPolicy extends StatelessWidget {
                                 color: Colors.grey.shade600,
                               ),
                             ),
+                            const SizedBox(height: 20),
                           ],
                         ),
                       ),
@@ -140,7 +141,7 @@ class PrivacyPolicy extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, color: Colors.grey.shade700, size: 20),
+            Icon(icon, color: kBlue, size: 20),
             const SizedBox(width: 8),
             Text(
               title,

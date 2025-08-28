@@ -1,19 +1,150 @@
+import 'package:atom/config/constants.dart';
+import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 
-class AboutUs extends StatefulWidget {
+class AboutUs extends StatelessWidget {
   const AboutUs({super.key});
 
   @override
-  State<AboutUs> createState() => _AboutUsState();
-}
-
-class _AboutUsState extends State<AboutUs> {
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Text('about us'),
+      backgroundColor: kBgGrey,
+      body: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(height: 10),
+            customHeader(label: "About Us", icon: Icons.info_outline),
+            SizedBox(height: 10),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 32),
+
+                      _buildSection(
+                        icon: Icons.info_outline,
+                        title: 'About Our App',
+                        content:
+                            'Speed Governor is a comprehensive solution for managing vehicle speed control systems. Our app helps users monitor, configure, and maintain speed governors with ease and reliability.',
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Mission
+                      _buildSection(
+                        icon: Icons.flag,
+                        title: 'Our Mission',
+                        content:
+                            'To provide safe, efficient, and user-friendly speed management solutions that promote road safety and regulatory compliance for vehicle operators.',
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Features
+                      _buildSection(
+                        icon: Icons.star,
+                        title: 'Key Features',
+                        content:
+                            '• Real-time speed monitoring\n• Easy configuration management\n• Secure user authentication\n• Comprehensive reporting\n• 24/7 technical support',
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Contact Section
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: kBlue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.contact_mail, color: kBlue),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Get in Touch',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            _buildContactItem(
+                              Icons.email,
+                              'support@speedgov.com',
+                            ),
+                            const SizedBox(height: 8),
+                            _buildContactItem(Icons.phone, '+1 (555) 123-4567'),
+                            const SizedBox(height: 8),
+                            _buildContactItem(Icons.web, 'www.atom.com'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Copyright
+                      Center(
+                        child: Text(
+                          '© 2024 Atom. All rights reserved.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildSection({
+    required IconData icon,
+    required String title,
+    required String content,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: kBlue, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.only(left: 28),
+          child: Text(
+            content,
+            style: const TextStyle(fontSize: 14, height: 1.5),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContactItem(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: kBlue),
+        const SizedBox(width: 8),
+        Text(text, style: const TextStyle(fontSize: 14)),
+      ],
     );
   }
 }
