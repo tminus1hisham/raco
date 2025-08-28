@@ -28,7 +28,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: kBgGrey,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -38,6 +38,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
               label: "Delete Account",
               icon: Icons.delete_outline_outlined,
             ),
+            SizedBox(height: 10),
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 20),
@@ -183,6 +184,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
             borderColor: kGrey,
             txtColor: kBlack,
           ),
+          SizedBox(height: 20),
         ],
       ),
     );
