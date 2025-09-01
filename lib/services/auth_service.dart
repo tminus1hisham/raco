@@ -14,6 +14,7 @@ class AuthService {
       await StorageService.storeData({
         'access_token': data['token'],
         'refreshToken': data['refreshToken'],
+        'isLoggedin': true,
       });
     } catch (e) {
       print('Error storing tokens: $e');
@@ -71,6 +72,7 @@ class AuthService {
   Future<bool> logoutUser() async {
     try {
       await StorageService.removeData('access_token');
+      await StorageService.storeData({'isLoggedin': false});
 
       return true;
     } catch (e) {

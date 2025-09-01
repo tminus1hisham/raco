@@ -1,4 +1,5 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/views/settings/about_us.dart';
 import 'package:atom/views/settings/account_screen.dart';
 import 'package:atom/views/settings/change_password.dart';
@@ -9,6 +10,7 @@ import 'package:atom/widgets/custom_alert.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -16,6 +18,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final AuthController _authController = Get.put(AuthController());
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -163,7 +167,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 message: "Are you sure you want to logout?",
                                 confirmText: "Logout",
                                 cancelText: "Cancel",
-                                onConfirm: () {},
+                                onConfirm: () =>
+                                    _authController.logout(context),
                               ),
                             );
                           },

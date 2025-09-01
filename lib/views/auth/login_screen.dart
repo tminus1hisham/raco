@@ -68,7 +68,6 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 20),
 
-                      // Welcome text
                       Text(
                         'Welcome to Atom',
                         style: TextStyle(
@@ -161,6 +160,12 @@ class _LoginScreenState extends State<LoginScreen>
             prefixIcon: Icons.email_outlined,
             controller: _emailController,
             isRequired: true,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return "This filed is required";
+              }
+              return null;
+            },
           ),
 
           InputField(
@@ -169,6 +174,12 @@ class _LoginScreenState extends State<LoginScreen>
             password: true,
             controller: _passwordController,
             isRequired: true,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return "This field is required";
+              }
+              return null;
+            },
           ),
 
           const SizedBox(height: 16),
@@ -194,7 +205,6 @@ class _LoginScreenState extends State<LoginScreen>
 
           const SizedBox(height: 30),
 
-          // Login button
           CustomButton(
             callBackFunction: _login,
             label: "Login",
