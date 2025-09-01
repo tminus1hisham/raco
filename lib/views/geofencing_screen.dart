@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:vibration/vibration.dart';
 
 class GeofencingScreen extends StatefulWidget {
   @override
@@ -20,12 +19,6 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   bool isDrawingMode = true;
   bool isDrawing = false;
   List<GeofenceZone> geofenceZones = [];
-
-  Future<void> mediumImpact() async {
-    if (await Vibration.hasVibrator() ?? false) {
-      Vibration.vibrate(duration: 50, amplitude: 128);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
