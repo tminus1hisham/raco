@@ -15,7 +15,12 @@ class Dashboard extends StatefulWidget {
 class _DashboardState extends State<Dashboard> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = [HomeScreen(), CarsScreen(), SettingsScreen()];
+  final List<Widget> _screens = [
+    HomeScreen(),
+    CarsScreen(),
+    SettingsScreen(),
+    SettingsScreen(),
+  ];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -38,6 +43,7 @@ class _DashboardState extends State<Dashboard> {
             icon: Icon(Icons.directions_car_rounded),
             label: 'My Cars',
           ),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Reports'),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Settings',
