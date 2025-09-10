@@ -157,7 +157,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               },
                             ),
                             _buildFeatureTile(
-                              title: 'Commands',
+                              title: 'Vehicle Behaviour',
                               subtitle: 'Control your vehicle',
                               icon: Icons.settings_remote,
                               color: Colors.orange,

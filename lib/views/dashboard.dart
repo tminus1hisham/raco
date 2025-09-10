@@ -1,5 +1,6 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/views/cars_screen.dart';
+import 'package:atom/views/reports.dart';
 import 'package:atom/views/settings_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -18,7 +19,7 @@ class _DashboardState extends State<Dashboard> {
   final List<Widget> _screens = [
     HomeScreen(),
     CarsScreen(),
-    SettingsScreen(),
+    GeneralReports(),
     SettingsScreen(),
   ];
 
@@ -43,7 +44,10 @@ class _DashboardState extends State<Dashboard> {
             icon: Icon(Icons.directions_car_rounded),
             label: 'My Cars',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Reports'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.file_copy_outlined),
+            label: 'Reports',
+          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Settings',
