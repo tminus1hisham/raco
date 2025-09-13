@@ -1,9 +1,8 @@
-import 'package:atom/widgets/buttons/custom_border_button.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:atom/config/constants.dart';
-import 'package:atom/widgets/inputs/custom_input.dart';
+import 'package:atom/widgets/buttons/custom_border_button.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
+import 'package:atom/widgets/inputs/custom_input.dart';
+import 'package:flutter/material.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   @override
@@ -12,7 +11,8 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +31,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   child: Hero(
                     tag: "logo",
                     child: Image(
-                      image: AssetImage('assets/logo.png'),
+                      image: AssetImage('assets/eagle_logo.png'),
                       height: 80,
                       width: 100,
                     ),
@@ -56,10 +56,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 // Subtitle
                 Text(
                   'The password must be different than before',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                   textAlign: TextAlign.center,
                 ),
 
@@ -73,7 +70,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   controller: _newPasswordController,
                   isRequired: true,
                 ),
-
 
                 // Confirm password input
                 InputField(
@@ -97,10 +93,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
 
                 const SizedBox(height: 10),
-                CustomBorderButton(callBackFunction: () {
-                 Navigator.pop(context);
-                }, label: "Cancel", borderColor: Colors.grey.shade400, txtColor: kBlack),
-
+                CustomBorderButton(
+                  callBackFunction: () {
+                    Navigator.pop(context);
+                  },
+                  label: "Cancel",
+                  borderColor: Colors.grey.shade400,
+                  txtColor: kBlack,
+                ),
               ],
             ),
           ),
@@ -111,9 +111,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   void _handleContinue() {
     if (_newPasswordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Passwords do not match')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
@@ -125,9 +125,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     }
 
     // Handle password reset logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Password reset successfully!')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Password reset successfully!')));
 
     // Navigate back to login
     Navigator.popUntil(context, (route) => route.isFirst);
@@ -145,8 +145,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 class ForgotPasswordIllustration extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.fill;
+    final paint = Paint()..style = PaintingStyle.fill;
 
     // Draw a simple email illustration
     final center = Offset(size.width / 2, size.height / 2);
@@ -184,10 +183,7 @@ class ForgotPasswordIllustration extends CustomPainter {
       textDirection: TextDirection.ltr,
     );
     textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(center.dx + 35, center.dy - 70),
-    );
+    textPainter.paint(canvas, Offset(center.dx + 35, center.dy - 70));
   }
 
   @override

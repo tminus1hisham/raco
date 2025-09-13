@@ -53,23 +53,21 @@ class _LoginScreenState extends State<LoginScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 50),
+                      const SizedBox(height: 10),
                       // Logo
                       Center(
                         child: Hero(
                           tag: "logo",
                           child: Image(
-                            image: AssetImage('assets/logo.png'),
-                            height: 80,
-                            width: 100,
+                            image: AssetImage('assets/eagle_logo.png'),
+                            height: 180,
+                            width: 180,
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: 20),
-
                       Text(
-                        'Welcome to Atom',
+                        'Welcome to Eagles Eye',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -156,8 +154,8 @@ class _LoginScreenState extends State<LoginScreen>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InputField(
-            hintText: 'Enter your email',
-            prefixIcon: Icons.email_outlined,
+            hintText: 'Email or phone number',
+            prefixIcon: Icons.perm_phone_msg_rounded,
             controller: _emailController,
             isRequired: true,
             validator: (value) {

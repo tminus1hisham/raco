@@ -2,8 +2,8 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
-import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class Onboarding extends StatefulWidget {
@@ -15,27 +15,30 @@ class _OnboardingState extends State<Onboarding> {
   int activeIndex = 0;
   final CarouselSliderController controller = CarouselSliderController();
 
-
   final List<OnboardingData> onboardingItems = [
     OnboardingData(
       image: 'assets/image_2.jpg',
       title: 'Real-Time Vehicle Tracking',
-      description: 'Monitor your fleet in real-time with GPS and OBD-II data. Stay updated on location, speed, and vehicle health directly from the app.',
+      description:
+          'Monitor your fleet in real-time with GPS and OBD-II data. Stay updated on location, speed, and vehicle health directly from the app.',
     ),
     OnboardingData(
       image: 'assets/image_3.jpg',
       title: 'Smart Alerts & Notifications',
-      description: 'Receive instant alerts for overspeeding, tampering, and abnormal vehicle conditions. Stay compliant and keep your drivers safe.',
+      description:
+          'Receive instant alerts for overspeeding, tampering, and abnormal vehicle conditions. Stay compliant and keep your drivers safe.',
     ),
     OnboardingData(
       image: 'assets/image_1.jpg',
       title: 'Fleet & Driver Management',
-      description: 'Easily manage vehicles, assign drivers, and access trip history with secure role-based access. Streamline operations and improve efficiency.',
+      description:
+          'Easily manage vehicles, assign drivers, and access trip history with secure role-based access. Streamline operations and improve efficiency.',
     ),
     OnboardingData(
       image: 'assets/image_1.jpg',
       title: 'Compliance & Reporting',
-      description: 'Generate NTSA-compliant reports, view trip summaries, and download performance insights to keep your fleet compliant and accountable.',
+      description:
+          'Generate NTSA-compliant reports, view trip summaries, and download performance insights to keep your fleet compliant and accountable.',
     ),
   ];
 
@@ -50,14 +53,14 @@ class _OnboardingState extends State<Onboarding> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(0.0),
               child: Center(
                 child: Hero(
                   tag: "logo",
                   child: Image(
-                    image: AssetImage('assets/logo.png'),
-                    height: 80,
-                    width: 100,
+                    image: AssetImage('assets/eagle_logo.png'),
+                    height: 200,
+                    width: 200,
                   ),
                 ),
               ),
@@ -105,7 +108,9 @@ class _OnboardingState extends State<Onboarding> {
                               const SizedBox(height: 16),
 
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20.0,
+                                ),
                                 child: Text(
                                   item.description,
                                   style: TextStyle(
@@ -170,7 +175,9 @@ class _OnboardingState extends State<Onboarding> {
                         );
                       }
                     },
-                    label: activeIndex == onboardingItems.length - 1 ? 'Sign in' : 'Next',
+                    label: activeIndex == onboardingItems.length - 1
+                        ? 'Sign in'
+                        : 'Next',
                     backgroundColor: kBlue,
                     txtColor: Colors.white,
                   ),
@@ -189,9 +196,24 @@ class _OnboardingState extends State<Onboarding> {
                         );
                       }
                     },
-                    label: activeIndex == onboardingItems.length - 1 ? 'Sign up' : 'Skip',
+                    label: activeIndex == onboardingItems.length - 1
+                        ? 'Sign up'
+                        : 'Skip',
                     borderColor: Colors.grey.shade400,
                     txtColor: Colors.grey.shade700,
+                  ),
+                  SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image(
+                        image: AssetImage('assets/logo.png'),
+                        height: 40,
+                        width: 40,
+                      ),
+                      SizedBox(width: 20),
+                      Text('Powered by Atom', style: TextStyle(color: kGrey)),
+                    ],
                   ),
                 ],
               ),

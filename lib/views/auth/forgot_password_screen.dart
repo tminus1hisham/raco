@@ -1,10 +1,9 @@
+import 'package:atom/config/constants.dart';
 import 'package:atom/views/auth/verification_screen.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:atom/config/constants.dart';
-import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
+import 'package:atom/widgets/inputs/custom_input.dart';
+import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -33,7 +32,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   child: Hero(
                     tag: "logo",
                     child: Image(
-                      image: AssetImage('assets/logo.png'),
+                      image: AssetImage('assets/eagle_logo.png'),
                       height: 80,
                       width: 100,
                     ),
@@ -56,10 +55,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                 Text(
                   'Enter your email account to reset password',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                   textAlign: TextAlign.center,
                 ),
 
@@ -98,9 +94,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 const SizedBox(height: 10),
 
                 CustomBorderButton(
-                    callBackFunction: () {Navigator.pop(context);},
-                    label: "Cancel", borderColor: Colors.grey.shade400,
-                    txtColor: kBlack),
+                  callBackFunction: () {
+                    Navigator.pop(context);
+                  },
+                  label: "Cancel",
+                  borderColor: Colors.grey.shade400,
+                  txtColor: kBlack,
+                ),
               ],
             ),
           ),
@@ -113,9 +113,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VerificationCodeScreen(
-          email: _emailController.text,
-        ),
+        builder: (context) =>
+            VerificationCodeScreen(email: _emailController.text),
       ),
     );
     // if (_emailController.text.isNotEmpty) {

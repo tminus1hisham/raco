@@ -1,6 +1,7 @@
 // lib/pages/general_reports.dart
 import 'dart:convert';
 
+import 'package:atom/config/constants.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -136,6 +137,7 @@ class _GeneralReportsState extends State<GeneralReports> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: kBgGrey,
       body: SafeArea(
         child: FutureBuilder<List<VehicleData>>(
           future: _futureData,

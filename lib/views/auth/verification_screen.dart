@@ -1,20 +1,24 @@
+import 'package:atom/config/constants.dart';
 import 'package:atom/views/auth/reset_password_screen.dart';
+import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:atom/config/constants.dart';
-import 'package:atom/widgets/buttons/custom_button.dart';
 
 class VerificationCodeScreen extends StatefulWidget {
   final String email;
 
-  const VerificationCodeScreen({Key? key, required this.email}) : super(key: key);
+  const VerificationCodeScreen({Key? key, required this.email})
+    : super(key: key);
 
   @override
   _VerificationCodeScreenState createState() => _VerificationCodeScreenState();
 }
 
 class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
-  List<TextEditingController> codeControllers = List.generate(6, (index) => TextEditingController());
+  List<TextEditingController> codeControllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
   List<FocusNode> focusNodes = List.generate(6, (index) => FocusNode());
 
   @override
@@ -34,7 +38,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   child: Hero(
                     tag: "logo",
                     child: Image(
-                      image: AssetImage('assets/logo.png'),
+                      image: AssetImage('assets/eagle_logo.png'),
                       height: 80,
                       width: 100,
                     ),
@@ -60,10 +64,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                 RichText(
                   text: TextSpan(
                     text: 'We have sent a code to ',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                     children: [
                       TextSpan(
                         text: widget.email,
@@ -168,7 +169,6 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                 ),
 
                 const SizedBox(height: 100),
-
               ],
             ),
           ),
@@ -180,9 +180,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   void _handleVerify() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => ResetPasswordScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => ResetPasswordScreen()),
     );
     // String code = codeControllers.map((controller) => controller.text).join();
     // if (code.length == 6) {
