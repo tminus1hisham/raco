@@ -133,6 +133,85 @@ class _GeneralReportsState extends State<GeneralReports> {
         .toList();
   }
 
+  Widget _buildDatePickerButton({
+    required String label,
+    required DateTime? selectedDate,
+    required VoidCallback onTap,
+    required IconData icon,
+  }) {
+    return Expanded(
+      child: Container(
+        height: 80,
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          elevation: 2,
+          shadowColor: Colors.black.withOpacity(0.1),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: selectedDate != null
+                      ? kBlue.withOpacity(0.3)
+                      : Colors.grey.withOpacity(0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    icon,
+                    color: selectedDate != null ? kBlue : Colors.grey[600],
+                    size: 20,
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          selectedDate != null
+                              ? _dateFormat.format(selectedDate)
+                              : 'Select date',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: selectedDate != null
+                                ? Colors.black87
+                                : Colors.grey[500],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.grey[400],
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -173,21 +252,18 @@ class _GeneralReportsState extends State<GeneralReports> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            ElevatedButton(
-                              onPressed: () => _pickStartDate(context),
-                              child: Text(
-                                _startDate == null
-                                    ? "Select Start Date"
-                                    : "From: ${_dateFormat.format(_startDate!)}",
-                              ),
+                            _buildDatePickerButton(
+                              label: 'Start Date',
+                              selectedDate: _startDate,
+                              onTap: () => _pickStartDate(context),
+                              icon: Icons.calendar_today_outlined,
                             ),
-                            ElevatedButton(
-                              onPressed: () => _pickEndDate(context),
-                              child: Text(
-                                _endDate == null
-                                    ? "Select End Date"
-                                    : "To: ${_dateFormat.format(_endDate!)}",
-                              ),
+                            SizedBox(width: 12),
+                            _buildDatePickerButton(
+                              label: 'End Date',
+                              selectedDate: _endDate,
+                              onTap: () => _pickEndDate(context),
+                              icon: Icons.event_outlined,
                             ),
                           ],
                         ),
@@ -195,7 +271,19 @@ class _GeneralReportsState extends State<GeneralReports> {
                         const SizedBox(height: 12),
 
                         // Violations bar chart
-                        Card(
+                        Container(
+                          decoration: BoxDecoration(
+                            color: kWhite,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                spreadRadius: 0,
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.all(12),
                             child: Column(
@@ -294,7 +382,19 @@ class _GeneralReportsState extends State<GeneralReports> {
                         const SizedBox(height: 16),
 
                         // Pie chart
-                        Card(
+                        Container(
+                          decoration: BoxDecoration(
+                            color: kWhite,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                spreadRadius: 0,
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.all(12),
                             child: Column(

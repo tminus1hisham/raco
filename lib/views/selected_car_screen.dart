@@ -199,7 +199,10 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               icon: Icons.analytics_outlined,
                               color: Colors.teal,
                               onTap: () {
-                                // Navigate to analytics
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.car_report,
+                                );
                               },
                             ),
                           ],

@@ -7,31 +7,81 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class CarReports extends StatefulWidget {
-  const CarReports({Key? key}) : super(key: key);
+  final String? vehicleId;
+  final String? vehicleName;
+  final String? vehiclePlate;
+
+  const CarReports({
+    Key? key,
+    this.vehicleId,
+    this.vehicleName,
+    this.vehiclePlate,
+  }) : super(key: key);
 
   @override
   _CarReportsState createState() => _CarReportsState();
 }
 
 class _CarReportsState extends State<CarReports> {
-  late Future<List<VehicleData>> _futureData;
+  VehicleData? _vehicleData;
   DateTime? _startDate;
   DateTime? _endDate;
 
-  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+  final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
 
   @override
   void initState() {
     super.initState();
-    _futureData = fetchVehiclesFromJson();
+    _loadVehicleData();
+  }
+
+  void _loadVehicleData() {
+    // Simulate loading single vehicle data
+    _vehicleData = _getSingleVehicleData();
+  }
+
+  VehicleData _getSingleVehicleData() {
+    // Sample data for single vehicle
+    const sampleJson = '''
+    {
+      "id": "v1",
+      "name": "Isuzu NQR",
+      "plate": "KDF 001A",
+      "date": "2025-09-01",
+      "violations": {
+        "overspeed": 12,
+        "tamper": 2,
+        "geofence": 1,
+        "harshBraking": 5,
+        "rapidAcceleration": 3,
+        "idleTime": 8
+      }
+    }
+    ''';
+
+    final Map<String, dynamic> parsed = json.decode(sampleJson);
+    return VehicleData.fromJson(parsed);
   }
 
   Future<void> _pickStartDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _startDate ?? DateTime.now().subtract(Duration(days: 30)),
       firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: kBlue,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -43,9 +93,22 @@ class _CarReportsState extends State<CarReports> {
   Future<void> _pickEndDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _startDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
+      initialDate: _endDate ?? DateTime.now(),
+      firstDate: _startDate ?? DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: kBlue,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -54,303 +117,406 @@ class _CarReportsState extends State<CarReports> {
     }
   }
 
-  Future<List<VehicleData>> fetchVehiclesFromJson() async {
-    const sampleJson = '''
-    {
-      "vehicles": [
-        {
-          "id": "v1",
-          "name": "Truck A",
-          "plate": "KAA-001A",
-          "date": "2025-09-01",
-          "violations": {
-            "overspeed": 12,
-            "tamper": 2,
-            "geofence": 1,
-            "harshBraking": 5,
-            "rapidAcceleration": 3,
-            "idleTime": 8
-          }
-        },
-      ]
-    }
-    ''';
+  List<ViolationBarData> getViolationsData() {
+    if (_vehicleData == null) return [];
 
-    await Future.delayed(const Duration(milliseconds: 300));
-    final Map<String, dynamic> parsed = json.decode(sampleJson);
-    final List vehicles = parsed['vehicles'] ?? [];
-    return vehicles.map((v) => VehicleData.fromJson(v)).toList();
-  }
-
-  List<ViolationBarData> aggregateViolations(List<VehicleData> vehicles) {
+    final violations = _vehicleData!.violations;
     final map = <String, double>{
-      'Overspeed': 0,
-      'Tamper': 0,
-      'Geofence': 0,
-      'Harsh Brake': 0,
-      'Rapid Accel': 0,
-      'Idle Time': 0,
+      'Overspeed': violations.overspeed.toDouble(),
+      'Tamper': violations.tamper.toDouble(),
+      'Geofence': violations.geofence.toDouble(),
+      'Harsh Brake': violations.harshBraking.toDouble(),
+      'Rapid Accel': violations.rapidAcceleration.toDouble(),
+      'Idle Time': violations.idleTime.toDouble(),
     };
-    for (var v in vehicles) {
-      map['Overspeed'] = map['Overspeed']! + v.violations.overspeed;
-      map['Tamper'] = map['Tamper']! + v.violations.tamper;
-      map['Geofence'] = map['Geofence']! + v.violations.geofence;
-      map['Harsh Brake'] = map['Harsh Brake']! + v.violations.harshBraking;
-      map['Rapid Accel'] = map['Rapid Accel']! + v.violations.rapidAcceleration;
-      map['Idle Time'] = map['Idle Time']! + v.violations.idleTime;
-    }
+
     return map.entries
         .map((e) => ViolationBarData(e.key, e.value))
         .where((d) => d.value > 0)
         .toList();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBgGrey,
-      body: SafeArea(
-        child: FutureBuilder<List<VehicleData>>(
-          future: _futureData,
-          builder: (context, snap) {
-            if (!snap.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final allVehicles = snap.data!;
-
-            // Apply date filter
-            final filtered = allVehicles.where((v) {
-              if (_startDate != null && v.date.isBefore(_startDate!)) {
-                return false;
-              }
-              if (_endDate != null && v.date.isAfter(_endDate!)) {
-                return false;
-              }
-              return true;
-            }).toList();
-
-            final violations = aggregateViolations(filtered);
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 10),
-                customHeader(label: "Reports", icon: Icons.file_copy_outlined),
-                SizedBox(height: 20),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15),
-                    child: ListView(
+  Widget _buildDatePickerButton({
+    required String label,
+    required DateTime? selectedDate,
+    required VoidCallback onTap,
+    required IconData icon,
+  }) {
+    return Expanded(
+      child: Container(
+        height: 80,
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          elevation: 2,
+          shadowColor: Colors.black.withOpacity(0.1),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: selectedDate != null
+                      ? kBlue.withOpacity(0.3)
+                      : Colors.grey.withOpacity(0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    icon,
+                    color: selectedDate != null ? kBlue : Colors.grey[600],
+                    size: 20,
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () => _pickStartDate(context),
-                              child: Text(
-                                _startDate == null
-                                    ? "Select Start Date"
-                                    : "From: ${_dateFormat.format(_startDate!)}",
-                              ),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => _pickEndDate(context),
-                              child: Text(
-                                _endDate == null
-                                    ? "Select End Date"
-                                    : "To: ${_dateFormat.format(_endDate!)}",
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // Violations bar chart
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Violations Overview',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                  height: 260,
-                                  child: BarChart(
-                                    BarChartData(
-                                      alignment: BarChartAlignment.spaceAround,
-                                      maxY:
-                                          (violations.isEmpty
-                                                  ? 10.0
-                                                  : (violations
-                                                            .map((d) => d.value)
-                                                            .reduce(
-                                                              (a, b) =>
-                                                                  a > b ? a : b,
-                                                            ) *
-                                                        1.2))
-                                              .clamp(10.0, double.infinity),
-                                      titlesData: FlTitlesData(
-                                        bottomTitles: AxisTitles(
-                                          sideTitles: SideTitles(
-                                            showTitles: true,
-                                            getTitlesWidget: (value, meta) {
-                                              final idx = value.toInt();
-                                              if (idx < violations.length) {
-                                                return Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                        top: 6,
-                                                      ),
-                                                  child: Text(
-                                                    violations[idx].category,
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                              return const SizedBox.shrink();
-                                            },
-                                          ),
-                                        ),
-                                        leftTitles: AxisTitles(
-                                          sideTitles: SideTitles(
-                                            showTitles: true,
-                                          ),
-                                        ),
-                                        topTitles: AxisTitles(
-                                          sideTitles: SideTitles(
-                                            showTitles: false,
-                                          ),
-                                        ),
-                                        rightTitles: AxisTitles(
-                                          sideTitles: SideTitles(
-                                            showTitles: false,
-                                          ),
-                                        ),
-                                      ),
-                                      borderData: FlBorderData(show: false),
-                                      barGroups: violations.asMap().entries.map(
-                                        (e) {
-                                          final idx = e.key;
-                                          final d = e.value;
-                                          return BarChartGroupData(
-                                            x: idx,
-                                            barRods: [
-                                              BarChartRodData(
-                                                toY: d.value,
-                                                width: 20,
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                                color: violationColor(
-                                                  d.category,
-                                                ),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      ).toList(),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-
-                        const SizedBox(height: 16),
-
-                        // Pie chart
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Violations Distribution',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                  height: 220,
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: PieChart(
-                                          PieChartData(
-                                            sections: violations.map((d) {
-                                              return PieChartSectionData(
-                                                value: d.value,
-                                                title: d.value
-                                                    .toInt()
-                                                    .toString(),
-                                                radius: 70,
-                                                titleStyle: const TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                color: violationColor(
-                                                  d.category,
-                                                ),
-                                              );
-                                            }).toList(),
-                                            centerSpaceRadius: 28,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: violations.map((d) {
-                                          return Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 6,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Container(
-                                                  width: 14,
-                                                  height: 14,
-                                                  decoration: BoxDecoration(
-                                                    color: violationColor(
-                                                      d.category,
-                                                    ),
-                                                    shape: BoxShape.circle,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                  '${d.category} (${d.value.toInt()})',
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                        SizedBox(height: 2),
+                        Text(
+                          selectedDate != null
+                              ? _dateFormat.format(selectedDate)
+                              : 'Select date',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: selectedDate != null
+                                ? Colors.black87
+                                : Colors.grey[500],
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   ),
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.grey[400],
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final violations = getViolationsData();
+
+    return Scaffold(
+      backgroundColor: kBgGrey,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 10),
+            customHeader(label: "Report", icon: Icons.assessment_outlined),
+
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: ListView(
+                  children: [
+                    SizedBox(height: 20),
+                    Row(
+                      children: [
+                        _buildDatePickerButton(
+                          label: 'Start Date',
+                          selectedDate: _startDate,
+                          onTap: () => _pickStartDate(context),
+                          icon: Icons.calendar_today_outlined,
+                        ),
+                        SizedBox(width: 12),
+                        _buildDatePickerButton(
+                          label: 'End Date',
+                          selectedDate: _endDate,
+                          onTap: () => _pickEndDate(context),
+                          icon: Icons.event_outlined,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    Container(
+                      decoration: BoxDecoration(
+                        color: kWhite,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            spreadRadius: 0,
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.bar_chart, color: kBlue, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Violations Overview',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            SizedBox(
+                              height: 260,
+                              child: violations.isEmpty
+                                  ? Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle_outline,
+                                            size: 48,
+                                            color: Colors.green,
+                                          ),
+                                          SizedBox(height: 12),
+                                          Text(
+                                            'No violations found',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.grey[600],
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : BarChart(
+                                      BarChartData(
+                                        alignment:
+                                            BarChartAlignment.spaceAround,
+                                        maxY:
+                                            (violations.isEmpty
+                                                    ? 10.0
+                                                    : (violations
+                                                              .map(
+                                                                (d) => d.value,
+                                                              )
+                                                              .reduce(
+                                                                (a, b) => a > b
+                                                                    ? a
+                                                                    : b,
+                                                              ) *
+                                                          1.2))
+                                                .clamp(10.0, double.infinity),
+                                        titlesData: FlTitlesData(
+                                          bottomTitles: AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: true,
+                                              getTitlesWidget: (value, meta) {
+                                                final idx = value.toInt();
+                                                if (idx < violations.length) {
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 6,
+                                                        ),
+                                                    child: Text(
+                                                      violations[idx].category,
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                                return const SizedBox.shrink();
+                                              },
+                                            ),
+                                          ),
+                                          leftTitles: AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: true,
+                                            ),
+                                          ),
+                                          topTitles: AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: false,
+                                            ),
+                                          ),
+                                          rightTitles: AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: false,
+                                            ),
+                                          ),
+                                        ),
+                                        borderData: FlBorderData(show: false),
+                                        barGroups: violations
+                                            .asMap()
+                                            .entries
+                                            .map((e) {
+                                              final idx = e.key;
+                                              final d = e.value;
+                                              return BarChartGroupData(
+                                                x: idx,
+                                                barRods: [
+                                                  BarChartRodData(
+                                                    toY: d.value,
+                                                    width: 20,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                    color: violationColor(
+                                                      d.category,
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            })
+                                            .toList(),
+                                      ),
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Pie chart
+                    if (violations.isNotEmpty) ...[
+                      Container(
+                        decoration: BoxDecoration(
+                          color: kWhite,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              spreadRadius: 0,
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.pie_chart, color: kBlue, size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Violations Distribution',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                height: 220,
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: PieChart(
+                                        PieChartData(
+                                          sections: violations.map((d) {
+                                            return PieChartSectionData(
+                                              value: d.value,
+                                              title: d.value.toInt().toString(),
+                                              radius: 70,
+                                              titleStyle: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              color: violationColor(d.category),
+                                            );
+                                          }).toList(),
+                                          centerSpaceRadius: 28,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: violations.map((d) {
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 6,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 14,
+                                                height: 14,
+                                                decoration: BoxDecoration(
+                                                  color: violationColor(
+                                                    d.category,
+                                                  ),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                '${d.category} (${d.value.toInt()})',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    SizedBox(height: 20),
+                  ],
                 ),
-              ],
-            );
-          },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -376,7 +542,7 @@ class _CarReportsState extends State<CarReports> {
   }
 }
 
-// Models
+// Models (unchanged)
 class VehicleData {
   final String id;
   final String name;
