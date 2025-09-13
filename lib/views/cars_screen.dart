@@ -25,6 +25,13 @@ class _CarsScreenState extends State<CarsScreen> {
               child: ListView(
                 children: [
                   CarInfoCard(
+                    carModel: 'BMW X6',
+                    licensePlate: 'KDF 001A',
+                    status: 'Moving',
+                    statusColor: Colors.green,
+                    statusBackgroundColor: Color(0xFFE8F5E8),
+                    currentSpeed: '65 km/h',
+                    topSpeed: '78 km/h',
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -37,55 +44,27 @@ class _CarsScreenState extends State<CarsScreen> {
                         ),
                       );
                     },
-                    carModel: 'BMW X3',
-                    licensePlate: "KDB002A",
-                    batteryLevel: 6,
-                    stats: [
-                      StatCardData(icon: Icons.location_on, value: '20 km'),
-                      StatCardData(icon: Icons.speed, value: '100 km/h'),
-                    ],
                   ),
                   CarInfoCard(
+                    carModel: 'Isuzu NQR',
+                    licensePlate: 'KDF 001A',
+                    status: 'Overspeed',
+                    statusColor: kRed,
+                    statusBackgroundColor: kRed.withOpacity(0.1),
+                    currentSpeed: '80 km/h',
+                    topSpeed: '90 km/h',
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => SelectedCarScreen(
-                            carModel: 'BMW X6',
+                            carModel: 'Isuzu NQR',
                             licensePlate: 'AG 5758 SS',
                             batteryLevel: 4,
                           ),
                         ),
                       );
                     },
-                    carModel: 'Tesla',
-                    licensePlate: "KDB001A",
-                    batteryLevel: 2,
-                    stats: [
-                      StatCardData(icon: Icons.location_on, value: '25.3 km'),
-                      StatCardData(icon: Icons.speed, value: '85 km/h'),
-                    ],
-                  ),
-                  CarInfoCard(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SelectedCarScreen(
-                            carModel: 'BMW X6',
-                            licensePlate: 'AG 5758 SS',
-                            batteryLevel: 4,
-                          ),
-                        ),
-                      );
-                    },
-                    carModel: 'Tesla',
-                    licensePlate: "KDB001A",
-                    batteryLevel: 4,
-                    stats: [
-                      StatCardData(icon: Icons.location_on, value: '25.3 km'),
-                      StatCardData(icon: Icons.speed, value: '85 km/h'),
-                    ],
                   ),
                 ],
               ),

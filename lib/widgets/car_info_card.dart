@@ -5,9 +5,11 @@ class CarInfoCard extends StatelessWidget {
   final String carModel;
   final String licensePlate;
   final IconData carIcon;
-  final int batteryLevel;
-  final bool showFuelIcon;
-  final List<StatCardData> stats;
+  final String status; // "Moving", "Engine OFF", etc.
+  final Color statusColor; // Green for moving, orange for engine off
+  final Color statusBackgroundColor;
+  final String currentSpeed;
+  final String topSpeed;
   final VoidCallback onPressed;
 
   const CarInfoCard({
@@ -15,9 +17,11 @@ class CarInfoCard extends StatelessWidget {
     required this.carModel,
     required this.licensePlate,
     this.carIcon = Icons.directions_car_rounded,
-    this.batteryLevel = 6,
-    this.showFuelIcon = true,
-    required this.stats,
+    required this.status,
+    this.statusColor = Colors.green,
+    this.statusBackgroundColor = const Color(0xFFE8F5E8),
+    required this.currentSpeed,
+    required this.topSpeed,
     required this.onPressed,
   });
 
@@ -28,15 +32,16 @@ class CarInfoCard extends StatelessWidget {
       child: GestureDetector(
         onTap: onPressed,
         child: Container(
-          padding: EdgeInsets.all(16),
+          padding: EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                spreadRadius: 2,
-                blurRadius: 8,
+                color: Colors.black.withOpacity(0.08),
+                spreadRadius: 0,
+                blurRadius: 10,
+                offset: Offset(0, 4),
               ),
             ],
           ),
@@ -45,91 +50,101 @@ class CarInfoCard extends StatelessWidget {
             children: [
               Row(
                 children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          licensePlate,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          carModel,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Container(
-                    width: 50,
-                    height: 50,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: kBlue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
                       carIcon,
-                      color: kBlue.withOpacity(0.9),
-                      size: 30,
+                      color: kBlue.withOpacity(0.8),
+                      size: 20,
                     ),
-                  ),
-                  SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        carModel,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      Text(
-                        licensePlate,
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                  Spacer(),
-                  Row(
-                    children: [
-                      Row(
-                        children: List.generate(
-                          6,
-                          (index) => Container(
-                            width: 8,
-                            height: 16,
-                            margin: EdgeInsets.only(right: 2),
-                            decoration: BoxDecoration(
-                              color: index < batteryLevel
-                                  ? (batteryLevel <= 2
-                                        ? Colors.red
-                                        : batteryLevel < 5
-                                        ? kBlue
-                                        : Colors.green)
-                                  : Colors.grey[300]!,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      if (showFuelIcon)
-                        Icon(
-                          Icons.local_gas_station,
-                          color: batteryLevel <= 2
-                              ? Colors.red
-                              : batteryLevel < 5
-                              ? kBlue
-                              : Colors.green,
-                        ),
-                    ],
                   ),
                 ],
               ),
-              SizedBox(height: 16),
+              SizedBox(height: 10),
               Row(
-                children: stats
-                    .map(
-                      (stat) => Expanded(
-                        child: Container(
-                          margin: EdgeInsets.only(
-                            right: stat == stats.last ? 0 : 8,
-                          ),
-                          child: _buildStatCard(
-                            icon: stat.icon,
-                            value: stat.value,
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: statusBackgroundColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            shape: BoxShape.circle,
                           ),
                         ),
+                        SizedBox(width: 8),
+                        Text(
+                          status,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Spacer(),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Speed: $currentSpeed',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    )
-                    .toList(),
+                      SizedBox(height: 2),
+                      Text(
+                        'Top Speed (6Hrs): $topSpeed',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
@@ -137,37 +152,4 @@ class CarInfoCard extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildStatCard({required IconData icon, required String value}) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: kWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(icon, size: 16, color: kGrey),
-          SizedBox(height: 5),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: kGrey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class StatCardData {
-  final IconData icon;
-  final String value;
-
-  StatCardData({required this.icon, required this.value});
 }
