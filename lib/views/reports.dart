@@ -243,7 +243,7 @@ class _GeneralReportsState extends State<GeneralReports> {
               children: [
                 SizedBox(height: 10),
                 customHeader(label: "Reports", icon: Icons.file_copy_outlined),
-                SizedBox(height: 20),
+                SizedBox(height: 10),
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 15),
@@ -268,7 +268,7 @@ class _GeneralReportsState extends State<GeneralReports> {
                           ],
                         ),
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
 
                         // Violations bar chart
                         Container(

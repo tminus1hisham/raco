@@ -4,7 +4,6 @@ import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -36,113 +35,109 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    authController.fullname.value = _fullNameController.text;
-    authController.email.value = _emailController.text;
+    authController.fullName.value = _fullNameController.text;
+    authController.emailAddress.value = _emailController.text;
     authController.password.value = _passwordController.text;
     authController.phoneNumber.value = _phoneNumberController.text;
+    authController.userRole.value = 'Admin';
+    authController.userFirebaseToken.value = 'string';
     authController.register(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Obx(
-      () => Stack(
-        children: [
-          Form(
-            key: _registerKey,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  InputField(
-                    hintText: 'Full Name',
-                    prefixIcon: Icons.person_outline,
-                    controller: _fullNameController,
-                    isRequired: true,
-                  ),
-                  InputField(
-                    hintText: 'Phone Number',
-                    prefixIcon: Icons.phone_outlined,
-                    controller: _phoneNumberController,
-                    integerOnly: true,
-                    isRequired: true,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Phone number is required";
-                      }
-                      return null;
-                    },
-                  ),
-                  InputField(
-                    hintText: 'Enter your email',
-                    prefixIcon: Icons.email_outlined,
-                    controller: _emailController,
-                    isRequired: true,
-                  ),
-                  InputField(
-                    hintText: 'Enter your password',
-                    prefixIcon: Icons.lock_outline,
-                    controller: _passwordController,
-                    isRequired: true,
-                    password: true,
-                  ),
-                  InputField(
-                    hintText: 'Confirm your password',
-                    prefixIcon: Icons.lock_outline,
-                    controller: _confirmPasswordController,
-                    isRequired: true,
-                    password: true,
-                  ),
-                  SizedBox(height: 10),
+      () => SizedBox.expand(
+        child: Stack(
+          children: [
+            Form(
+              key: _registerKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    InputField(
+                      hintText: 'Full Name',
+                      prefixIcon: Icons.person_outline,
+                      controller: _fullNameController,
+                      isRequired: true,
+                    ),
+                    InputField(
+                      hintText: 'Phone Number',
+                      prefixIcon: Icons.phone_outlined,
+                      controller: _phoneNumberController,
+                      integerOnly: true,
+                      isRequired: true,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Phone number is required";
+                        }
+                        return null;
+                      },
+                    ),
+                    InputField(
+                      hintText: 'Enter your email',
+                      prefixIcon: Icons.email_outlined,
+                      controller: _emailController,
+                      isRequired: true,
+                    ),
+                    InputField(
+                      hintText: 'Enter your password',
+                      prefixIcon: Icons.lock_outline,
+                      controller: _passwordController,
+                      isRequired: true,
+                      password: true,
+                    ),
+                    InputField(
+                      hintText: 'Confirm your password',
+                      prefixIcon: Icons.lock_outline,
+                      controller: _confirmPasswordController,
+                      isRequired: true,
+                      password: true,
+                    ),
+                    SizedBox(height: 10),
 
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Checkbox(
-                        value: _agreeToTerms,
-                        onChanged: (value) {
-                          setState(() {
-                            _agreeToTerms = value ?? false;
-                          });
-                        },
-                        activeColor: kBlue,
-                      ),
-                      Expanded(
-                        child: Text(
-                          'By agreeing to the terms and conditions, you are entering into a legally binding contract with atom.',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 15,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          value: _agreeToTerms,
+                          onChanged: (value) {
+                            setState(() {
+                              _agreeToTerms = value ?? false;
+                            });
+                          },
+                          activeColor: kBlue,
+                        ),
+                        Expanded(
+                          child: Text(
+                            'By agreeing to the terms and conditions, you are entering into a legally binding contract with atom.',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 20),
-                  CustomButton(
-                    callBackFunction: () {
-                      _agreeToTerms ? _handleSignUp : null;
-                    },
-                    label: "Sign Up",
-                    backgroundColor: _agreeToTerms ? kBlue : kGrey,
-                    txtColor: kWhite,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (authController.isLoading.value)
-            Container(
-              color: Colors.black.withOpacity(0.3),
-              child: Center(
-                child: LoadingAnimationWidget.fourRotatingDots(
-                  color: kBlue,
-                  size: 50,
+                    const SizedBox(height: 20),
+                    CustomButton(
+                      callBackFunction: () {
+                        if (_agreeToTerms) {
+                          _handleSignUp();
+                        }
+                      },
+                      label: "Sign Up",
+                      backgroundColor: _agreeToTerms ? kBlue : kGrey,
+                      txtColor: kWhite,
+                    ),
+                  ],
                 ),
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -16,7 +16,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   final AuthController authController = Get.put(AuthController());
@@ -28,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen>
       return;
     }
 
-    authController.phoneNumberOrEmail.value = _emailController.text;
+    authController.phoneNumber.value = _phoneNumberController.text;
     authController.password.value = _passwordController.text;
     authController.login(context);
   }
@@ -154,9 +154,9 @@ class _LoginScreenState extends State<LoginScreen>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InputField(
-            hintText: 'Email or phone number',
-            prefixIcon: Icons.perm_phone_msg_rounded,
-            controller: _emailController,
+            hintText: 'Phone number',
+            prefixIcon: Icons.phone,
+            controller: _phoneNumberController,
             isRequired: true,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
@@ -244,7 +244,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void dispose() {
     _tabController.dispose();
-    _emailController.dispose();
+    _phoneNumberController.dispose();
     _passwordController.dispose();
     super.dispose();
   }

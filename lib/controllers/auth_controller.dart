@@ -7,12 +7,17 @@ import '../routes/routes.dart';
 import '../services/auth_service.dart';
 
 class AuthController extends GetxController {
-  var phoneNumberOrEmail = ''.obs;
-  var email = ''.obs;
-  var fullname = ''.obs;
+  var emailAddress = ''.obs;
+  var fullName = ''.obs;
   var phoneNumber = ''.obs;
   var password = ''.obs;
   var isLoading = false.obs;
+  var userFirebaseToken = ''.obs;
+  var deviceModel = ''.obs;
+  var userAgent = ''.obs;
+  var location = ''.obs;
+  var ipAddress = ''.obs;
+  var userRole = ''.obs;
 
   final AuthService _authService = AuthService();
 
@@ -21,10 +26,12 @@ class AuthController extends GetxController {
 
     try {
       final registerModel = RegisterModel(
-        fullname: fullname.value,
-        email: email.value,
+        fullName: fullName.value,
+        emailAddress: emailAddress.value,
         phoneNumber: phoneNumber.value,
         password: password.value,
+        userFirebaseToken: userFirebaseToken.value,
+        userRole: userRole.value,
       );
 
       final result = await _authService.register(registerModel);
@@ -44,8 +51,13 @@ class AuthController extends GetxController {
 
     try {
       final loginModel = LoginModel(
-        phoneNumberOrEmail: phoneNumberOrEmail.value.trim(),
+        phoneNumber: phoneNumber.value.trim(),
         password: password.value.trim(),
+        firebaseToken: userFirebaseToken.value.trim(),
+        deviceModel: deviceModel.value.trim(),
+        userAgent: userAgent.value.trim(),
+        location: location.value.trim(),
+        ipAddress: ipAddress.value.trim(),
       );
 
       final result = await _authService.login(loginModel);

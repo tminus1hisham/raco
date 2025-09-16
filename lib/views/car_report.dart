@@ -233,7 +233,7 @@ class _CarReportsState extends State<CarReports> {
                 padding: EdgeInsets.symmetric(horizontal: 20),
                 child: ListView(
                   children: [
-                    SizedBox(height: 20),
+                    SizedBox(height: 10),
                     Row(
                       children: [
                         _buildDatePickerButton(
@@ -252,7 +252,7 @@ class _CarReportsState extends State<CarReports> {
                       ],
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
 
                     Container(
                       decoration: BoxDecoration(
@@ -405,7 +405,7 @@ class _CarReportsState extends State<CarReports> {
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
 
                     // Pie chart
                     if (violations.isNotEmpty) ...[

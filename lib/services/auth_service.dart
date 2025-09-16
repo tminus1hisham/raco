@@ -14,6 +14,7 @@ class AuthService {
       await StorageService.storeData({
         'access_token': data['token'],
         'refreshToken': data['refreshToken'],
+        'userId': data['userId'],
         'isLoggedin': true,
       });
     } catch (e) {
@@ -51,10 +52,6 @@ class AuthService {
         body: jsonEncode(request.toJson()),
       );
 
-      print(response.body);
-      print(response.statusCode);
-      print(request.toJson());
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         await _storeTokens(data);
@@ -71,7 +68,7 @@ class AuthService {
 
   Future<bool> logoutUser() async {
     try {
-      await StorageService.removeData('access_token');
+      // await StorageService.removeData('access_token');
       await StorageService.storeData({'isLoggedin': false});
 
       return true;
