@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:atom/config/constants.dart';
+import 'package:atom/models/change_password_model.dart';
 import 'package:atom/models/forgot_password_model.dart';
 import 'package:atom/models/login_model.dart';
 import 'package:atom/models/register_model.dart';
@@ -16,6 +17,7 @@ class AuthService {
       await StorageService.storeData({
         'access_token': data['token'],
         'refreshToken': data['refreshToken'],
+        'phone': data['phone'],
         'userId': data['userId'],
         'isLoggedin': true,
       });
@@ -89,6 +91,34 @@ class AuthService {
       throw Exception('Network error, please check your connection');
     } catch (e) {
       throw Exception('An error occurred during sending code: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> changePassword(
+    ChangePasswordModel request,
+  ) async {
+    String token = await StorageService.getData('access_token');
+    try {
+      final response = await http.post(
+        Uri.parse('$BASE_URL/auth/change/password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        await _storeTokens(data);
+        return data;
+      } else {
+        throw Exception('Failed to change password');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred during changing password: $e');
     }
   }
 

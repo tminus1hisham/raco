@@ -1,11 +1,14 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/change_password_controller.dart';
+import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:lottie/lottie.dart';
-// import 'path/to/your/input_field.dart'; // Import your InputField widget
 
 class ChangePassword extends StatefulWidget {
   @override
@@ -13,28 +16,78 @@ class ChangePassword extends StatefulWidget {
 }
 
 class _ChangePasswordState extends State<ChangePassword> {
+  String phoneNumber = '';
   final TextEditingController currentPasswordController =
       TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
 
+  final ChangePasswordController changePasswordController = Get.put(
+    ChangePasswordController(),
+  );
+  final GlobalKey<FormState> _changePasswordKey = GlobalKey<FormState>();
+
+  void _fetchPhoneNumber() async {
+    phoneNumber = await StorageService.getData('phone');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPhoneNumber();
+  }
+
+  void _changePassword() {
+    if (!_changePasswordKey.currentState!.validate()) {
+      return;
+    }
+
+    changePasswordController.phoneNumber.value = phoneNumber;
+    changePasswordController.currentPassword.value = currentPasswordController
+        .text
+        .trim();
+    changePasswordController.newPassword.value = newPasswordController.text
+        .trim();
+
+    changePasswordController.changePassword(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: SafeArea(
-        child: Column(
+      body: Obx(
+        () => Stack(
           children: [
-            SizedBox(height: 10),
-            customHeader(label: "Change Password", icon: Icons.security),
-            SizedBox(height: 10),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: _buildPasswordForm(),
+            SafeArea(
+              child: Column(
+                children: [
+                  SizedBox(height: 10),
+                  customHeader(label: "Change Password", icon: Icons.security),
+                  SizedBox(height: 10),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Form(
+                        key: _changePasswordKey,
+                        child: _buildPasswordForm(),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+            if (changePasswordController.isLoading.value)
+              Container(
+                color: Colors.black.withOpacity(0.3),
+                child: Center(
+                  child: LoadingAnimationWidget.fourRotatingDots(
+                    color: kBlue,
+                    size: 50,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -67,6 +120,7 @@ class _ChangePasswordState extends State<ChangePassword> {
             ),
           ),
           SizedBox(height: 24),
+
           InputField(
             hintText: 'Current Password',
             password: true,
@@ -93,15 +147,13 @@ class _ChangePasswordState extends State<ChangePassword> {
               if (value == null || value.isEmpty) {
                 return 'New password is required';
               }
-              if (value.length < 6) {
-                return 'Password must be at least 6 characters';
-              }
               return null;
             },
           ),
 
           SizedBox(height: 8),
 
+          /// Confirm Password
           InputField(
             hintText: 'Confirm New Password',
             password: true,
@@ -121,8 +173,9 @@ class _ChangePasswordState extends State<ChangePassword> {
 
           SizedBox(height: 32),
 
+          /// Submit
           CustomButton(
-            callBackFunction: () {},
+            callBackFunction: _changePassword,
             label: "Update Password",
             backgroundColor: kBlue,
             txtColor: kWhite,
@@ -140,16 +193,6 @@ class _ChangePasswordState extends State<ChangePassword> {
         ],
       ),
     );
-  }
-
-  void _changePassword() {
-    // Handle password change logic here
-    print('Current: ${currentPasswordController.text}');
-    print('New: ${newPasswordController.text}');
-    print('Confirm: ${confirmPasswordController.text}');
-
-    // Add your password change logic here
-    // After successful change, you can show a success message or navigate back
   }
 
   @override

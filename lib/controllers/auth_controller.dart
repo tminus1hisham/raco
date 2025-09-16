@@ -67,10 +67,7 @@ class AuthController extends GetxController {
       }
     } catch (e) {
       debugPrint('Login failed: $e');
-      Get.snackbar(
-        "Login Failed",
-        "Please check your phone/email and password",
-      );
+      Get.snackbar("Login Failed", "Please check your phone or password");
     } finally {
       isLoading.value = false;
     }
