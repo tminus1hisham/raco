@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class VerificationCodeScreen extends StatefulWidget {
-  final String email;
+  final String phoneNumber;
 
-  const VerificationCodeScreen({Key? key, required this.email})
+  const VerificationCodeScreen({Key? key, required this.phoneNumber})
     : super(key: key);
 
   @override
@@ -39,8 +39,8 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                     tag: "logo",
                     child: Image(
                       image: AssetImage('assets/eagle_logo.png'),
-                      height: 80,
-                      width: 100,
+                      height: 180,
+                      width: 180,
                     ),
                   ),
                 ),
@@ -67,7 +67,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                     style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                     children: [
                       TextSpan(
-                        text: widget.email,
+                        text: widget.phoneNumber,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: Colors.grey.shade800,
@@ -83,39 +83,41 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                 // Code input fields
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(6, (index) {
+                  children: List.generate(4, (index) {
                     return Container(
-                      width: 50,
-                      height: 60,
+                      width: 70,
+                      height: 80,
                       decoration: BoxDecoration(
                         color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: TextField(
-                        controller: codeControllers[index],
-                        focusNode: focusNodes[index],
-                        textAlign: TextAlign.center,
-                        keyboardType: TextInputType.number,
-                        maxLength: 1,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade800,
+                      child: Center(
+                        child: TextField(
+                          controller: codeControllers[index],
+                          focusNode: focusNodes[index],
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          maxLength: 1,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade800,
+                          ),
+                          decoration: InputDecoration(
+                            counterText: '',
+                            border: InputBorder.none,
+                          ),
+                          onChanged: (value) {
+                            if (value.isNotEmpty && index < 5) {
+                              focusNodes[index + 1].requestFocus();
+                            } else if (value.isEmpty && index > 0) {
+                              focusNodes[index - 1].requestFocus();
+                            }
+                          },
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                         ),
-                        decoration: InputDecoration(
-                          counterText: '',
-                          border: InputBorder.none,
-                        ),
-                        onChanged: (value) {
-                          if (value.isNotEmpty && index < 5) {
-                            focusNodes[index + 1].requestFocus();
-                          } else if (value.isEmpty && index > 0) {
-                            focusNodes[index - 1].requestFocus();
-                          }
-                        },
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
                       ),
                     );
                   }),
@@ -198,9 +200,10 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   }
 
   void _handleResendCode() {
-    // Handle resend code logic
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Verification code resent to ${widget.email}')),
+      SnackBar(
+        content: Text('Verification code resent to ${widget.phoneNumber}'),
+      ),
     );
   }
 
