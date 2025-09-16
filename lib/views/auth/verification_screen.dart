@@ -180,23 +180,20 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   }
 
   void _handleVerify() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => ResetPasswordScreen()),
-    );
-    // String code = codeControllers.map((controller) => controller.text).join();
-    // if (code.length == 6) {
-    //   Navigator.push(
-    //     context,
-    //     MaterialPageRoute(
-    //       builder: (context) => ResetPasswordScreen(),
-    //     ),
-    //   );
-    // } else {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Please enter the complete verification code')),
-    //   );
-    // }
+    String code = codeControllers.map((controller) => controller.text).join();
+    if (code.length == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              ResetPasswordScreen(code: code, phoneNumber: widget.phoneNumber),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter the complete verification code')),
+      );
+    }
   }
 
   void _handleResendCode() {

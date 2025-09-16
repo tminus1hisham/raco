@@ -61,7 +61,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 20),
-                    // Logo
                     Center(
                       child: Hero(
                         tag: "logo",
@@ -123,7 +122,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
             ),
 
-            // Loader
             if (forgotPasswordService.isLoading.value)
               Container(
                 color: Colors.black.withOpacity(0.3),

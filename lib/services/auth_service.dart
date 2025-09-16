@@ -5,6 +5,7 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/models/forgot_password_model.dart';
 import 'package:atom/models/login_model.dart';
 import 'package:atom/models/register_model.dart';
+import 'package:atom/models/reset_password_model.dart';
 import 'package:http/http.dart' as http;
 
 import 'local_storage_service.dart';
@@ -82,12 +83,36 @@ class AuthService {
         await _storeTokens(data);
         return data;
       } else {
-        throw Exception('Failed to login');
+        throw Exception('Failed to send code');
       }
     } on SocketException catch (_) {
       throw Exception('Network error, please check your connection');
     } catch (e) {
-      throw Exception('An error occurred during login: $e');
+      throw Exception('An error occurred during sending code: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> resetPassword(
+    ResetPasswordModel request,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${BASE_URL}/auth/reset/password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(request.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        await _storeTokens(data);
+        return data;
+      } else {
+        throw Exception('Failed to reset password');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred during resetting password: $e');
     }
   }
 

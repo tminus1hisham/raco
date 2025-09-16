@@ -2,7 +2,6 @@ import 'package:atom/views/auth/forgot_password_screen.dart';
 import 'package:atom/views/auth/login_screen.dart';
 import 'package:atom/views/auth/onboarding_screen.dart';
 import 'package:atom/views/auth/register_screen.dart';
-import 'package:atom/views/auth/reset_password_screen.dart';
 import 'package:atom/views/car_report.dart';
 import 'package:atom/views/dashboard.dart';
 import 'package:atom/views/geofencing_screen.dart';
@@ -16,7 +15,6 @@ class AppRoutes {
   static const String register = '/register';
   static const String onboarding = '/onboarding';
   static const String forgotPassword = '/forgotPassword';
-  static const String resetPasswordScreen = '/resetPasswordScreen';
   static const String dashboard = '/dashboard';
   static const String geofencingScreen = 'geofencingScreen';
   static const String notifications = 'notifications';
@@ -41,8 +39,6 @@ class AppRoutes {
         );
       case forgotPassword:
         return MaterialPageRoute(builder: (_) => ForgotPasswordScreen());
-      case resetPasswordScreen:
-        return MaterialPageRoute(builder: (_) => ResetPasswordScreen());
       case dashboard:
         return MaterialPageRoute(builder: (_) => Dashboard());
       case geofencingScreen:
