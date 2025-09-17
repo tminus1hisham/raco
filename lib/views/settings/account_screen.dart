@@ -1,14 +1,124 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/update_profile_controller.dart';
 import 'package:atom/controllers/user_data_controller.dart';
+import 'package:atom/services/local_storage_service.dart';
+import 'package:atom/services/upload_image_service.dart';
+import 'package:atom/views/camera_screen.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
-class AccountScreen extends StatelessWidget {
+class AccountScreen extends StatefulWidget {
+  const AccountScreen({Key? key}) : super(key: key);
+
+  @override
+  State<AccountScreen> createState() => _AccountScreenState();
+}
+
+class _AccountScreenState extends State<AccountScreen> {
   final UserResourceController controller = Get.put(UserResourceController());
+  String profileUrl = '';
+  XFile? profileImage;
+  bool isUploadingImage = false;
+
+  final ImageUploaderService uploadPictureService = ImageUploaderService();
+  final UpdateProfileController updateController = Get.put(
+    UpdateProfileController(),
+  );
+
+  Future<void> _onImagePicked(XFile? image) async {
+    if (image != null) {
+      setState(() {
+        profileImage = image;
+        isUploadingImage = true;
+      });
+
+      String? uploadedUrl = await uploadPictureService.uploadPicture(image);
+
+      if (uploadedUrl != null) {
+        setState(() {
+          profileUrl = uploadedUrl;
+          StorageService.storeData({'profileUrl': profileUrl});
+        });
+
+        updateController.image.value = uploadedUrl;
+        bool success = await updateController.changePassword(context);
+
+        if (success) {
+          Get.snackbar("Success", "Profile picture updated successfully");
+          controller.fetchUserProfile();
+        } else {
+          Get.snackbar("Error", "Failed to update profile picture");
+        }
+
+        setState(() {
+          isUploadingImage = false;
+        });
+      } else {
+        setState(() {
+          isUploadingImage = false;
+        });
+        Get.snackbar("Error", "Image upload failed");
+      }
+    }
+  }
+
+  void _showImageSourceModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo, color: kBlue),
+                  title: const Text('Choose from Gallery'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final picker = ImagePicker();
+                    final pickedImage = await picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
+                    _onImagePicked(pickedImage);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt, color: kBlue),
+                  title: const Text('Take a Photo'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final capturedImage = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CameraCaptureScreen(
+                          preferredCamera: CameraLensDirection.front,
+                        ),
+                      ),
+                    );
+
+                    if (capturedImage != null) {
+                      _onImagePicked(capturedImage);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +139,7 @@ class AccountScreen extends StatelessWidget {
       if (user == null) {
         return Scaffold(
           backgroundColor: kBgGrey,
-          body: Center(
+          body: const Center(
             child: Text(
               "No user data found",
               style: TextStyle(fontSize: 16, color: Colors.black),
@@ -40,108 +150,166 @@ class AccountScreen extends StatelessWidget {
 
       return Scaffold(
         backgroundColor: kBgGrey,
-        body: SafeArea(
-          child: Column(
-            children: [
-              SizedBox(height: 10),
-              customHeader(label: "Profile", icon: Icons.person),
-              SizedBox(height: 10),
-              Container(
-                margin: EdgeInsets.symmetric(horizontal: 20),
-                padding: EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: Offset(0, 2),
+        body: Stack(
+          children: [
+            SafeArea(
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  customHeader(label: "Profile", icon: Icons.person),
+                  const SizedBox(height: 10),
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(
-                      height: 150,
-                      width: 150,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey[200],
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 6,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child:
-                          (user.profileImage != null &&
-                              user.profileImage!.isNotEmpty)
-                          ? ClipOval(
-                              child: Image.network(
-                                user.profileImage!,
-                                fit: BoxFit.cover,
-                                width: 150,
-                                height: 150,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.person,
-                                    size: 80,
-                                    color: Colors.grey,
-                                  );
-                                },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              height: 130,
+                              width: 130,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.grey[200],
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                            )
-                          : Icon(Icons.person, size: 80, color: Colors.grey),
-                    ),
+                              child:
+                                  (user.profileImage != null &&
+                                      user.profileImage!.isNotEmpty)
+                                  ? ClipOval(
+                                      child: Image.network(
+                                        user.profileImage!,
+                                        fit: BoxFit.cover,
+                                        width: 130,
+                                        height: 130,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return Icon(
+                                                Icons.person,
+                                                size: 80,
+                                                color: Colors.grey,
+                                              );
+                                            },
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.person,
+                                      size: 80,
+                                      color: Colors.grey,
+                                    ),
+                            ),
 
-                    SizedBox(height: 24),
+                            Positioned(
+                              bottom: 0,
+                              right: 100,
+                              child: GestureDetector(
+                                onTap: () async {
+                                  _showImageSourceModal(context);
+                                  // final picker = ImagePicker();
+                                  // final pickedImage = await picker.pickImage(
+                                  //   source: ImageSource.gallery,
+                                  // );
+                                  // _onImagePicked(pickedImage);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: kBlue,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.edit,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
 
-                    _buildInfoRow(
-                      Icons.person_outline,
-                      'Full Name',
-                      user.fullName,
-                    ),
-                    SizedBox(height: 16),
+                        const SizedBox(height: 24),
 
-                    _buildInfoRow(
-                      Icons.email_outlined,
-                      'Email',
-                      user.emailAddress,
-                    ),
-                    SizedBox(height: 16),
+                        _buildInfoRow(
+                          Icons.person_outline,
+                          'Full Name',
+                          user.fullName,
+                        ),
+                        const SizedBox(height: 16),
 
-                    _buildInfoRow(
-                      Icons.phone_outlined,
-                      'Phone',
-                      user.phoneNumber,
-                    ),
-                    SizedBox(height: 32),
+                        _buildInfoRow(
+                          Icons.email_outlined,
+                          'Email',
+                          user.emailAddress,
+                        ),
+                        const SizedBox(height: 16),
 
-                    CustomButton(
-                      callBackFunction: () {},
-                      label: "Edit Profile",
-                      backgroundColor: kBlue,
-                      txtColor: kWhite,
-                    ),
-                    SizedBox(height: 10),
+                        _buildInfoRow(
+                          Icons.phone_outlined,
+                          'Phone',
+                          user.phoneNumber,
+                        ),
+                        const SizedBox(height: 32),
 
-                    CustomBorderButton(
-                      callBackFunction: () {
-                        Navigator.pop(context);
-                      },
-                      label: "Back",
-                      borderColor: kGrey,
-                      txtColor: kBlack,
+                        CustomButton(
+                          callBackFunction: () {},
+                          label: "Edit Profile",
+                          backgroundColor: kBlue,
+                          txtColor: kWhite,
+                        ),
+                        const SizedBox(height: 10),
+
+                        CustomBorderButton(
+                          callBackFunction: () {
+                            Navigator.pop(context);
+                          },
+                          label: "Back",
+                          borderColor: kGrey,
+                          txtColor: kBlack,
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            if (isUploadingImage)
+              Container(
+                color: Colors.black.withOpacity(0.3),
+                child: Center(
+                  child: LoadingAnimationWidget.fourRotatingDots(
+                    color: kBlue,
+                    size: 50,
+                  ),
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       );
     });
@@ -159,7 +327,7 @@ class AccountScreen extends StatelessWidget {
           ),
           child: Icon(icon, color: kBlue, size: 20),
         ),
-        SizedBox(width: 16),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,7 +342,7 @@ class AccountScreen extends StatelessWidget {
               ),
               Text(
                 value,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   color: Colors.black87,
                   fontWeight: FontWeight.w500,

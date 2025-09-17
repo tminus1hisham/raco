@@ -12,10 +12,10 @@ class UserResourceController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchUserResources();
+    fetchUserProfile();
   }
 
-  Future<void> fetchUserResources() async {
+  Future<void> fetchUserProfile() async {
     isLoading.value = true;
     try {
       final data = await _userService.fetchUserData();
