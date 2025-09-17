@@ -6,7 +6,6 @@ import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:lottie/lottie.dart';
 
 class AccountScreen extends StatelessWidget {
   final UserResourceController controller = Get.put(UserResourceController());
@@ -66,12 +65,39 @@ class AccountScreen extends StatelessWidget {
                   children: [
                     Container(
                       height: 150,
-                      width: double.infinity,
-                      child: Lottie.asset(
-                        'assets/animations/profile.json',
-                        fit: BoxFit.contain,
+                      width: 150,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey[200],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
+                      child:
+                          (user.profileImage != null &&
+                              user.profileImage!.isNotEmpty)
+                          ? ClipOval(
+                              child: Image.network(
+                                user.profileImage!,
+                                fit: BoxFit.cover,
+                                width: 150,
+                                height: 150,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(
+                                    Icons.person,
+                                    size: 80,
+                                    color: Colors.grey,
+                                  );
+                                },
+                              ),
+                            )
+                          : Icon(Icons.person, size: 80, color: Colors.grey),
                     ),
+
                     SizedBox(height: 24),
 
                     _buildInfoRow(
