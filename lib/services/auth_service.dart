@@ -82,7 +82,6 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        await _storeTokens(data);
         return data;
       } else {
         throw Exception('Failed to send code');
@@ -110,7 +109,6 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        await _storeTokens(data);
         return data;
       } else {
         throw Exception('Failed to change password');
@@ -134,7 +132,6 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        await _storeTokens(data);
         return data;
       } else {
         throw Exception('Failed to reset password');
