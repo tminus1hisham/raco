@@ -24,10 +24,7 @@ class ChangePasswordController extends GetxController {
       final result = await _authService.changePassword(changePasswordModel);
       return result != null;
     } catch (e) {
-      Get.snackbar(
-        "Failed to change password",
-        "Your current password is incorect",
-      );
+      print(e);
       return false;
     } finally {
       isLoading.value = false;

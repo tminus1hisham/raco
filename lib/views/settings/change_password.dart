@@ -5,6 +5,7 @@ import 'package:atom/widgets/buttons/custom_border_button.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
+import 'package:atom/widgets/modal/custom_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -38,7 +39,7 @@ class _ChangePasswordState extends State<ChangePassword> {
     _fetchPhoneNumber();
   }
 
-  void _changePassword() {
+  void _changePassword() async {
     if (!_changePasswordKey.currentState!.validate()) {
       return;
     }
@@ -50,7 +51,26 @@ class _ChangePasswordState extends State<ChangePassword> {
     changePasswordController.newPassword.value = newPasswordController.text
         .trim();
 
-    changePasswordController.changePassword(context);
+    bool success = await changePasswordController.changePassword(context);
+
+    if (success) {
+      await CustomAlertDialog(
+        context: context,
+        title: "Success",
+        message: "Your have successfully updated your password.",
+        icon: "assets/animations/Success.json",
+        buttonColor: kSuccessGreen,
+      );
+    } else {
+      await CustomAlertDialog(
+        context: context,
+        title: "Error",
+        message:
+            "Failed to update your password, please check your current password.",
+        icon: "assets/animations/Failed.json",
+        buttonColor: kRed,
+      );
+    }
   }
 
   @override
