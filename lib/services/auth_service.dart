@@ -49,28 +49,25 @@ class AuthService {
   }
 
   Future<Map<String, dynamic>?> login(LoginModel request) async {
-    print("HAPA");
-    print(request.toJson());
+    try {
+      final response = await http.post(
+        Uri.parse('${BASE_URL}/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(request.toJson()),
+      );
 
-    // try {
-    //   final response = await http.post(
-    //     Uri.parse('${BASE_URL}/auth/login'),
-    //     headers: {'Content-Type': 'application/json'},
-    //     body: jsonEncode(request.toJson()),
-    //   );
-    //
-    //   if (response.statusCode == 200) {
-    //     final data = json.decode(response.body);
-    //     await _storeTokens(data);
-    //     return data;
-    //   } else {
-    //     throw Exception('Failed to login');
-    //   }
-    // } on SocketException catch (_) {
-    //   throw Exception('Network error, please check your connection');
-    // } catch (e) {
-    //   throw Exception('An error occurred during login: $e');
-    // }
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        await _storeTokens(data);
+        return data;
+      } else {
+        throw Exception('Failed to login');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred during login: $e');
+    }
   }
 
   Future<Map<String, dynamic>?> forgotPassword(

@@ -207,7 +207,7 @@ class _ChangePasswordState extends State<ChangePassword> {
               Navigator.pop(context);
             },
             label: "Back",
-            borderColor: kGrey,
+            borderColor: kLightGrey,
             txtColor: kBlack,
           ),
         ],

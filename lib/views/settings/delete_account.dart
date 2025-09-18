@@ -181,7 +181,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
               Navigator.pop(context);
             },
             label: "Back",
-            borderColor: kGrey,
+            borderColor: kLightGrey,
             txtColor: kBlack,
           ),
           SizedBox(height: 20),

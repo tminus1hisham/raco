@@ -237,11 +237,6 @@ class _AccountScreenState extends State<AccountScreen> {
                               child: GestureDetector(
                                 onTap: () async {
                                   _showImageSourceModal(context);
-                                  // final picker = ImagePicker();
-                                  // final pickedImage = await picker.pickImage(
-                                  //   source: ImageSource.gallery,
-                                  // );
-                                  // _onImagePicked(pickedImage);
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.all(6),
@@ -303,7 +298,7 @@ class _AccountScreenState extends State<AccountScreen> {
                             Navigator.pop(context);
                           },
                           label: "Back",
-                          borderColor: kGrey,
+                          borderColor: kLightGrey,
                           txtColor: kBlack,
                         ),
                       ],
