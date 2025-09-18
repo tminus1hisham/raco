@@ -1,10 +1,12 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/routes/routes.dart';
+import 'package:atom/utils/utils.dart';
 import 'package:atom/views/auth/register_screen.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/custom_modal.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -16,21 +18,40 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
+  String userIp = '';
   late TabController _tabController;
   final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  final AuthController authController = Get.put(AuthController());
+  final utils = Utils();
 
+  final AuthController authController = Get.put(AuthController());
   final GlobalKey<FormState> _loginKey = GlobalKey<FormState>();
+
+  void fetchIp() async {
+    final ip = await utils.getLocalIpAddress();
+    if (ip != null) {
+      setState(() {
+        userIp = ip;
+      });
+    }
+  }
 
   Future<void> _login() async {
     if (!_loginKey.currentState!.validate()) {
       return;
     }
 
+    final deviceInfoPlugin = DeviceInfoPlugin();
+    final androidInfo = await deviceInfoPlugin.androidInfo;
+
     authController.phoneNumber.value = _phoneNumberController.text;
     authController.password.value = _passwordController.text;
+    authController.deviceModel.value = androidInfo.brand;
+    authController.userAgent.value = androidInfo.model;
+    authController.ipAddress.value = userIp;
+    authController.location.value = 'Nairobi';
+
     bool success = await authController.login(context);
 
     if (!success) {
@@ -48,6 +69,7 @@ class _LoginScreenState extends State<LoginScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    fetchIp();
   }
 
   @override

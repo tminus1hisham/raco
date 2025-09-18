@@ -1,0 +1,34 @@
+import 'dart:io';
+
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
+
+class Utils {
+  Future<String?> getLocalIpAddress() async {
+    for (var interface in await NetworkInterface.list()) {
+      for (var addr in interface.addresses) {
+        if (addr.type == InternetAddressType.IPv4) {
+          return addr.address;
+        }
+      }
+    }
+    return null;
+  }
+
+  Future<String?> getDeviceBrand() async {
+    final deviceInfoPlugin = DeviceInfoPlugin();
+
+    try {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final androidInfo = await deviceInfoPlugin.androidInfo;
+        return androidInfo.brand;
+      } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final iosInfo = await deviceInfoPlugin.iosInfo;
+        return iosInfo.utsname.machine;
+      }
+    } catch (e) {
+      print('Error getting device brand: $e');
+    }
+    return null;
+  }
+}
