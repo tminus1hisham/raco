@@ -4,6 +4,7 @@ import 'package:atom/routes/routes.dart';
 import 'package:atom/views/auth/register_screen.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
+import 'package:atom/widgets/modal/custom_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -23,14 +24,24 @@ class _LoginScreenState extends State<LoginScreen>
 
   final GlobalKey<FormState> _loginKey = GlobalKey<FormState>();
 
-  void _login() {
+  Future<void> _login() async {
     if (!_loginKey.currentState!.validate()) {
       return;
     }
 
     authController.phoneNumber.value = _phoneNumberController.text;
     authController.password.value = _passwordController.text;
-    authController.login(context);
+    bool success = await authController.login(context);
+
+    if (!success) {
+      await CustomAlertDialog(
+        context: context,
+        title: "Error",
+        message: "Failed to login, please check your credentials",
+        icon: "assets/animations/Failed.json",
+        buttonColor: kRed,
+      );
+    }
   }
 
   @override

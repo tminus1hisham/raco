@@ -2,6 +2,7 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
+import 'package:atom/widgets/modal/custom_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -23,16 +24,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final GlobalKey<FormState> _registerKey = GlobalKey<FormState>();
 
-  void _handleSignUp() {
+  Future<bool> _handleSignUp() async {
     if (!_registerKey.currentState!.validate()) {
-      return;
+      return false;
     }
 
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
-      return;
+      return false;
     }
 
     authController.fullName.value = _fullNameController.text;
@@ -41,7 +42,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     authController.phoneNumber.value = _phoneNumberController.text;
     authController.userRole.value = 'Admin';
     authController.userFirebaseToken.value = 'string';
-    authController.register(context);
+
+    bool success = await authController.register(context);
+
+    if (!success) {
+      await CustomAlertDialog(
+        context: context,
+        title: "Error",
+        message: "Failed to register, this number is already registered.",
+        icon: "assets/animations/Failed.json",
+        buttonColor: kRed,
+      );
+    }
+
+    return success;
   }
 
   @override

@@ -21,7 +21,7 @@ class AuthController extends GetxController {
 
   final AuthService _authService = AuthService();
 
-  void register(BuildContext context) async {
+  Future<bool> register(BuildContext context) async {
     isLoading.value = true;
 
     try {
@@ -38,15 +38,19 @@ class AuthController extends GetxController {
 
       if (result != null) {
         Get.offAllNamed(AppRoutes.dashboard);
+        return true;
+      } else {
+        return false;
       }
     } catch (e) {
-      print("failed to register");
+      debugPrint("failed to register: $e");
+      return false;
     } finally {
       isLoading.value = false;
     }
   }
 
-  void login(BuildContext context) async {
+  Future<bool> login(BuildContext context) async {
     isLoading.value = true;
 
     try {
@@ -64,10 +68,13 @@ class AuthController extends GetxController {
 
       if (result != null) {
         Get.offAllNamed(AppRoutes.dashboard);
+        return true;
+      } else {
+        return false;
       }
     } catch (e) {
       debugPrint('Login failed: $e');
-      Get.snackbar("Login Failed", "Please check your phone or password");
+      return false;
     } finally {
       isLoading.value = false;
     }
