@@ -18,6 +18,7 @@ class AuthController extends GetxController {
   var location = ''.obs;
   var ipAddress = ''.obs;
   var userRole = ''.obs;
+  var adminPhoneNumber = ''.obs;
 
   final AuthService _authService = AuthService();
 
@@ -32,6 +33,7 @@ class AuthController extends GetxController {
         password: password.value,
         userFirebaseToken: userFirebaseToken.value,
         userRole: userRole.value,
+        adminPhoneNumber: adminPhoneNumber.value,
       );
 
       final result = await _authService.register(registerModel);

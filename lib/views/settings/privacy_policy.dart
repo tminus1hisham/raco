@@ -36,7 +36,6 @@ class PrivacyPolicy extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
 
-                      // How We Use Information
                       _buildSection(
                         icon: Icons.how_to_reg,
                         title: 'How We Use Your Information',
@@ -78,7 +77,6 @@ class PrivacyPolicy extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
 
-                      // Contact Information
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(

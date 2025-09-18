@@ -42,6 +42,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     authController.phoneNumber.value = _phoneNumberController.text;
     authController.userRole.value = 'Admin';
     authController.userFirebaseToken.value = 'string';
+    authController.adminPhoneNumber.value = '';
 
     bool success = await authController.register(context);
 

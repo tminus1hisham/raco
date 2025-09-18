@@ -5,6 +5,7 @@ class RegisterModel {
   final String userRole;
   final String password;
   final String userFirebaseToken;
+  final String adminPhoneNumber;
 
   RegisterModel({
     required this.fullName,
@@ -13,6 +14,7 @@ class RegisterModel {
     required this.emailAddress,
     required this.userRole,
     required this.userFirebaseToken,
+    required this.adminPhoneNumber,
   });
 
   Map<String, dynamic> toJson() {
@@ -23,6 +25,7 @@ class RegisterModel {
       'emailAddress': emailAddress,
       'userFirebaseToken': userFirebaseToken,
       'userRole': userRole,
+      'adminPhoneNumber': adminPhoneNumber,
     };
   }
 
@@ -34,6 +37,7 @@ class RegisterModel {
       userFirebaseToken: json['userFirebaseToken'],
       password: json['password'],
       userRole: json['userRole'],
+      adminPhoneNumber: json['adminPhoneNumber'],
     );
   }
 }
