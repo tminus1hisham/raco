@@ -9,7 +9,7 @@ class UpdateProfileController extends GetxController {
 
   final ApiService _apiService = ApiService();
 
-  Future<bool> changePassword(BuildContext context) async {
+  Future<bool> updateProfile(BuildContext context) async {
     isLoading.value = true;
     try {
       final updateProfileModel = ProfilePictureModel(image: image.value.trim());

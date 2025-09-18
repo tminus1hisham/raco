@@ -7,6 +7,7 @@ import 'package:atom/views/camera_screen.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
+import 'package:atom/widgets/modal/custom_modal.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -47,13 +48,25 @@ class _AccountScreenState extends State<AccountScreen> {
         });
 
         updateController.image.value = uploadedUrl;
-        bool success = await updateController.changePassword(context);
+        bool success = await updateController.updateProfile(context);
 
         if (success) {
-          Get.snackbar("Success", "Profile picture updated successfully");
+          await CustomAlertDialog(
+            context: context,
+            title: "Success",
+            message: "Your profile picture has been updated successfully.",
+            icon: "assets/animations/Success.json",
+            buttonColor: kSuccessGreen,
+          );
           controller.fetchUserProfile();
         } else {
-          Get.snackbar("Error", "Failed to update profile picture");
+          await CustomAlertDialog(
+            context: context,
+            title: "Error",
+            message: "Failed to update profile picture.",
+            icon: "assets/animations/Failed.json",
+            buttonColor: kRed,
+          );
         }
 
         setState(() {
