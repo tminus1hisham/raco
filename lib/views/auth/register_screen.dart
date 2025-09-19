@@ -1,5 +1,6 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
+import 'package:atom/utils/utils.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/custom_modal.dart';
@@ -21,8 +22,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _agreeToTerms = false;
 
   final AuthController authController = Get.put(AuthController());
-
   final GlobalKey<FormState> _registerKey = GlobalKey<FormState>();
+  final utils = Utils();
 
   Future<bool> _handleSignUp() async {
     if (!_registerKey.currentState!.validate()) {
@@ -39,7 +40,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     authController.fullName.value = _fullNameController.text;
     authController.emailAddress.value = _emailController.text;
     authController.password.value = _passwordController.text;
-    authController.phoneNumber.value = _phoneNumberController.text;
+    authController.phoneNumber.value = utils.normalizePhoneNumber(
+      _phoneNumberController.text,
+    );
     authController.userRole.value = 'Admin';
     authController.userFirebaseToken.value = 'string';
     authController.adminPhoneNumber.value = '';

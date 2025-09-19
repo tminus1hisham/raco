@@ -1,5 +1,6 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/forgot_password_controller.dart';
+import 'package:atom/utils/utils.dart';
 import 'package:atom/views/auth/verification_screen.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
@@ -20,6 +21,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     ForgotPasswordService(),
   );
 
+  final utils = Utils();
+
   void _handleContinue() async {
     if (_phoneNumberController.text.isEmpty) {
       ScaffoldMessenger.of(
@@ -28,7 +31,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    forgotPasswordService.phoneNumber.value = _phoneNumberController.text;
+    forgotPasswordService.phoneNumber.value = utils.normalizePhoneNumber(
+      _phoneNumberController.text,
+    );
 
     final success = await forgotPasswordService.forgotPassword(context);
 
@@ -36,8 +41,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              VerificationCodeScreen(phoneNumber: _phoneNumberController.text),
+          builder: (context) => VerificationCodeScreen(
+            phoneNumber: utils.normalizePhoneNumber(
+              _phoneNumberController.text,
+            ),
+          ),
         ),
       );
     } else {
