@@ -1,4 +1,5 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/views/reports.dart';
 import 'package:atom/views/selected_car_screen.dart';
 import 'package:atom/widgets/car_info_card.dart';
 import 'package:atom/widgets/custom_header.dart';
@@ -33,6 +34,7 @@ class _CarsScreenState extends State<CarsScreen> {
                       icon: Icons.online_prediction,
                       color: kSuccessGreen,
                       count: '40',
+                      onPressed: () {},
                     ),
                   ),
                   SizedBox(width: 10),
@@ -42,6 +44,7 @@ class _CarsScreenState extends State<CarsScreen> {
                       icon: Icons.wifi_off,
                       color: kRed,
                       count: '2',
+                      onPressed: () {},
                     ),
                   ),
                   SizedBox(width: 10),
@@ -51,6 +54,7 @@ class _CarsScreenState extends State<CarsScreen> {
                       icon: Icons.lock_outline,
                       color: Colors.purple,
                       count: '1',
+                      onPressed: () {},
                     ),
                   ),
                 ],
@@ -68,6 +72,7 @@ class _CarsScreenState extends State<CarsScreen> {
                       icon: Icons.moving,
                       color: kSuccessGreen,
                       count: '10',
+                      onPressed: () {},
                     ),
                   ),
                   SizedBox(width: 10),
@@ -77,6 +82,9 @@ class _CarsScreenState extends State<CarsScreen> {
                       icon: Icons.schedule_outlined,
                       color: Colors.orange,
                       count: '2',
+                      onPressed: () {
+                        print("pressed");
+                      },
                     ),
                   ),
                   SizedBox(width: 10),
@@ -86,6 +94,14 @@ class _CarsScreenState extends State<CarsScreen> {
                       icon: Icons.file_copy,
                       color: kBlue,
                       count: "Reports",
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GeneralReports(),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -150,52 +166,56 @@ class _CarsScreenState extends State<CarsScreen> {
     required IconData icon,
     required String count,
     required Color color,
+    required VoidCallback onPressed,
   }) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            spreadRadius: 1,
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              spreadRadius: 1,
+              blurRadius: 6,
+              offset: Offset(0, 2),
             ),
-            child: Icon(icon, color: color, size: 16),
-          ),
-          SizedBox(height: 8),
-          Text(
-            count,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 16),
             ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: Colors.black54,
+            SizedBox(height: 8),
+            Text(
+              count,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-          ),
-        ],
+            SizedBox(height: 4),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: Colors.black54,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

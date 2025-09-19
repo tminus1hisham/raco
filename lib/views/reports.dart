@@ -5,6 +5,7 @@ import 'package:atom/widgets/custom_header.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class GeneralReports extends StatefulWidget {
   const GeneralReports({Key? key}) : super(key: key);
@@ -104,7 +105,6 @@ class _GeneralReportsState extends State<GeneralReports> {
     }
     ''';
 
-    await Future.delayed(const Duration(milliseconds: 300));
     final Map<String, dynamic> parsed = json.decode(sampleJson);
     final List vehicles = parsed['vehicles'] ?? [];
     return vehicles.map((v) => VehicleData.fromJson(v)).toList();
@@ -221,7 +221,15 @@ class _GeneralReportsState extends State<GeneralReports> {
           future: _futureData,
           builder: (context, snap) {
             if (!snap.hasData) {
-              return const Center(child: CircularProgressIndicator());
+              return Container(
+                color: Colors.black.withOpacity(0.3),
+                child: Center(
+                  child: LoadingAnimationWidget.fourRotatingDots(
+                    color: kBlue,
+                    size: 50,
+                  ),
+                ),
+              );
             }
             final allVehicles = snap.data!;
 
