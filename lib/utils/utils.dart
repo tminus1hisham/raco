@@ -31,4 +31,16 @@ class Utils {
     }
     return null;
   }
+
+  String normalizePhoneNumber(String value) {
+    value = value.trim();
+
+    if (value.startsWith("0")) {
+      value = "254${value.substring(1)}";
+    } else if (!value.startsWith("254")) {
+      value = "254$value";
+    }
+
+    return value;
+  }
 }

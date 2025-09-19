@@ -45,7 +45,9 @@ class _LoginScreenState extends State<LoginScreen>
     final deviceInfoPlugin = DeviceInfoPlugin();
     final androidInfo = await deviceInfoPlugin.androidInfo;
 
-    authController.phoneNumber.value = _phoneNumberController.text;
+    authController.phoneNumber.value = utils.normalizePhoneNumber(
+      _phoneNumberController.text,
+    );
     authController.password.value = _passwordController.text;
     authController.deviceModel.value = androidInfo.brand;
     authController.userAgent.value = androidInfo.model;
@@ -191,6 +193,7 @@ class _LoginScreenState extends State<LoginScreen>
             prefixIcon: Icons.phone,
             controller: _phoneNumberController,
             isRequired: true,
+            integerOnly: true,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return "This filed is required";
