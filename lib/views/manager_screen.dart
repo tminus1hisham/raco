@@ -1,4 +1,5 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/views/cars/manager_car_list.dart';
 import 'package:atom/widgets/cards/manager_info_card.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
@@ -69,7 +70,12 @@ class _ManagerScreenState extends State<ManagerScreen> {
                     phoneNumber: manager.phoneNumber,
                     emailAddress: manager.emailAddress,
                     onPressed: () {
-                      print("Tapped on ${manager.fullName}");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ManagerCarListScreen(),
+                        ),
+                      );
                     },
                     onDelete: () {
                       showCupertinoDialog(

@@ -4,8 +4,8 @@ class CarInfoCard extends StatelessWidget {
   final String carModel;
   final String licensePlate;
   final IconData carIcon;
-  final String status; // "Moving", "Engine OFF", etc.
-  final Color statusColor; // Green for moving, orange for engine off
+  final String status;
+  final Color statusColor;
   final Color statusBackgroundColor;
   final String currentSpeed;
   final String topSpeed;
