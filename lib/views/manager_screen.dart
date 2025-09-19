@@ -190,13 +190,31 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
                   ),
                 ),
 
-                Text(
-                  'Add New Manager',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: kBlue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.person_add_outlined,
+                        color: kBlue,
+                        size: 20,
+                      ),
+                    ),
+                    SizedBox(width: 20),
+                    Text(
+                      'Add New Manager',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
                 ),
                 SizedBox(height: 20),
 

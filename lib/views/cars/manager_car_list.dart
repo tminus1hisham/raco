@@ -16,6 +16,7 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
   List<Car> _assignedCars = [];
   Set<String> _selectedCarIds = {};
   bool _selectAllMode = false;
+  String _filter = 'all';
 
   @override
   void initState() {
@@ -113,83 +114,98 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
             SizedBox(height: 10),
             customHeader(label: "My Fleet", icon: Icons.directions_car),
 
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  color: kBlue,
-                  borderRadius: BorderRadius.circular(8),
+            SizedBox(height: 10),
+            Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicator: BoxDecoration(
+                      color: kBlue,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.grey[600],
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                    ),
+                    tabs: [
+                      Tab(text: 'Assigned (${_assignedCars.length})'),
+                      Tab(text: 'All (${_allCars.length})'),
+                    ],
+                    onTap: (index) {
+                      setState(() {
+                        _selectedCarIds.clear();
+                        _selectAllMode = false;
+                      });
+                    },
+                  ),
                 ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.grey[600],
-                labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-                unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w500,
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Select All / Clear
+                      TextButton.icon(
+                        onPressed: _toggleSelectAll,
+                        icon: Icon(
+                          _selectAllMode ? Icons.clear : Icons.select_all,
+                          size: 18,
+                          color: kBlue,
+                        ),
+                        label: Text(
+                          _selectAllMode ? 'Clear' : 'Select All',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: kBlue,
+                          ),
+                        ),
+                      ),
+
+                      if (_selectedCarIds.isNotEmpty)
+                        Chip(
+                          label: Text(
+                            '${_selectedCarIds.length} selected',
+                            style: TextStyle(
+                              color: kBlue,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          backgroundColor: kWhite,
+                        ),
+
+                      DropdownButton<String>(
+                        value: _filter,
+                        items: const [
+                          DropdownMenuItem(value: 'all', child: Text('All')),
+                          DropdownMenuItem(
+                            value: 'assigned',
+                            child: Text('Assigned'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'unassigned',
+                            child: Text('Unassigned'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _filter = value!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-                tabs: [
-                  Tab(text: 'Assigned (${_assignedCars.length})'),
-                  Tab(text: 'All (${_allCars.length})'),
-                ],
-                onTap: (index) {
-                  setState(() {
-                    _selectedCarIds.clear();
-                    _selectAllMode = false;
-                  });
-                },
-              ),
+              ],
             ),
 
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _toggleSelectAll,
-                      icon: Icon(
-                        _selectAllMode ? Icons.deselect : Icons.select_all,
-                        size: 18,
-                      ),
-                      label: Text(
-                        _selectAllMode ? 'Clear' : 'Select All',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _selectAllMode ? Colors.orange : kBlue,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                  if (_selectedCarIds.isNotEmpty) ...[
-                    SizedBox(width: 12),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${_selectedCarIds.length} Selected',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
             SizedBox(height: 10),
 
             // Car List
@@ -237,7 +253,14 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
   }
 
   Widget _buildCarList(List<Car> cars) {
-    if (cars.isEmpty) {
+    List<Car> filteredCars = cars;
+    if (_filter == 'assigned') {
+      filteredCars = cars.where((c) => c.isAssigned).toList();
+    } else if (_filter == 'unassigned') {
+      filteredCars = cars.where((c) => !c.isAssigned).toList();
+    }
+
+    if (filteredCars.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -247,7 +270,7 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
               size: 64,
               color: Colors.grey[400],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
               'No cars available',
               style: TextStyle(
@@ -262,10 +285,10 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
     }
 
     return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: 20),
-      itemCount: cars.length,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: filteredCars.length,
       itemBuilder: (context, index) {
-        final car = cars[index];
+        final car = filteredCars[index];
         final isSelected = _selectedCarIds.contains(car.id);
 
         return Row(

@@ -28,14 +28,6 @@ class ManagerInfoCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                spreadRadius: 0,
-                blurRadius: 10,
-                offset: Offset(0, 4),
-              ),
-            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,7 +41,7 @@ class ManagerInfoCard extends StatelessWidget {
                       color: kBlue.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.person, color: kBlue, size: 20),
+                    child: Icon(Icons.person_outline, color: kBlue, size: 20),
                   ),
 
                   SizedBox(width: 16),
@@ -62,28 +54,18 @@ class ManagerInfoCard extends StatelessWidget {
                           fullName,
                           style: TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             color: Colors.black87,
                           ),
                         ),
                         SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.phone_outlined,
-                              size: 16,
-                              color: Colors.grey[600],
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              phoneNumber,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          phoneNumber,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),

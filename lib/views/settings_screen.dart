@@ -259,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: textColor ?? Colors.black87,
                     ),

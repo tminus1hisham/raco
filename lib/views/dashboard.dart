@@ -34,6 +34,7 @@ class _DashboardState extends State<Dashboard> {
     return Scaffold(
       body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: kWhite,
         type: BottomNavigationBarType.fixed,
         iconSize: 25,
         selectedFontSize: 16,
@@ -46,7 +47,7 @@ class _DashboardState extends State<Dashboard> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.group_add_sharp),
-            label: 'Mangers',
+            label: 'Managers',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),

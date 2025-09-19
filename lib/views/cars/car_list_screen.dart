@@ -21,6 +21,7 @@ class _CarListScreenState extends State<CarListScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            SizedBox(height: 10),
             customHeader(label: widget.label, icon: Icons.directions_car),
             Expanded(
               child: ListView(

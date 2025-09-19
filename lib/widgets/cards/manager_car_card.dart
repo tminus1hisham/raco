@@ -39,7 +39,7 @@ class SelectableCarCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onCardTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(10),
           child: Padding(
             padding: EdgeInsets.only(top: 10, bottom: 10, right: 10),
             child: Row(
