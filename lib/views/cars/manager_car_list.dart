@@ -1,4 +1,5 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/cards/manager_car_card.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -92,7 +93,6 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
         _selectedCarIds.add(carId);
       }
 
-      // Update select all mode based on selection
       _selectAllMode = _selectedCarIds.length == _currentCars.length;
     });
   }
@@ -142,7 +142,7 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
             ),
 
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
                   Expanded(
@@ -153,7 +153,7 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
                         size: 18,
                       ),
                       label: Text(
-                        _selectAllMode ? 'Deselect All' : 'Select All',
+                        _selectAllMode ? 'Clear' : 'Select All',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -190,6 +190,7 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
                 ],
               ),
             ),
+            SizedBox(height: 10),
 
             // Car List
             Expanded(
@@ -204,6 +205,34 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
           ],
         ),
       ),
+      floatingActionButton: _selectedCarIds.isNotEmpty
+          ? Container(
+              margin: const EdgeInsets.only(left: 20, right: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: CustomButton(
+                      callBackFunction: () {},
+                      label: "Assign",
+                      backgroundColor: kBlue,
+                      txtColor: kWhite,
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: CustomButton(
+                      callBackFunction: () {},
+                      label: "Un Assign",
+                      backgroundColor: kRed,
+                      txtColor: kWhite,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
