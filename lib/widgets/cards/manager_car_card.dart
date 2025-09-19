@@ -44,12 +44,14 @@ class SelectableCarCard extends StatelessWidget {
             padding: EdgeInsets.only(top: 10, bottom: 10, right: 10),
             child: Row(
               children: [
-                Checkbox(
-                  value: isSelected,
-                  activeColor: kBlue,
-                  onChanged: onCheckboxChanged,
+                Transform.scale(
+                  scale: 0.8,
+                  child: Checkbox(
+                    value: isSelected,
+                    activeColor: kBlue,
+                    onChanged: onCheckboxChanged,
+                  ),
                 ),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,7 +69,7 @@ class SelectableCarCard extends StatelessWidget {
                         car.carName,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: Colors.grey.shade600,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
