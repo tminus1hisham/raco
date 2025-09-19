@@ -179,8 +179,8 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               },
                             ),
                             _buildFeatureTile(
-                              title: 'Command History',
-                              subtitle: 'View past commands',
+                              title: 'Playback',
+                              subtitle: 'View car route',
                               icon: Icons.history,
                               color: Colors.purple,
                               onTap: () {},

@@ -33,7 +33,7 @@ class ActionDialog extends StatelessWidget {
         CupertinoDialogAction(
           onPressed: () {
             Navigator.pop(context);
-            onConfirm(); // ✅ dynamic action
+            onConfirm();
           },
           isDestructiveAction: true,
           child: Text(confirmText),

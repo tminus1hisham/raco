@@ -1,7 +1,7 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/views/reports.dart';
 import 'package:atom/views/selected_car_screen.dart';
-import 'package:atom/widgets/car_info_card.dart';
+import 'package:atom/widgets/cards/car_info_card.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 
@@ -21,7 +21,7 @@ class _CarsScreenState extends State<CarsScreen> {
         child: Column(
           children: [
             SizedBox(height: 10),
-            customHeader(label: "My Cars", icon: Icons.directions_car),
+            customHeader(label: "Vehicles", icon: Icons.directions_car),
 
             SizedBox(height: 10),
             Padding(
