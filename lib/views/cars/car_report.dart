@@ -36,12 +36,10 @@ class _CarReportsState extends State<CarReports> {
   }
 
   void _loadVehicleData() {
-    // Simulate loading single vehicle data
     _vehicleData = _getSingleVehicleData();
   }
 
   VehicleData _getSingleVehicleData() {
-    // Sample data for single vehicle
     const sampleJson = '''
     {
       "id": "v1",

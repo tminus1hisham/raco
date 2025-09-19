@@ -1,4 +1,5 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/views/cars/car_list_screen.dart';
 import 'package:atom/views/cars/general_reports.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/widgets/cards/car_info_card.dart';
@@ -34,7 +35,15 @@ class _CarsScreenState extends State<CarsScreen> {
                       icon: Icons.online_prediction,
                       color: kSuccessGreen,
                       count: '40',
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                CarListScreen(label: "Online"),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   SizedBox(width: 10),
@@ -44,7 +53,15 @@ class _CarsScreenState extends State<CarsScreen> {
                       icon: Icons.wifi_off,
                       color: kRed,
                       count: '2',
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                CarListScreen(label: "Offline"),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   SizedBox(width: 10),
@@ -54,7 +71,14 @@ class _CarsScreenState extends State<CarsScreen> {
                       icon: Icons.lock_outline,
                       color: Colors.purple,
                       count: '1',
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CarListScreen(label: "Idle"),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -72,7 +96,15 @@ class _CarsScreenState extends State<CarsScreen> {
                       icon: Icons.moving,
                       color: kSuccessGreen,
                       count: '10',
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                CarListScreen(label: "In Motion"),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   SizedBox(width: 10),
@@ -83,7 +115,13 @@ class _CarsScreenState extends State<CarsScreen> {
                       color: Colors.orange,
                       count: '2',
                       onPressed: () {
-                        print("pressed");
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                CarListScreen(label: "Stopped"),
+                          ),
+                        );
                       },
                     ),
                   ),
