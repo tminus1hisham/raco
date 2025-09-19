@@ -110,36 +110,27 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
       body: SafeArea(
         child: Column(
           children: [
+            SizedBox(height: 10),
             customHeader(label: "My Fleet", icon: Icons.directions_car),
 
-            // Tab Bar
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    spreadRadius: 0,
-                    blurRadius: 10,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: TabBar(
                 controller: _tabController,
                 indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
                   color: kBlue,
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                indicatorSize: TabBarIndicatorSize.tab,
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.grey[600],
-                labelStyle: TextStyle(fontWeight: FontWeight.w600),
-                unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500),
+                labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                ),
                 tabs: [
-                  Tab(text: 'Assigned Cars (${_assignedCars.length})'),
-                  Tab(text: 'All Cars (${_allCars.length})'),
+                  Tab(text: 'Assigned (${_assignedCars.length})'),
+                  Tab(text: 'All (${_allCars.length})'),
                 ],
                 onTap: (index) {
                   setState(() {
@@ -150,7 +141,6 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
               ),
             ),
 
-            // Select All Button
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
