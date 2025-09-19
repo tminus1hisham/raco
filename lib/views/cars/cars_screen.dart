@@ -1,6 +1,6 @@
 import 'package:atom/config/constants.dart';
-import 'package:atom/views/reports.dart';
-import 'package:atom/views/selected_car_screen.dart';
+import 'package:atom/views/cars/general_reports.dart';
+import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/widgets/cards/car_info_card.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
