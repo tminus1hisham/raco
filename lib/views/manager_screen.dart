@@ -2,6 +2,8 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/widgets/cards/manager_info_card.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
+import 'package:atom/widgets/modal/custom_alert.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class ManagerScreen extends StatefulWidget {
@@ -70,9 +72,21 @@ class _ManagerScreenState extends State<ManagerScreen> {
                       print("Tapped on ${manager.fullName}");
                     },
                     onDelete: () {
-                      setState(() {
-                        managers.removeAt(index);
-                      });
+                      showCupertinoDialog(
+                        context: context,
+                        builder: (context) => ActionDialog(
+                          title: "Delete",
+                          message:
+                              "Are you sure you want to delete ${manager.fullName} ?",
+                          confirmText: "Delete",
+                          cancelText: "Cancel",
+                          onConfirm: () {
+                            setState(() {
+                              managers.removeAt(index);
+                            });
+                          },
+                        ),
+                      );
                     },
                   );
                 },

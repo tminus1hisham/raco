@@ -3,7 +3,7 @@ import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
-import 'package:atom/widgets/modal/custom_modal.dart';
+import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 

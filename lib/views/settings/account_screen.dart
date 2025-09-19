@@ -7,7 +7,7 @@ import 'package:atom/views/camera_screen.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
-import 'package:atom/widgets/modal/custom_modal.dart';
+import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

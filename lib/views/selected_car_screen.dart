@@ -1,8 +1,8 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/views/vehicle_details.dart';
-import 'package:atom/widgets/custom_alert.dart';
 import 'package:atom/widgets/custom_header.dart';
+import 'package:atom/widgets/modal/custom_alert.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
