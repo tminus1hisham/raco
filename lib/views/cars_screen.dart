@@ -21,6 +21,76 @@ class _CarsScreenState extends State<CarsScreen> {
           children: [
             SizedBox(height: 10),
             customHeader(label: "My Cars", icon: Icons.directions_car),
+
+            SizedBox(height: 10),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildStatsCard(
+                      title: 'Online',
+                      icon: Icons.online_prediction,
+                      color: kSuccessGreen,
+                      count: '40',
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: _buildStatsCard(
+                      title: 'Offline',
+                      icon: Icons.wifi_off,
+                      color: kRed,
+                      count: '2',
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: _buildStatsCard(
+                      title: 'Idle',
+                      icon: Icons.lock_outline,
+                      color: Colors.purple,
+                      count: '1',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 10),
+
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildStatsCard(
+                      title: 'In Motion',
+                      icon: Icons.moving,
+                      color: kSuccessGreen,
+                      count: '10',
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: _buildStatsCard(
+                      title: 'Stopped',
+                      icon: Icons.schedule_outlined,
+                      color: Colors.orange,
+                      count: '2',
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: _buildStatsCard(
+                      title: 'Overview',
+                      icon: Icons.file_copy,
+                      color: kBlue,
+                      count: "Reports",
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: ListView(
                 children: [
@@ -71,6 +141,61 @@ class _CarsScreenState extends State<CarsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatsCard({
+    required String title,
+    required IconData icon,
+    required String count,
+    required Color color,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            spreadRadius: 1,
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          SizedBox(height: 8),
+          Text(
+            count,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Colors.black54,
+            ),
+          ),
+        ],
       ),
     );
   }

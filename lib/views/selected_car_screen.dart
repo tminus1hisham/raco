@@ -75,6 +75,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                 },
                               ),
                             ),
+
                             SizedBox(width: 12),
                             Expanded(
                               child: _buildQuickActionButton(
