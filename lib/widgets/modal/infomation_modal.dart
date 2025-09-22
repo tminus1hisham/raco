@@ -12,6 +12,7 @@ Future<void> CustomAlertDialog({
 }) {
   return showDialog(
     context: context,
+    useRootNavigator: true,
     barrierDismissible: false,
     builder: (context) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

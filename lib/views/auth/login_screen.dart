@@ -10,6 +10,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:local_auth/local_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -22,11 +23,24 @@ class _LoginScreenState extends State<LoginScreen>
   late TabController _tabController;
   final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final _auth = LocalAuthentication();
 
   final utils = Utils();
+  bool isAvailable = false;
 
   final AuthController authController = Get.put(AuthController());
   final GlobalKey<FormState> _loginKey = GlobalKey<FormState>();
+
+  void checkBiometrics() async {
+    bool canCheck = await _auth.canCheckBiometrics;
+    bool isSupported = await _auth.isDeviceSupported();
+    List<BiometricType> availableBiometrics = await _auth
+        .getAvailableBiometrics();
+
+    setState(() {
+      isAvailable = canCheck && isSupported && availableBiometrics.isNotEmpty;
+    });
+  }
 
   void fetchIp() async {
     final ip = await utils.getLocalIpAddress();
@@ -72,6 +86,7 @@ class _LoginScreenState extends State<LoginScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     fetchIp();
+    checkBiometrics();
   }
 
   @override
@@ -239,11 +254,21 @@ class _LoginScreenState extends State<LoginScreen>
 
           const SizedBox(height: 30),
 
-          CustomButton(
-            callBackFunction: _login,
-            label: "Login",
-            backgroundColor: kBlue,
-            txtColor: kWhite,
+          Row(
+            children: [
+              Expanded(
+                child: CustomButton(
+                  callBackFunction: _login,
+                  label: "Login",
+                  backgroundColor: kBlue,
+                  txtColor: kWhite,
+                ),
+              ),
+              // if (isAvailable) ...[
+              //   SizedBox(width: 10),
+              //   Icon(Icons.fingerprint_outlined, color: kBlue, size: 40),
+              // ],
+            ],
           ),
 
           SizedBox(height: 20),

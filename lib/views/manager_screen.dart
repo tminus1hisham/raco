@@ -1,11 +1,19 @@
+import 'dart:math';
+
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/auth_controller.dart';
+import 'package:atom/services/local_storage_service.dart';
+import 'package:atom/utils/utils.dart';
 import 'package:atom/views/cars/manager_car_list.dart';
 import 'package:atom/widgets/cards/manager_info_card.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/custom_alert.dart';
+import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class ManagerScreen extends StatefulWidget {
   const ManagerScreen({super.key});
@@ -15,6 +23,8 @@ class ManagerScreen extends StatefulWidget {
 }
 
 class _ManagerScreenState extends State<ManagerScreen> {
+  final AuthController authController = Get.put(AuthController());
+
   List<Manager> managers = [
     Manager(
       fullName: "John Doe",
@@ -53,58 +63,74 @@ class _ManagerScreenState extends State<ManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBgGrey,
-      body: SafeArea(
-        child: Column(
+    return Obx(
+      () => Scaffold(
+        backgroundColor: kBgGrey,
+        body: Stack(
           children: [
-            SizedBox(height: 10),
-            customHeader(label: "Managers", icon: Icons.people_outline),
-            Expanded(
-              child: ListView.builder(
-                itemCount: managers.length,
-                itemBuilder: (context, index) {
-                  final manager = managers[index];
-                  return ManagerInfoCard(
-                    fullName: manager.fullName,
-                    phoneNumber: manager.phoneNumber,
-                    emailAddress: manager.emailAddress,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ManagerCarListScreen(),
-                        ),
-                      );
-                    },
-                    onDelete: () {
-                      showCupertinoDialog(
-                        context: context,
-                        builder: (context) => ActionDialog(
-                          title: "Delete",
-                          message:
-                              "Are you sure you want to delete ${manager.fullName} ?",
-                          confirmText: "Delete",
-                          cancelText: "Cancel",
-                          onConfirm: () {
-                            setState(() {
-                              managers.removeAt(index);
-                            });
+            SafeArea(
+              child: Column(
+                children: [
+                  SizedBox(height: 10),
+                  customHeader(label: "Managers", icon: Icons.people_outline),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: managers.length,
+                      itemBuilder: (context, index) {
+                        final manager = managers[index];
+                        return ManagerInfoCard(
+                          fullName: manager.fullName,
+                          phoneNumber: manager.phoneNumber,
+                          emailAddress: manager.emailAddress,
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ManagerCarListScreen(),
+                              ),
+                            );
                           },
-                        ),
-                      );
-                    },
-                  );
-                },
+                          onDelete: () {
+                            showCupertinoDialog(
+                              context: context,
+                              builder: (context) => ActionDialog(
+                                title: "Delete",
+                                message:
+                                    "Are you sure you want to delete ${manager.fullName} ?",
+                                confirmText: "Delete",
+                                cancelText: "Cancel",
+                                onConfirm: () {
+                                  setState(() {
+                                    managers.removeAt(index);
+                                  });
+                                },
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
+            if (authController.isLoading.value)
+              Container(
+                color: Colors.black.withOpacity(0.3),
+                child: Center(
+                  child: LoadingAnimationWidget.fourRotatingDots(
+                    color: kBlue,
+                    size: 50,
+                  ),
+                ),
+              ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddManagerBottomSheet,
-        backgroundColor: kBlue,
-        child: Icon(Icons.add, color: kWhite),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _showAddManagerBottomSheet,
+          backgroundColor: kBlue,
+          child: Icon(Icons.add, color: kWhite),
+        ),
       ),
     );
   }
@@ -125,6 +151,7 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  String adminPhone = '';
 
   @override
   void dispose() {
@@ -135,25 +162,60 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
     super.dispose();
   }
 
-  void _addManager() {
-    if (_formKey.currentState!.validate()) {
-      final manager = Manager(
-        fullName: _fullNameController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
-        emailAddress: _emailController.text.trim(),
-        password: _passwordController.text,
+  @override
+  void initState() {
+    super.initState();
+    fetchAdminPhone();
+  }
+
+  final utils = Utils();
+
+  final AuthController authController = Get.put(AuthController());
+
+  String generateFourDigitCode() {
+    final random = Random();
+    int code = 1000 + random.nextInt(9000);
+    return code.toString();
+  }
+
+  Future fetchAdminPhone() async {
+    setState(() async {
+      adminPhone = await StorageService.getData('phone');
+    });
+  }
+
+  Future<bool> _handleSignUp() async {
+    authController.fullName.value = _fullNameController.text;
+    authController.emailAddress.value = _emailController.text;
+    authController.password.value = generateFourDigitCode();
+    authController.phoneNumber.value = utils.normalizePhoneNumber(
+      _phoneController.text,
+    );
+    authController.userRole.value = 'Admin';
+    authController.userFirebaseToken.value = 'string';
+    authController.adminPhoneNumber.value = adminPhone;
+
+    bool success = await authController.register(context);
+
+    if (success) {
+      await CustomAlertDialog(
+        context: context,
+        title: "Success",
+        message: "You have successfully added a manager",
+        icon: "assets/animations/Success.json",
+        buttonColor: kSuccessGreen,
       );
-
-      widget.onManagerAdded(manager);
-      Navigator.pop(context);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Manager added successfully!'),
-          backgroundColor: Colors.green,
-        ),
+    } else {
+      await CustomAlertDialog(
+        context: context,
+        title: "Error",
+        message: "Failed to register, this number is already registered.",
+        icon: "assets/animations/Failed.json",
+        buttonColor: kRed,
       );
     }
+
+    return success;
   }
 
   @override
@@ -294,7 +356,7 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
                     SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _addManager,
+                        onPressed: _handleSignUp,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: kBlue,
                           padding: EdgeInsets.symmetric(vertical: 16),
