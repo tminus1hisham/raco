@@ -12,6 +12,8 @@ import 'package:atom/views/settings/account_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../views/cars/command_history.dart';
+
 class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
@@ -24,6 +26,7 @@ class AppRoutes {
   static const String car_report = 'car_report';
   static const String driver_behaviour = 'driver_behaviour';
   static const String commands = 'commands';
+  static const String commandHistory = 'commandHistory';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -57,6 +60,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => DriverBehaviour());
       case commands:
         return MaterialPageRoute(builder: (_) => Commands());
+      case commandHistory:
+        return MaterialPageRoute(builder: (_) => CommandHistory());
       default:
         return MaterialPageRoute(
           builder: (_) =>
