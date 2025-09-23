@@ -2,10 +2,17 @@ import 'package:atom/config/constants.dart';
 import 'package:flutter/material.dart';
 
 class customHeader extends StatelessWidget {
-  const customHeader({required this.label, required this.icon});
+  customHeader({
+    required this.label,
+    required this.icon,
+    this.onPressed,
+    this.showBackButton = false,
+  });
 
   final IconData icon;
   final String label;
+  final VoidCallback? onPressed;
+  bool showBackButton;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +29,13 @@ class customHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
+          if (showBackButton) ...[
+            GestureDetector(
+              onTap: onPressed,
+              child: Icon(Icons.arrow_back_ios, color: kWhite),
+            ),
+            SizedBox(width: 4),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

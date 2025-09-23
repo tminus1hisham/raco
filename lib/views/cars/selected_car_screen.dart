@@ -159,10 +159,31 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               },
                             ),
                             _buildFeatureTile(
-                              title: 'Vehicle Behaviour',
+                              title: 'Driver Behaviour',
+                              subtitle: 'check your driver behaviour',
+                              icon: Icons.account_circle_outlined,
+                              color: Colors.orange,
+                              onTap: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.driver_behaviour,
+                                );
+                              },
+                            ),
+                            _buildFeatureTile(
+                              title: 'Commands',
                               subtitle: 'Control your vehicle',
                               icon: Icons.settings_remote,
-                              color: Colors.orange,
+                              color: Colors.red,
+                              onTap: () {
+                                // Navigate to commands
+                              },
+                            ),
+                            _buildFeatureTile(
+                              title: 'Command History',
+                              subtitle: 'Control your vehicle',
+                              icon: Icons.history,
+                              color: Colors.blue,
                               onTap: () {
                                 // Navigate to commands
                               },

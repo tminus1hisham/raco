@@ -3,6 +3,7 @@ import 'package:atom/views/auth/login_screen.dart';
 import 'package:atom/views/auth/onboarding_screen.dart';
 import 'package:atom/views/auth/register_screen.dart';
 import 'package:atom/views/cars/car_report.dart';
+import 'package:atom/views/cars/driver_behaviour.dart';
 import 'package:atom/views/cars/geofencing_screen.dart';
 import 'package:atom/views/dashboard.dart';
 import 'package:atom/views/notification_screen.dart';
@@ -20,6 +21,7 @@ class AppRoutes {
   static const String notifications = 'notifications';
   static const String account = 'account';
   static const String car_report = 'car_report';
+  static const String driver_behaviour = 'driver_behaviour';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -49,6 +51,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => AccountScreen());
       case car_report:
         return MaterialPageRoute(builder: (_) => CarReports());
+      case driver_behaviour:
+        return MaterialPageRoute(builder: (_) => DriverBehaviour());
       default:
         return MaterialPageRoute(
           builder: (_) =>
