@@ -1,0 +1,150 @@
+import 'package:atom/config/constants.dart';
+import 'package:atom/widgets/custom_header.dart';
+import 'package:flutter/material.dart';
+
+class Commands extends StatefulWidget {
+  const Commands({super.key});
+
+  @override
+  State<Commands> createState() => _CommandsState();
+}
+
+class _CommandsState extends State<Commands> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBgGrey,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(height: 10),
+            customHeader(
+              label: "KDA 001A",
+              icon: Icons.directions_car,
+              showBackButton: true,
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            SizedBox(height: 10),
+            _buildSectionHeader("Commands"),
+            _buildSettingsCard(
+              child: Column(
+                children: [
+                  _buildSettingsItem(
+                    title: 'Check location',
+                    subtitle: "View the current's vehicle GPS position.",
+                    onTap: () {},
+                  ),
+                  _buildDivider(),
+                  _buildSettingsItem(
+                    title: 'Stop Engine',
+                    subtitle: "remotely shut down the vehicle's engine",
+                    onTap: () {},
+                  ),
+                  _buildDivider(),
+                  _buildSettingsItem(
+                    title: 'SOS number',
+                    subtitle: "remotely shut down the vehicle's engine",
+                    onTap: () {},
+                  ),
+                  _buildDivider(),
+                  _buildSettingsItem(
+                    title: 'Set Milage',
+                    subtitle: "Input or adjust the vehicle reading",
+                    onTap: () {},
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey.shade600,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsCard({required Widget child, VoidCallback? onTap}) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsItem({
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Color? textColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: textColor ?? Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(height: 1, color: Colors.grey.shade100);
+  }
+}

@@ -176,7 +176,10 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               icon: Icons.settings_remote,
                               color: Colors.red,
                               onTap: () {
-                                // Navigate to commands
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.commands,
+                                );
                               },
                             ),
                             _buildFeatureTile(
