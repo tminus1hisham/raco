@@ -112,7 +112,14 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
         child: Column(
           children: [
             SizedBox(height: 10),
-            customHeader(label: "Vehicles", icon: Icons.directions_car),
+            customHeader(
+              label: "Vehicles",
+              icon: Icons.directions_car,
+              showBackButton: true,
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
 
             SizedBox(height: 10),
             Column(

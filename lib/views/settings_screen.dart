@@ -1,5 +1,6 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
+import 'package:atom/views/manager_screen.dart';
 import 'package:atom/views/settings/about_us.dart';
 import 'package:atom/views/settings/account_screen.dart';
 import 'package:atom/views/settings/change_password.dart';
@@ -61,6 +62,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => ChangePassword(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildDivider(),
+                        _buildSettingsItem(
+                          icon: Icons.person_add_alt,
+                          title: 'Transport Managers',
+                          subtitle: 'Add and manage transport managers.',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ManagerScreen(),
                               ),
                             );
                           },

@@ -72,7 +72,14 @@ class _ManagerScreenState extends State<ManagerScreen> {
               child: Column(
                 children: [
                   SizedBox(height: 10),
-                  customHeader(label: "Managers", icon: Icons.people_outline),
+                  customHeader(
+                    label: "Managers",
+                    icon: Icons.people_outline,
+                    showBackButton: true,
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
                   Expanded(
                     child: ListView.builder(
                       itemCount: managers.length,
