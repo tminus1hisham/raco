@@ -1,3 +1,6 @@
+import 'package:atom/config/constants.dart';
+import 'package:atom/routes/routes.dart';
+import 'package:atom/views/playback_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -259,8 +262,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildVehicleBottomSheet(Vehicle vehicle) {
+    bool isVehicleActive = true;
+
     return Container(
-      height: MediaQuery.of(context).size.height * 0.6,
+      height: MediaQuery.of(context).size.height * 0.45,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
@@ -270,7 +275,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Column(
         children: [
-          // Handle bar
           Container(
             margin: EdgeInsets.symmetric(vertical: 10),
             width: 40,
@@ -280,28 +284,49 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                  child: Icon(
+                    Icons.close,
+                    color: Colors.black.withOpacity(0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           Expanded(
             child: Padding(
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsets.only(
+                top: 10,
+                left: 20,
+                right: 20,
+                bottom: 20,
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Vehicle header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
                         children: [
                           Text(
                             vehicle.plate,
                             style: TextStyle(
-                              fontSize: 28,
+                              fontSize: 25,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
                           ),
+                          SizedBox(width: 10),
                           Text(
                             vehicle.model,
                             style: TextStyle(
@@ -311,32 +336,49 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: vehicle.status == "online"
-                              ? Colors.green
-                              : Colors.orange,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          vehicle.status == "online" ? "Online" : "Offline",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+
+                      StatefulBuilder(
+                        builder: (context, setModalState) {
+                          return Row(
+                            children: [
+                              Text(
+                                isVehicleActive ? "ON" : "OFF",
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: isVehicleActive
+                                      ? Colors.green
+                                      : Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Switch(
+                                value: isVehicleActive,
+                                onChanged: (bool value) {
+                                  setModalState(() {
+                                    isVehicleActive = value;
+                                  });
+
+                                  print(
+                                    'Vehicle ${vehicle.plate} is now ${value ? "ON" : "OFF"}',
+                                  );
+                                },
+                                activeColor: Colors.green,
+                                activeTrackColor: Colors.green.withOpacity(0.3),
+                                inactiveThumbColor: Colors.grey,
+                                inactiveTrackColor: Colors.grey.withOpacity(
+                                  0.3,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
 
-                  SizedBox(height: 20),
+                  SizedBox(height: 10),
 
-                  // Driver Behaviour
                   Row(
                     children: [
                       Text(
@@ -351,15 +393,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Spacer(),
-
-                      _buildBatteryIndicator(vehicle.batteryLevel),
                     ],
                   ),
 
-                  SizedBox(height: 20),
+                  SizedBox(height: 10),
 
-                  // Engine status
                   Row(
                     children: [
                       Text(
@@ -382,9 +420,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
 
-                  SizedBox(height: 15),
+                  SizedBox(height: 10),
 
-                  // Speed info
                   Row(
                     children: [
                       Text(
@@ -399,44 +436,36 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
 
-                  SizedBox(height: 30),
-
-                  // Action buttons
+                  SizedBox(height: 20),
                   Row(
                     children: [
                       Expanded(
-                        child: _buildActionButton(
-                          icon: Icons.info_outline,
-                          label: "Details",
-                          color: Colors.blue[100]!,
-                          textColor: Colors.blue[700]!,
+                        child: _buildQuickActionButton(
+                          title: 'Playback',
+                          icon: Icons.route,
+                          color: kBlue,
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PlaybackScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       SizedBox(width: 12),
                       Expanded(
-                        child: _buildActionButton(
-                          icon: Icons.wifi,
-                          label: "Command",
-                          color: Colors.green[100]!,
-                          textColor: Colors.green[700]!,
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: _buildActionButton(
-                          icon: Icons.bar_chart,
-                          label: "Reports",
-                          color: Colors.orange[100]!,
-                          textColor: Colors.orange[700]!,
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: _buildActionButton(
-                          icon: Icons.more_horiz,
-                          label: "More",
-                          color: Colors.purple[100]!,
-                          textColor: Colors.purple[700]!,
+                        child: _buildQuickActionButton(
+                          title: 'Violations ( 10 )',
+                          icon: Icons.warning_amber,
+                          color: kRed,
+                          onPressed: () {
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.driver_behaviour,
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -450,59 +479,43 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActionButton({
+  Widget _buildQuickActionButton({
+    required String title,
     required IconData icon,
-    required String label,
     required Color color,
-    required Color textColor,
+    required VoidCallback onPressed,
   }) {
-    return Container(
-      height: 80,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: textColor, size: 24),
-          SizedBox(height: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: kWhite,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.5), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              spreadRadius: 1,
+              blurRadius: 6,
+              offset: Offset(0, 2),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBatteryIndicator(double level) {
-    return Row(
-      children: [
-        // Battery bars
-        Row(
-          children: List.generate(5, (index) {
-            bool isActive = index < (level * 5).round();
-            return Container(
-              width: 6,
-              height: 20,
-              margin: EdgeInsets.only(right: 2),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? (level > 0.5 ? Colors.green : Colors.orange)
-                    : Colors.grey[300],
-                borderRadius: BorderRadius.circular(1),
-              ),
-            );
-          }),
+          ],
         ),
-        SizedBox(width: 4),
-        Icon(Icons.local_gas_station, size: 16, color: Colors.grey[600]),
-      ],
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 20),
+              SizedBox(height: 5),
+              Text(
+                title,
+                style: TextStyle(fontSize: 15, color: Colors.black87),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
