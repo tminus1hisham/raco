@@ -1,6 +1,5 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/views/cars/car_list_screen.dart';
-import 'package:atom/views/cars/general_reports.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/widgets/cards/car_info_card.dart';
 import 'package:atom/widgets/custom_header.dart';
@@ -25,124 +24,68 @@ class _CarsScreenState extends State<CarsScreen> {
             customHeader(label: "Vehicles", icon: Icons.directions_car),
 
             SizedBox(height: 10),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildStatsCard(
-                      title: 'Online',
-                      icon: Icons.online_prediction,
-                      color: kSuccessGreen,
-                      count: '40',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                CarListScreen(label: "Online"),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: _buildStatsCard(
-                      title: 'Offline',
-                      icon: Icons.wifi_off,
-                      color: kRed,
-                      count: '2',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                CarListScreen(label: "Offline"),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: _buildStatsCard(
-                      title: 'Idle',
-                      icon: Icons.lock_outline,
-                      color: Colors.purple,
-                      count: '1',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CarListScreen(label: "Idle"),
-                          ),
-                        );
-                      },
-                    ),
+            Container(
+              decoration: BoxDecoration(
+                color: kBgGrey,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                    offset: Offset(0, 9),
                   ),
                 ],
               ),
-            ),
-            SizedBox(height: 10),
-
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildStatsCard(
-                      title: 'In Motion',
-                      icon: Icons.moving,
-                      color: kSuccessGreen,
-                      count: '10',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                CarListScreen(label: "In Motion"),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatsCard(
+                            title: 'Online',
+                            icon: Icons.online_prediction,
+                            color: kSuccessGreen,
+                            count: '40',
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      CarListScreen(label: "Online"),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: _buildStatsCard(
-                      title: 'Stopped',
-                      icon: Icons.schedule_outlined,
-                      color: Colors.orange,
-                      count: '2',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                CarListScreen(label: "Stopped"),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: _buildStatsCard(
+                            title: 'Offline',
+                            icon: Icons.wifi_off,
+                            color: kRed,
+                            count: '2',
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      CarListScreen(label: "Offline"),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
+                        ),
+                      ],
                     ),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: _buildStatsCard(
-                      title: 'Overview',
-                      icon: Icons.file_copy,
-                      color: kBlue,
-                      count: "Reports",
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => GeneralReports(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                    SizedBox(height: 10),
+                  ],
+                ),
               ),
             ),
             Expanded(
@@ -162,6 +105,153 @@ class _CarsScreenState extends State<CarsScreen> {
                         MaterialPageRoute(
                           builder: (context) => SelectedCarScreen(
                             carModel: 'BMW X6',
+                            licensePlate: 'AG 5758 SS',
+                            batteryLevel: 4,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  CarInfoCard(
+                    carModel: 'Isuzu NQR',
+                    licensePlate: 'KDF 001A',
+                    status: 'Overspeed',
+                    statusColor: kRed,
+                    statusBackgroundColor: kRed.withOpacity(0.1),
+                    currentSpeed: '80 km/h',
+                    topSpeed: '90 km/h',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectedCarScreen(
+                            carModel: 'Isuzu NQR',
+                            licensePlate: 'AG 5758 SS',
+                            batteryLevel: 4,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  CarInfoCard(
+                    carModel: 'Isuzu NQR',
+                    licensePlate: 'KDF 001A',
+                    status: 'Overspeed',
+                    statusColor: kRed,
+                    statusBackgroundColor: kRed.withOpacity(0.1),
+                    currentSpeed: '80 km/h',
+                    topSpeed: '90 km/h',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectedCarScreen(
+                            carModel: 'Isuzu NQR',
+                            licensePlate: 'AG 5758 SS',
+                            batteryLevel: 4,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  CarInfoCard(
+                    carModel: 'Isuzu NQR',
+                    licensePlate: 'KDF 001A',
+                    status: 'Overspeed',
+                    statusColor: kRed,
+                    statusBackgroundColor: kRed.withOpacity(0.1),
+                    currentSpeed: '80 km/h',
+                    topSpeed: '90 km/h',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectedCarScreen(
+                            carModel: 'Isuzu NQR',
+                            licensePlate: 'AG 5758 SS',
+                            batteryLevel: 4,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  CarInfoCard(
+                    carModel: 'Isuzu NQR',
+                    licensePlate: 'KDF 001A',
+                    status: 'Overspeed',
+                    statusColor: kRed,
+                    statusBackgroundColor: kRed.withOpacity(0.1),
+                    currentSpeed: '80 km/h',
+                    topSpeed: '90 km/h',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectedCarScreen(
+                            carModel: 'Isuzu NQR',
+                            licensePlate: 'AG 5758 SS',
+                            batteryLevel: 4,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  CarInfoCard(
+                    carModel: 'Isuzu NQR',
+                    licensePlate: 'KDF 001A',
+                    status: 'Overspeed',
+                    statusColor: kRed,
+                    statusBackgroundColor: kRed.withOpacity(0.1),
+                    currentSpeed: '80 km/h',
+                    topSpeed: '90 km/h',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectedCarScreen(
+                            carModel: 'Isuzu NQR',
+                            licensePlate: 'AG 5758 SS',
+                            batteryLevel: 4,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  CarInfoCard(
+                    carModel: 'Isuzu NQR',
+                    licensePlate: 'KDF 001A',
+                    status: 'Overspeed',
+                    statusColor: kRed,
+                    statusBackgroundColor: kRed.withOpacity(0.1),
+                    currentSpeed: '80 km/h',
+                    topSpeed: '90 km/h',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectedCarScreen(
+                            carModel: 'Isuzu NQR',
+                            licensePlate: 'AG 5758 SS',
+                            batteryLevel: 4,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  CarInfoCard(
+                    carModel: 'Isuzu NQR',
+                    licensePlate: 'KDF 001A',
+                    status: 'Overspeed',
+                    statusColor: kRed,
+                    statusBackgroundColor: kRed.withOpacity(0.1),
+                    currentSpeed: '80 km/h',
+                    topSpeed: '90 km/h',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectedCarScreen(
+                            carModel: 'Isuzu NQR',
                             licensePlate: 'AG 5758 SS',
                             batteryLevel: 4,
                           ),
@@ -222,37 +312,44 @@ class _CarsScreenState extends State<CarsScreen> {
             ),
           ],
         ),
-        child: Column(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 16),
               ),
-              child: Icon(icon, color: color, size: 16),
-            ),
-            SizedBox(height: 8),
-            Text(
-              count,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+              Column(
+                children: [
+                  Text(
+                    count,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: Colors.black54,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -27,11 +27,11 @@ class CarInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(left: 20, right: 20, top: 10),
+      padding: EdgeInsets.only(left: 20, right: 20, top: 5),
       child: GestureDetector(
         onTap: onPressed,
         child: Container(
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
