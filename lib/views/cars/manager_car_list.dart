@@ -159,7 +159,6 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Select All / Clear
                       TextButton.icon(
                         onPressed: _toggleSelectAll,
                         icon: Icon(

@@ -233,7 +233,6 @@ class _GeneralReportsState extends State<GeneralReports> {
             }
             final allVehicles = snap.data!;
 
-            // Apply date filter
             final filtered = allVehicles.where((v) {
               if (_startDate != null && v.date.isBefore(_startDate!)) {
                 return false;
@@ -484,6 +483,7 @@ class _GeneralReportsState extends State<GeneralReports> {
                     ),
                   ),
                 ),
+                SizedBox(height: 20),
               ],
             );
           },
