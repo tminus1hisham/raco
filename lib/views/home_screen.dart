@@ -273,7 +273,8 @@ class _HomeScreenState extends State<HomeScreen> {
       height: 50,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: Colors.grey.shade400, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -302,9 +303,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Container(
-            margin: EdgeInsets.only(right: 10),
+            color: kGrey.withOpacity(0.1),
+            margin: EdgeInsets.only(right: 5),
             padding: EdgeInsets.all(8),
-            child: Icon(Icons.tune, color: Colors.grey[600], size: 20),
+            child: Padding(
+              padding: EdgeInsets.only(left: 25),
+              child: Icon(Icons.tune, color: Colors.grey[600], size: 20),
+            ),
           ),
         ],
       ),
@@ -316,8 +321,8 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         SizedBox(height: 10),
         Container(
-          width: 50,
-          height: 50,
+          width: 45,
+          height: 45,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
@@ -338,14 +343,44 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         SizedBox(height: 10),
         Container(
-          width: 50,
-          height: 50,
+          width: 45,
+          height: 45,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
           ),
           child: IconButton(
             icon: Icon(Icons.remove, color: Colors.grey[700]),
+            onPressed: () {
+              // Zoom out functionality
+            },
+          ),
+        ),
+        SizedBox(height: 10),
+        Container(
+          width: 45,
+          height: 45,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: IconButton(
+            icon: Icon(Icons.map, color: Colors.grey[700]),
+            onPressed: () {
+              // Zoom out functionality
+            },
+          ),
+        ),
+        SizedBox(height: 10),
+        Container(
+          width: 45,
+          height: 45,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: IconButton(
+            icon: Icon(Icons.my_location, color: Colors.grey[700]),
             onPressed: () {
               // Zoom out functionality
             },
