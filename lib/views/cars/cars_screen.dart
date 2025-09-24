@@ -2,7 +2,6 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/views/cars/car_list_screen.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/widgets/cards/car_info_card.dart';
-import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 
 class CarsScreen extends StatefulWidget {
@@ -21,22 +20,12 @@ class _CarsScreenState extends State<CarsScreen> {
         child: Column(
           children: [
             SizedBox(height: 10),
-            customHeader(
-              label: "Vehicles",
-              icon: Icons.directions_car,
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              showBackButton: true,
-            ),
-
-            SizedBox(height: 10),
             Container(
               decoration: BoxDecoration(
                 color: kBgGrey,
                 borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
+                  bottomLeft: Radius.circular(10),
+                  bottomRight: Radius.circular(10),
                 ),
                 boxShadow: [
                   BoxShadow(

@@ -1,9 +1,12 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/routes/routes.dart';
+import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/views/playback_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+
+import 'cars/cars_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -111,13 +114,104 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          _buildFullScreenMap(),
-          Positioned(top: 60, left: 20, right: 20, child: _buildSearchBar()),
-          Positioned(right: 20, top: 140, child: _buildMapControls()),
-        ],
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(80),
+          child: AppBar(
+            backgroundColor: kBgGrey,
+            elevation: 0,
+            toolbarHeight: 40,
+            bottom: PreferredSize(
+              preferredSize: Size.fromHeight(40),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      spreadRadius: 1,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TabBar(
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(2),
+                    color: kBlue,
+                    boxShadow: [
+                      BoxShadow(
+                        color: kBlue.withOpacity(0.3),
+                        spreadRadius: 1,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: EdgeInsets.all(4),
+                  labelColor: kWhite,
+                  unselectedLabelColor: Colors.grey[600],
+                  labelStyle: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  unselectedLabelStyle: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  tabs: [
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.map_outlined, size: 18),
+                          SizedBox(width: 6),
+                          Text("Map"),
+                        ],
+                      ),
+                    ),
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.list_alt_outlined, size: 18),
+                          SizedBox(width: 6),
+                          Text("List"),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            // Tab 1: Map view
+            Stack(
+              children: [
+                _buildFullScreenMap(),
+                Positioned(
+                  top: 10, // Reduced from 20
+                  left: 20,
+                  right: 20,
+                  child: _buildSearchBar(),
+                ),
+                Positioned(
+                  right: 20,
+                  top: 70, // Reduced from 90
+                  child: _buildMapControls(),
+                ),
+              ],
+            ),
+            // Tab 2: CarsScreen
+            CarsScreen(),
+          ],
+        ),
       ),
     );
   }
@@ -265,7 +359,7 @@ class _HomeScreenState extends State<HomeScreen> {
     bool isVehicleActive = true;
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.45,
+      height: MediaQuery.of(context).size.height * 0.43,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
@@ -287,8 +381,58 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SelectedCarScreen(
+                          carModel: 'BMW X6',
+                          licensePlate: 'AG 5758 SS',
+                          batteryLevel: 4,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(vertical: 5),
+                    decoration: BoxDecoration(
+                      color: kWhite,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: kBlue.withOpacity(0.5),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          spreadRadius: 1,
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Row(
+                        children: [
+                          Icon(Icons.more_vert, color: kBlue, size: 20),
+                          SizedBox(width: 5),
+                          Text(
+                            "More Details",
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: kBlue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
@@ -341,15 +485,28 @@ class _HomeScreenState extends State<HomeScreen> {
                         builder: (context, setModalState) {
                           return Row(
                             children: [
-                              Text(
-                                isVehicleActive ? "ON" : "OFF",
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  color: isVehicleActive
-                                      ? Colors.green
-                                      : Colors.grey[600],
-                                  fontWeight: FontWeight.w600,
-                                ),
+                              Column(
+                                children: [
+                                  Text(
+                                    'ENGINE',
+                                    style: TextStyle(
+                                      color: isVehicleActive
+                                          ? Colors.green
+                                          : Colors.grey[600],
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    isVehicleActive ? "ON" : "OFF",
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: isVehicleActive
+                                          ? Colors.green
+                                          : Colors.grey[600],
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
                               SizedBox(width: 10),
                               Switch(
