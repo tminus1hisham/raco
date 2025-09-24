@@ -21,7 +21,14 @@ class _CarsScreenState extends State<CarsScreen> {
         child: Column(
           children: [
             SizedBox(height: 10),
-            customHeader(label: "Vehicles", icon: Icons.directions_car),
+            customHeader(
+              label: "Vehicles",
+              icon: Icons.directions_car,
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              showBackButton: true,
+            ),
 
             SizedBox(height: 10),
             Container(

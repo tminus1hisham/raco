@@ -18,7 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
       name: "BMW X6",
       plate: "KDF001A",
       model: "Isuzu NQR",
-      status: "moving",
+      status: "online",
       batteryLevel: 0.85,
       position: LatLng(-1.2842328448615796, 36.816382318562034),
       image: "bmw_x6.png",
@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
       name: "BMW X4",
       plate: "KDC002A",
       model: "Isuzu NQR",
-      status: "parking",
+      status: "offline",
       batteryLevel: 0.6,
       position: LatLng(-1.3175902227858143, 36.786056310270034),
       image: "bmw_z4.png",
@@ -48,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
       name: "BMW M3",
       plate: "KDB001A",
       model: "Isuzu NQR",
-      status: "parking",
+      status: "tampered",
       batteryLevel: 0.9,
       position: LatLng(-1.2799336124445042, 36.77765642862558),
       image: "bmw_m3.png",
@@ -63,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
       name: "Toyota",
       plate: "KDB001A",
       model: "Vitz",
-      status: "tampered",
+      status: "online",
       batteryLevel: 0.9,
       position: LatLng(-1.3799336124445042, 36.87765642862558),
       image: "bmw_m3.png",
@@ -84,6 +84,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
     mapController.move(vehicles[index].position, 15.0);
     _showVehicleBottomSheet(vehicles[index]);
+  }
+
+  Size getMarkerSize(String status) {
+    switch (status) {
+      case "online":
+        return const Size(68, 68);
+      case "offline":
+        return const Size(52, 52);
+      default:
+        return const Size(60, 60);
+    }
   }
 
   void _showVehicleBottomSheet(Vehicle vehicle) {
@@ -126,44 +137,31 @@ class _HomeScreenState extends State<HomeScreen> {
             markers: vehicles.asMap().entries.map((entry) {
               int index = entry.key;
               Vehicle vehicle = entry.value;
-              bool isSelected = index == selectedVehicleIndex;
 
-              Color markerColor = Colors.green;
-              if (vehicle.status == "parking") {
-                markerColor = Colors.orange;
+              String imagePath;
+              switch (vehicle.status.toLowerCase()) {
+                case "online":
+                  imagePath = "assets/green_car.png";
+                  break;
+                case "offline":
+                  imagePath = "assets/blue_car.png";
+                  break;
+                case "tampered":
+                  imagePath = "assets/red_car.png";
+                  break;
+                default:
+                  imagePath = "assets/green_car.png";
               }
-              if (vehicle.status == "moving") {
-                markerColor = Colors.green;
-              }
-              if (vehicle.status == "tampered") {
-                markerColor = Colors.red;
-              }
+
+              final size = getMarkerSize(vehicle.status);
 
               return Marker(
                 point: vehicle.position,
-                width: 42,
-                height: 42,
+                width: size.width,
+                height: size.height,
                 child: GestureDetector(
                   onTap: () => _selectVehicle(index),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: markerColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.directions_car,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
+                  child: Image.asset(imagePath, fit: BoxFit.contain),
                 ),
               );
             }).toList(),
@@ -319,13 +317,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: vehicle.status == "moving"
+                          color: vehicle.status == "online"
                               ? Colors.green
                               : Colors.orange,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          vehicle.status == "moving" ? "Moving" : "Parking",
+                          vehicle.status == "online" ? "Online" : "Offline",
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 12,

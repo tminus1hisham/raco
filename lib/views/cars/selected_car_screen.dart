@@ -23,6 +23,11 @@ class SelectedCarScreen extends StatefulWidget {
   State<SelectedCarScreen> createState() => _SelectedCarScreenState();
 }
 
+//
+// vehicle safety,
+//     location history
+// violations
+
 class _SelectedCarScreenState extends State<SelectedCarScreen> {
   @override
   Widget build(BuildContext context) {
@@ -33,7 +38,14 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 10),
-            customHeader(label: widget.carModel, icon: Icons.drive_eta_rounded),
+            customHeader(
+              label: widget.carModel,
+              icon: Icons.drive_eta_rounded,
+              showBackButton: true,
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
             Expanded(
               child: ListView(
                 children: [
@@ -56,9 +68,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                           children: [
                             Expanded(
                               child: _buildQuickActionButton(
-                                title: 'Lock',
-                                icon: Icons.lock_outline,
-                                color: Colors.red,
+                                title: 'Vehicle Safety',
+                                icon: Icons.safety_check_outlined,
+                                color: Colors.green,
                                 onPressed: () {
                                   showCupertinoDialog(
                                     context: context,
@@ -80,21 +92,14 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                             SizedBox(width: 12),
                             Expanded(
                               child: _buildQuickActionButton(
-                                title: 'Unlock',
-                                icon: Icons.lock_open_outlined,
-                                color: Colors.green,
+                                title: 'Location History',
+                                icon: Icons.route,
+                                color: kBlue,
                                 onPressed: () {
-                                  showCupertinoDialog(
-                                    context: context,
-                                    builder: (context) => ActionDialog(
-                                      title: "Confirm Action",
-                                      message:
-                                          "Are you sure you want to lock the car?",
-                                      confirmText: "Yes",
-                                      cancelText: "No",
-                                      onConfirm: () {
-                                        print("un Car locked!");
-                                      },
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PlaybackScreen(),
                                     ),
                                   );
                                 },
@@ -103,22 +108,13 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                             SizedBox(width: 12),
                             Expanded(
                               child: _buildQuickActionButton(
-                                title: 'Start Engine',
-                                icon: Icons.power_settings_new,
-                                color: kBlue,
+                                title: 'violations',
+                                icon: Icons.warning_amber,
+                                color: kRed,
                                 onPressed: () {
-                                  showCupertinoDialog(
-                                    context: context,
-                                    builder: (context) => ActionDialog(
-                                      title: "Start engine",
-                                      message:
-                                          "Are you sure you want to start the car?",
-                                      confirmText: "Start",
-                                      cancelText: "Stop",
-                                      onConfirm: () {
-                                        print("Car strated!");
-                                      },
-                                    ),
+                                  Navigator.pushNamed(
+                                    context,
+                                    AppRoutes.driver_behaviour,
                                   );
                                 },
                               ),
@@ -158,18 +154,18 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                 );
                               },
                             ),
-                            _buildFeatureTile(
-                              title: 'Driver Behaviour',
-                              subtitle: 'check your driver behaviour',
-                              icon: Icons.account_circle_outlined,
-                              color: Colors.orange,
-                              onTap: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.driver_behaviour,
-                                );
-                              },
-                            ),
+                            // _buildFeatureTile(
+                            //   title: 'Driver Behaviour',
+                            //   subtitle: 'check your driver behaviour',
+                            //   icon: Icons.account_circle_outlined,
+                            //   color: Colors.orange,
+                            //   onTap: () {
+                            //     Navigator.pushNamed(
+                            //       context,
+                            //       AppRoutes.driver_behaviour,
+                            //     );
+                            //   },
+                            // ),
                             _buildFeatureTile(
                               title: 'Commands',
                               subtitle: 'Control your vehicle',
@@ -206,41 +202,20 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                 );
                               },
                             ),
-                            _buildFeatureTile(
-                              title: 'Playback',
-                              subtitle: 'View car route',
-                              icon: Icons.history,
-                              color: Colors.purple,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => PlaybackScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _buildFeatureTile(
-                              title: 'Diagnostics',
-                              subtitle: 'System health check',
-                              icon: Icons.health_and_safety_outlined,
-                              color: Colors.red,
-                              onTap: () {
-                                // Navigate to diagnostics
-                              },
-                            ),
-                            _buildFeatureTile(
-                              title: 'Reports',
-                              subtitle: 'Vehicle reports',
-                              icon: Icons.analytics_outlined,
-                              color: Colors.teal,
-                              onTap: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.car_report,
-                                );
-                              },
-                            ),
+                            // _buildFeatureTile(
+                            //   title: 'Playback',
+                            //   subtitle: 'View car route',
+                            //   icon: Icons.history,
+                            //   color: Colors.purple,
+                            //   onTap: () {
+                            //     Navigator.push(
+                            //       context,
+                            //       MaterialPageRoute(
+                            //         builder: (context) => PlaybackScreen(),
+                            //       ),
+                            //     );
+                            //   },
+                            // ),
                           ],
                         ),
                         SizedBox(height: 24),
