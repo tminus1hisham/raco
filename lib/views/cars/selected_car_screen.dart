@@ -1,10 +1,11 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/routes/routes.dart';
+import 'package:atom/views/cars/car_report.dart';
+import 'package:atom/views/cars/commands.dart';
+import 'package:atom/views/cars/driver_behaviour.dart';
 import 'package:atom/views/cars/vehicle_details.dart';
 import 'package:atom/views/playback_screen.dart';
 import 'package:atom/widgets/custom_header.dart';
-import 'package:atom/widgets/modal/custom_alert.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class SelectedCarScreen extends StatefulWidget {
@@ -22,11 +23,6 @@ class SelectedCarScreen extends StatefulWidget {
   @override
   State<SelectedCarScreen> createState() => _SelectedCarScreenState();
 }
-
-//
-// vehicle safety,
-//     location history
-// violations
 
 class _SelectedCarScreenState extends State<SelectedCarScreen> {
   @override
@@ -72,17 +68,10 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                 icon: Icons.safety_check_outlined,
                                 color: Colors.green,
                                 onPressed: () {
-                                  showCupertinoDialog(
-                                    context: context,
-                                    builder: (context) => ActionDialog(
-                                      title: "Confirm Action",
-                                      message:
-                                          "Are you sure you want to lock the car?",
-                                      confirmText: "Yes",
-                                      cancelText: "No",
-                                      onConfirm: () {
-                                        print("Car locked!");
-                                      },
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => DriverBehaviour(),
                                     ),
                                   );
                                 },
@@ -131,92 +120,87 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                           ),
                         ),
                         SizedBox(height: 16),
-                        GridView.count(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 1.1,
-                          children: [
-                            _buildFeatureTile(
-                              title: 'Details',
-                              subtitle: 'View car information',
-                              icon: Icons.info_outline,
-                              color: kBlue,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        VehicleDetails(vehiclePlate: "KDG001A"),
-                                  ),
-                                );
-                              },
-                            ),
-                            // _buildFeatureTile(
-                            //   title: 'Driver Behaviour',
-                            //   subtitle: 'check your driver behaviour',
-                            //   icon: Icons.account_circle_outlined,
-                            //   color: Colors.orange,
-                            //   onTap: () {
-                            //     Navigator.pushNamed(
-                            //       context,
-                            //       AppRoutes.driver_behaviour,
-                            //     );
-                            //   },
-                            // ),
-                            _buildFeatureTile(
-                              title: 'Commands',
-                              subtitle: 'Control your vehicle',
-                              icon: Icons.settings_remote,
-                              color: Colors.red,
-                              onTap: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.commands,
-                                );
-                              },
-                            ),
-                            _buildFeatureTile(
-                              title: 'Command History',
-                              subtitle: 'Control your vehicle',
-                              icon: Icons.history,
-                              color: Colors.blue,
-                              onTap: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.commandHistory,
-                                );
-                              },
-                            ),
-                            _buildFeatureTile(
-                              title: 'Geo Fence',
-                              subtitle: 'Set location boundaries',
-                              icon: Icons.location_on_outlined,
-                              color: Colors.green,
-                              onTap: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.geofencingScreen,
-                                );
-                              },
-                            ),
-                            // _buildFeatureTile(
-                            //   title: 'Playback',
-                            //   subtitle: 'View car route',
-                            //   icon: Icons.history,
-                            //   color: Colors.purple,
-                            //   onTap: () {
-                            //     Navigator.push(
-                            //       context,
-                            //       MaterialPageRoute(
-                            //         builder: (context) => PlaybackScreen(),
-                            //       ),
-                            //     );
-                            //   },
-                            // ),
-                          ],
+                        _buildSettingsCard(
+                          child: Column(
+                            children: [
+                              _buildCommandItem(
+                                title: 'Details',
+                                subtitle:
+                                    "View a detailed infomation of the vehicle.",
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => VehicleDetails(
+                                        vehiclePlate: "KDG001A",
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildDivider(),
+                              _buildCommandItem(
+                                title: 'Commands',
+                                subtitle: "View all the commands of a vehicle.",
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => Commands(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildDivider(),
+                              _buildCommandItem(
+                                title: 'Command History',
+                                subtitle: "View all the commands actioned.",
+                                onTap: () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    AppRoutes.commandHistory,
+                                  );
+                                },
+                              ),
+                              _buildDivider(),
+                              _buildCommandItem(
+                                title: 'Geo Fence',
+                                subtitle:
+                                    "Set a radius where your car to operate.",
+                                onTap: () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    AppRoutes.geofencingScreen,
+                                  );
+                                },
+                              ),
+                              _buildDivider(),
+                              _buildCommandItem(
+                                title: 'View Live Location',
+                                subtitle: "See your the vehicle live location.",
+                                onTap: () {},
+                              ),
+                              _buildDivider(),
+                              _buildCommandItem(
+                                title: 'Reports',
+                                subtitle: "See all the reports.",
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CarReports(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildDivider(),
+                              _buildCommandItem(
+                                title: 'Certificate',
+                                subtitle: "Expiry: 22/12/2025.",
+                                onTap: () {},
+                              ),
+                            ],
+                          ),
                         ),
                         SizedBox(height: 24),
                       ],
@@ -231,68 +215,72 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     );
   }
 
-  Widget _buildFeatureTile({
+  Widget _buildSettingsCard({required Widget child, VoidCallback? onTap}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCommandItem({
     required String title,
     required String subtitle,
-    required IconData icon,
-    required Color color,
     required VoidCallback onTap,
+    Color? textColor,
   }) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              spreadRadius: 1,
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              Column(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: textColor ?? Colors.black87,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+          ],
         ),
       ),
     );
+  }
+
+  Widget _buildDivider() {
+    return Container(height: 1, color: Colors.grey.shade100);
   }
 
   Widget _buildQuickActionButton({

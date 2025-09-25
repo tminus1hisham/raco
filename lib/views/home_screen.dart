@@ -95,11 +95,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Size getMarkerSize(String status) {
     switch (status) {
       case "online":
-        return const Size(68, 68);
+        return const Size(55, 55);
       case "offline":
-        return const Size(52, 52);
+        return const Size(40, 40);
       default:
-        return const Size(60, 60);
+        return const Size(47, 47);
     }
   }
 
@@ -228,6 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           TileLayer(
             urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            // urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
             userAgentPackageName: 'com.example.atom',
           ),
           MarkerLayer(

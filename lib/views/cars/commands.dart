@@ -32,25 +32,25 @@ class _CommandsState extends State<Commands> {
             _buildSettingsCard(
               child: Column(
                 children: [
-                  _buildSettingsItem(
+                  _buildCommandItem(
                     title: 'Check location',
                     subtitle: "View the current's vehicle GPS position.",
                     onTap: () {},
                   ),
                   _buildDivider(),
-                  _buildSettingsItem(
+                  _buildCommandItem(
                     title: 'Stop Engine',
                     subtitle: "remotely shut down the vehicle's engine",
                     onTap: () {},
                   ),
                   _buildDivider(),
-                  _buildSettingsItem(
+                  _buildCommandItem(
                     title: 'SOS number',
                     subtitle: "remotely shut down the vehicle's engine",
                     onTap: () {},
                   ),
                   _buildDivider(),
-                  _buildSettingsItem(
+                  _buildCommandItem(
                     title: 'Set Milage',
                     subtitle: "Input or adjust the vehicle reading",
                     onTap: () {},
@@ -105,7 +105,7 @@ class _CommandsState extends State<Commands> {
     );
   }
 
-  Widget _buildSettingsItem({
+  Widget _buildCommandItem({
     required String title,
     required String subtitle,
     required VoidCallback onTap,
