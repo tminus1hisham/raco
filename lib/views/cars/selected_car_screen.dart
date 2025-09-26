@@ -25,6 +25,8 @@ class SelectedCarScreen extends StatefulWidget {
 }
 
 class _SelectedCarScreenState extends State<SelectedCarScreen> {
+  bool isVehicleActive = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,13 +53,53 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Quick Actions',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: kGrey,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Quick Actions',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: kGrey,
+                              ),
+                            ),
+                            StatefulBuilder(
+                              builder: (context, setModalState) {
+                                return Row(
+                                  children: [
+                                    Text(
+                                      isVehicleActive
+                                          ? "ENGINE ON"
+                                          : " ENGINE OFF",
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        color: isVehicleActive
+                                            ? Colors.green
+                                            : Colors.grey[600],
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Switch(
+                                      value: isVehicleActive,
+                                      onChanged: (bool value) {
+                                        setModalState(() {
+                                          isVehicleActive = value;
+                                        });
+                                      },
+                                      activeColor: Colors.green,
+                                      activeTrackColor: Colors.green
+                                          .withOpacity(0.3),
+                                      inactiveThumbColor: Colors.grey,
+                                      inactiveTrackColor: Colors.grey
+                                          .withOpacity(0.3),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
                         ),
                         SizedBox(height: 16),
                         Row(
