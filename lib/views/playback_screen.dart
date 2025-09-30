@@ -19,6 +19,19 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   final PlaybackController controller = Get.put(PlaybackController());
   DateTime? _pickedDate;
 
+  String getMarkerImage(String speed) {
+    final spd = double.tryParse(speed) ?? 0.0;
+
+    if (spd == 0) {
+      return "assets/blue_car.png"; // parked
+    } else if (spd > 40) {
+      return "assets/red_car.png"; // overspeed
+    } else {
+      return "assets/green_car.png"; // moving normally
+    }
+  }
+
+  /// ✅ Build colored polylines based on speed
   List<Polyline> _buildColoredPolylines(List history) {
     final polylines = <Polyline>[];
 
@@ -36,7 +49,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
       final color = speed == 0
           ? Colors.orange
-          : speed > 60
+          : speed > 40
           ? Colors.red
           : Colors.blue;
 
@@ -63,7 +76,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       setState(() {
         _pickedDate = picked;
       });
-      // Full UTC timestamp
       final String formattedDate = picked.toUtc().toIso8601String();
       controller.fetchHistory(widget.numberPlate, formattedDate);
     }
@@ -92,23 +104,23 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           return Center(child: Text("No data for selected date"));
         }
 
-        // Reverse the list so oldest -> newest
         final points = controller.history.reversed.map((rec) {
           return LatLng(double.parse(rec.lt), double.parse(rec.lg));
         }).toList();
 
-        // Marker at the latest point (original first item)
+        // Latest vehicle record
+        final latestRecord = controller.history.first;
+
         final latestPoint = LatLng(
-          double.parse(controller.history.first.lt),
-          double.parse(controller.history.first.lg),
+          double.parse(latestRecord.lt),
+          double.parse(latestRecord.lg),
         );
+
+        final markerImage = getMarkerImage(latestRecord.spd);
 
         return FlutterMap(
           mapController: _mapController,
-          options: MapOptions(
-            initialCenter: points.first, // start view at oldest
-            initialZoom: 15.0,
-          ),
+          options: MapOptions(initialCenter: points.first, initialZoom: 15.0),
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -121,9 +133,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
               markers: [
                 Marker(
                   point: latestPoint,
-                  width: 40,
-                  height: 40,
-                  child: Icon(Icons.location_pin, color: Colors.red, size: 40),
+                  width: 50,
+                  height: 50,
+                  child: Image.asset(markerImage), // ✅ Custom marker image
                 ),
               ],
             ),
