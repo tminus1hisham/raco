@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 
 class Utils {
   Future<String?> getLocalIpAddress() async {
@@ -42,5 +43,17 @@ class Utils {
     }
 
     return value;
+  }
+
+  String formatDate(String isoDate) {
+    try {
+      DateTime parsedDate = DateTime.parse(isoDate);
+
+      String formattedDate = DateFormat("MMM d, yyyy").format(parsedDate);
+
+      return formattedDate;
+    } catch (e) {
+      return isoDate;
+    }
   }
 }

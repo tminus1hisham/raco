@@ -68,6 +68,7 @@ class _CarListScreenState extends State<CarListScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => SelectedCarScreen(
+                                  devices: device,
                                   carModel: device.make,
                                   licensePlate: device.numberPlate,
                                 ),

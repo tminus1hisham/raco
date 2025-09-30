@@ -1,17 +1,22 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/models/vehicle_model.dart';
+import 'package:atom/utils/utils.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 
 class VehicleDetails extends StatefulWidget {
   final String vehiclePlate;
+  final Device device;
 
-  VehicleDetails({required this.vehiclePlate});
+  VehicleDetails({required this.vehiclePlate, required this.device});
 
   @override
   State<VehicleDetails> createState() => _VehicleDetailsState();
 }
 
 class _VehicleDetailsState extends State<VehicleDetails> {
+  final _utils = Utils();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,22 +27,143 @@ class _VehicleDetailsState extends State<VehicleDetails> {
           children: [
             SizedBox(height: 10),
             customHeader(
+              showBackButton: true,
+              onPressed: () {
+                Navigator.pop(context);
+              },
               label: widget.vehiclePlate,
               icon: Icons.directions_car,
             ),
-            SizedBox(height: 10),
-            _buildSectionHeader("Vehicle Details"),
-            _buildVehicleCard(
-              child: Column(
+            Expanded(
+              child: ListView(
                 children: [
-                  _buildVehicleItem(title: 'Name', subtitle: 'Isuzu NQR'),
-                  _buildDivider(),
-                  _buildVehicleItem(
-                    title: 'Registration Number',
-                    subtitle: 'KDA001D',
+                  SizedBox(height: 10),
+                  _buildSectionHeader("Vehicle Details"),
+                  _buildVehicleCard(
+                    child: Column(
+                      children: [
+                        _buildVehicleItem(
+                          title: 'Make',
+                          subtitle: widget.device.make,
+                        ),
+                        _buildDivider(),
+                        _buildVehicleItem(
+                          title: 'Registration Number',
+                          subtitle: widget.device.numberPlate,
+                        ),
+                        _buildDivider(),
+                        _buildVehicleItem(
+                          title: 'Make',
+                          subtitle: widget.device.make,
+                        ),
+                      ],
+                    ),
                   ),
-                  _buildDivider(),
-                  _buildVehicleItem(title: 'Make', subtitle: 'Isuzu'),
+                  SizedBox(height: 10),
+                  _buildSectionHeader("Ownership & Contact"),
+                  _buildVehicleCard(
+                    child: Column(
+                      children: [
+                        _buildVehicleItem(
+                          title: 'Owner ID',
+                          subtitle: widget.device.ownerId,
+                        ),
+                        _buildDivider(),
+                        _buildVehicleItem(
+                          title: 'Phone',
+                          subtitle: widget.device.phone,
+                        ),
+                        _buildDivider(),
+                        _buildVehicleItem(
+                          title: 'Email',
+                          subtitle: widget.device.email,
+                        ),
+                        _buildDivider(),
+                        _buildVehicleItem(
+                          title: 'Business Reg',
+                          subtitle: widget.device.businessReg,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  _buildSectionHeader("Certificate & Compliance"),
+                  _buildVehicleCard(
+                    child: Column(
+                      children: [
+                        _buildVehicleItem(
+                          title: 'Certificate Number',
+                          subtitle: widget.device.certNo,
+                        ),
+                        _buildDivider(),
+                        _buildVehicleItem(
+                          title: 'Certificate URL',
+                          subtitle: widget.device.certificateUrl,
+                        ),
+                        _buildDivider(),
+                        _buildVehicleItem(
+                          title: 'Certificate Status',
+                          subtitle: widget.device.certificateActiveStatus
+                              ? "Active"
+                              : "Inactive",
+                        ),
+                        _buildDivider(),
+                        _buildVehicleItem(
+                          title: 'Certificate Expiry',
+                          subtitle: _utils.formatDate(
+                            widget.device.certificateExpirey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  _buildSectionHeader("Installation & Device"),
+                  _buildVehicleCard(
+                    child: Column(
+                      children: [
+                        _buildVehicleItem(
+                          title: 'Technician Name',
+                          subtitle: widget.device.technicianName,
+                        ),
+                        _buildDivider(),
+                        _buildVehicleItem(
+                          title: 'Device Type',
+                          subtitle: widget.device.deviceType,
+                        ),
+                        _buildDivider(),
+                        _buildVehicleItem(
+                          title: 'Device Status',
+                          subtitle: widget.device.isDeviceOnline
+                              ? "Online"
+                              : "Offline",
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  _buildSectionHeader("Agent & Details"),
+                  _buildVehicleCard(
+                    child: Column(
+                      children: [
+                        _buildVehicleItem(
+                          title: 'Agent',
+                          subtitle: widget.device.agent,
+                        ),
+                        _buildDivider(),
+                        _buildVehicleItem(
+                          title: 'Agent ID',
+                          subtitle: widget.device.agentID,
+                        ),
+                        _buildDivider(),
+                        _buildVehicleItem(
+                          title: 'Agent Phone',
+                          subtitle: widget.device.agentPhone,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 30),
                 ],
               ),
             ),

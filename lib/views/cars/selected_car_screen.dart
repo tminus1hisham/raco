@@ -1,4 +1,5 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/views/cars/car_report.dart';
 import 'package:atom/views/cars/commands.dart';
@@ -11,11 +12,13 @@ import 'package:flutter/material.dart';
 class SelectedCarScreen extends StatefulWidget {
   final String carModel;
   final String licensePlate;
+  final Device devices;
 
   const SelectedCarScreen({
     super.key,
     required this.carModel,
     required this.licensePlate,
+    required this.devices,
   });
 
   @override
@@ -35,7 +38,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
           children: [
             SizedBox(height: 10),
             customHeader(
-              label: widget.carModel,
+              label: widget.licensePlate,
               icon: Icons.drive_eta_rounded,
               showBackButton: true,
               onPressed: () {
@@ -173,6 +176,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                     MaterialPageRoute(
                                       builder: (context) => VehicleDetails(
                                         vehiclePlate: "KDG001A",
+                                        device: widget.devices,
                                       ),
                                     ),
                                   );

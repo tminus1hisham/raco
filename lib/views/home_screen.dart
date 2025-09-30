@@ -409,8 +409,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => SelectedCarScreen(
-                          carModel: 'BMW X6',
-                          licensePlate: 'AG 5758 SS',
+                          devices: device,
+                          carModel: device.make,
+                          licensePlate: device.numberPlate,
                         ),
                       ),
                     );
