@@ -1,10 +1,14 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/device_controller.dart';
+import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/views/playback_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 import 'cars/cars_screen.dart';
 
@@ -19,68 +23,13 @@ class _HomeScreenState extends State<HomeScreen> {
   final MapController mapController = MapController();
   bool showBottomSheet = false;
 
-  final List<Vehicle> vehicles = [
-    Vehicle(
-      name: "BMW X6",
-      plate: "KDF001A",
-      model: "Isuzu NQR",
-      status: "online",
-      batteryLevel: 0.85,
-      position: LatLng(-1.2842328448615796, 36.816382318562034),
-      image: "bmw_x6.png",
-      driverBehaviour: "Safe",
-      engineStatus: "Active",
-      engineRunTime: "4hr 22Mins",
-      todayDistance: "22KM",
-      averageSpeed: "60 KM/Hr",
-      topSpeed: "92KM/Hr",
-    ),
-    Vehicle(
-      name: "BMW X4",
-      plate: "KDC002A",
-      model: "Isuzu NQR",
-      status: "offline",
-      batteryLevel: 0.6,
-      position: LatLng(-1.3175902227858143, 36.786056310270034),
-      image: "bmw_z4.png",
-      driverBehaviour: "Safe",
-      engineStatus: "Idle",
-      engineRunTime: "2hr 15Mins",
-      todayDistance: "15KM",
-      averageSpeed: "45 KM/Hr",
-      topSpeed: "78KM/Hr",
-    ),
-    Vehicle(
-      name: "BMW M3",
-      plate: "KDB001A",
-      model: "Isuzu NQR",
-      status: "tampered",
-      batteryLevel: 0.9,
-      position: LatLng(-1.2799336124445042, 36.77765642862558),
-      image: "bmw_m3.png",
-      driverBehaviour: "Safe",
-      engineStatus: "Stopped",
-      engineRunTime: "0hr 0Mins",
-      todayDistance: "8KM",
-      averageSpeed: "35 KM/Hr",
-      topSpeed: "65KM/Hr",
-    ),
-    Vehicle(
-      name: "Toyota",
-      plate: "KDB001A",
-      model: "Vitz",
-      status: "online",
-      batteryLevel: 0.9,
-      position: LatLng(-1.3799336124445042, 36.87765642862558),
-      image: "bmw_m3.png",
-      driverBehaviour: "Risky",
-      engineStatus: "Moving",
-      engineRunTime: "0hr 0Mins",
-      todayDistance: "8KM",
-      averageSpeed: "35 KM/Hr",
-      topSpeed: "65KM/Hr",
-    ),
-  ];
+  final DeviceController _controller = Get.put(DeviceController());
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.fetchDevices();
+  }
 
   void _selectVehicle(int index) {
     setState(() {
@@ -88,27 +37,45 @@ class _HomeScreenState extends State<HomeScreen> {
       showBottomSheet = true;
     });
 
-    mapController.move(vehicles[index].position, 15.0);
-    _showVehicleBottomSheet(vehicles[index]);
-  }
+    final devices = _controller.devicesModel.value?.devices ?? [];
 
-  Size getMarkerSize(String status) {
-    switch (status) {
-      case "online":
-        return const Size(55, 55);
-      case "offline":
-        return const Size(40, 40);
-      default:
-        return const Size(47, 47);
+    if (devices.isNotEmpty && index < devices.length) {
+      final device = devices[index];
+      final position = LatLng(
+        double.tryParse(device.latitude) ?? -1.2842,
+        double.tryParse(device.longitude) ?? 36.8163,
+      );
+      mapController.move(position, 15.0);
+      _showVehicleBottomSheet(device);
     }
   }
 
-  void _showVehicleBottomSheet(Vehicle vehicle) {
+  Size getMarkerSize(bool isOnline, int ignitionStatus) {
+    if (isOnline && ignitionStatus == 1) {
+      return const Size(55, 55); // online and moving
+    } else if (!isOnline) {
+      return const Size(40, 40); // offline
+    } else {
+      return const Size(47, 47); // online but idle/stopped
+    }
+  }
+
+  String getMarkerImage(bool isOnline, int ignitionStatus, int signalStrength) {
+    if (isOnline && ignitionStatus == 1 && signalStrength > 0) {
+      return "assets/green_car.png"; // online and moving
+    } else if (isOnline && ignitionStatus == 0 && signalStrength > 0) {
+      return "assets/blue_car.png"; // offline
+    } else {
+      return "assets/red_car.png"; // online but stopped/idle
+    }
+  }
+
+  void _showVehicleBottomSheet(Device device) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildVehicleBottomSheet(vehicle),
+      builder: (context) => _buildVehicleBottomSheet(device),
     );
   }
 
@@ -192,22 +159,35 @@ class _HomeScreenState extends State<HomeScreen> {
         body: TabBarView(
           children: [
             // Tab 1: Map view
-            Stack(
-              children: [
-                _buildFullScreenMap(),
-                Positioned(
-                  top: 10, // Reduced from 20
-                  left: 20,
-                  right: 20,
-                  child: _buildSearchBar(),
-                ),
-                Positioned(
-                  right: 20,
-                  top: 70, // Reduced from 90
-                  child: _buildMapControls(),
-                ),
-              ],
-            ),
+            Obx(() {
+              if (_controller.isLoading.value) {
+                return Container(
+                  color: Colors.black.withOpacity(0.3),
+                  child: Center(
+                    child: LoadingAnimationWidget.fourRotatingDots(
+                      color: kBlue,
+                      size: 50,
+                    ),
+                  ),
+                );
+              }
+
+              final devices = _controller.devicesModel.value?.devices ?? [];
+
+              return Stack(
+                children: [
+                  _buildFullScreenMap(devices),
+                  Positioned(
+                    top: 10,
+                    left: 20,
+                    right: 20,
+                    child: _buildSearchBar(),
+                  ),
+                  Positioned(right: 20, top: 70, child: _buildMapControls()),
+                ],
+              );
+            }),
+
             // Tab 2: CarsScreen
             CarsScreen(),
           ],
@@ -216,45 +196,49 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFullScreenMap() {
+  Widget _buildFullScreenMap(List<dynamic> devices) {
+    final firstDevice = devices.isNotEmpty ? devices[0] as Device : null;
+    final initialPosition = firstDevice != null
+        ? LatLng(
+            double.tryParse(firstDevice.latitude) ?? -1.2842,
+            double.tryParse(firstDevice.longitude) ?? 36.8163,
+          )
+        : LatLng(-1.2842, 36.8163);
+
     return Positioned.fill(
       child: FlutterMap(
         mapController: mapController,
         options: MapOptions(
-          initialCenter: vehicles[selectedVehicleIndex].position,
+          initialCenter: initialPosition,
           initialZoom: 13.0,
           interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
         ),
         children: [
           TileLayer(
             urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-            // urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
             userAgentPackageName: 'com.example.atom',
           ),
           MarkerLayer(
-            markers: vehicles.asMap().entries.map((entry) {
+            markers: devices.asMap().entries.map((entry) {
               int index = entry.key;
-              Vehicle vehicle = entry.value;
+              Device device = entry.value as Device;
 
-              String imagePath;
-              switch (vehicle.status.toLowerCase()) {
-                case "online":
-                  imagePath = "assets/green_car.png";
-                  break;
-                case "offline":
-                  imagePath = "assets/blue_car.png";
-                  break;
-                case "tampered":
-                  imagePath = "assets/red_car.png";
-                  break;
-                default:
-                  imagePath = "assets/green_car.png";
-              }
+              final latitude = double.tryParse(device.latitude) ?? -1.2842;
+              final longitude = double.tryParse(device.longitude) ?? 36.8163;
+              final position = LatLng(latitude, longitude);
 
-              final size = getMarkerSize(vehicle.status);
+              final imagePath = getMarkerImage(
+                device.isDeviceOnline,
+                device.ignitionStatus,
+                device.signalStrength,
+              );
+              final size = getMarkerSize(
+                device.isDeviceOnline,
+                device.ignitionStatus,
+              );
 
               return Marker(
-                point: vehicle.position,
+                point: position,
                 width: size.width,
                 height: size.height,
                 child: GestureDetector(
@@ -391,7 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildVehicleBottomSheet(Vehicle vehicle) {
+  Widget _buildVehicleBottomSheet(Device device) {
     bool isVehicleActive = true;
 
     return Container(
@@ -499,7 +483,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Row(
                         children: [
                           Text(
-                            vehicle.plate,
+                            device.numberPlate,
                             style: TextStyle(
                               fontSize: 25,
                               fontWeight: FontWeight.bold,
@@ -508,7 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           SizedBox(width: 10),
                           Text(
-                            vehicle.model,
+                            device.make,
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.grey[600],
@@ -551,10 +535,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                   setModalState(() {
                                     isVehicleActive = value;
                                   });
-
-                                  print(
-                                    'Vehicle ${vehicle.plate} is now ${value ? "ON" : "OFF"}',
-                                  );
                                 },
                                 activeColor: Colors.green,
                                 activeTrackColor: Colors.green.withOpacity(0.3),
@@ -578,14 +558,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         "Driver Behaviour: ",
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
-                      Text(
-                        vehicle.driverBehaviour,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      // Text(
+                      //   vehicle.driverBehaviour,
+                      //   style: TextStyle(
+                      //     fontSize: 16,
+                      //     color: Colors.green,
+                      //     fontWeight: FontWeight.w600,
+                      //   ),
+                      // ),
                     ],
                   ),
 
@@ -597,8 +577,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         "Engine: ",
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
+                      // Text(
+                      //   "${device.engineStatus} (${vehicle.engineRunTime})",
+                      //   style: TextStyle(
+                      //     fontSize: 16,
+                      //     color: Colors.black87,
+                      //     fontWeight: FontWeight.w500,
+                      //   ),
+                      // ),
                       Text(
-                        "${vehicle.engineStatus} (${vehicle.engineRunTime})",
+                        "${device.ignitionStatus == 1 ? "ON" : "OFF"}",
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.black87,
@@ -606,10 +594,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       Spacer(),
-                      Text(
-                        "Today: ${vehicle.todayDistance}",
-                        style: TextStyle(fontSize: 16, color: Colors.black87),
-                      ),
+                      // Text(
+                      //   "Today: ${vehicle.todayDistance}",
+                      //   style: TextStyle(fontSize: 16, color: Colors.black87),
+                      // ),
                     ],
                   ),
 
@@ -618,12 +606,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     children: [
                       Text(
-                        "Average Speed: ${vehicle.averageSpeed}",
+                        "Average Speed: ",
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
                       Spacer(),
                       Text(
-                        "Top Speed: ${vehicle.topSpeed}",
+                        "Top Speed: ${device.speed}",
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
                     ],
@@ -711,36 +699,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}
-
-class Vehicle {
-  final String name;
-  final String plate;
-  final String model;
-  final String status;
-  final double batteryLevel;
-  final LatLng position;
-  final String image;
-  final String driverBehaviour;
-  final String engineStatus;
-  final String engineRunTime;
-  final String todayDistance;
-  final String averageSpeed;
-  final String topSpeed;
-
-  Vehicle({
-    required this.name,
-    required this.plate,
-    required this.model,
-    required this.status,
-    required this.batteryLevel,
-    required this.position,
-    required this.image,
-    required this.driverBehaviour,
-    required this.engineStatus,
-    required this.engineRunTime,
-    required this.todayDistance,
-    required this.averageSpeed,
-    required this.topSpeed,
-  });
 }
