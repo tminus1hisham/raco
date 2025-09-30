@@ -71,11 +71,16 @@ class _CarsScreenState extends State<CarsScreen> {
                                           .toString() ??
                                       '0',
                                   onPressed: () {
+                                    final onlineDevices = devices
+                                        .where((d) => d.isDeviceOnline)
+                                        .toList();
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>
-                                            CarListScreen(label: "Online"),
+                                        builder: (context) => CarListScreen(
+                                          label: "Online",
+                                          devices: onlineDevices,
+                                        ),
                                       ),
                                     );
                                   },
@@ -95,11 +100,16 @@ class _CarsScreenState extends State<CarsScreen> {
                                           .toString() ??
                                       '0',
                                   onPressed: () {
+                                    final offlineDevices = devices
+                                        .where((d) => !d.isDeviceOnline)
+                                        .toList();
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>
-                                            CarListScreen(label: "Offline"),
+                                        builder: (context) => CarListScreen(
+                                          label: "Offline",
+                                          devices: offlineDevices,
+                                        ),
                                       ),
                                     );
                                   },
@@ -136,7 +146,6 @@ class _CarsScreenState extends State<CarsScreen> {
                                 builder: (context) => SelectedCarScreen(
                                   carModel: device.make,
                                   licensePlate: device.numberPlate,
-                                  batteryLevel: 4, // placeholder
                                 ),
                               ),
                             );

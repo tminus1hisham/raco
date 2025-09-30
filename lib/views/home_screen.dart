@@ -411,7 +411,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         builder: (context) => SelectedCarScreen(
                           carModel: 'BMW X6',
                           licensePlate: 'AG 5758 SS',
-                          batteryLevel: 4,
                         ),
                       ),
                     );

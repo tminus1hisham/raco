@@ -11,13 +11,11 @@ import 'package:flutter/material.dart';
 class SelectedCarScreen extends StatefulWidget {
   final String carModel;
   final String licensePlate;
-  final int batteryLevel;
 
   const SelectedCarScreen({
     super.key,
     required this.carModel,
     required this.licensePlate,
-    required this.batteryLevel,
   });
 
   @override

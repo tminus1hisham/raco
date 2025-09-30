@@ -6,8 +6,9 @@ import 'package:flutter/material.dart';
 
 class CarListScreen extends StatefulWidget {
   final String label;
+  final List devices;
 
-  CarListScreen({required this.label});
+  const CarListScreen({super.key, required this.label, required this.devices});
 
   @override
   State<CarListScreen> createState() => _CarListScreenState();
@@ -16,60 +17,66 @@ class CarListScreen extends StatefulWidget {
 class _CarListScreenState extends State<CarListScreen> {
   @override
   Widget build(BuildContext context) {
+    final devices = widget.devices;
+
     return Scaffold(
       backgroundColor: kBgGrey,
       body: SafeArea(
         child: Column(
           children: [
-            SizedBox(height: 10),
-            customHeader(label: widget.label, icon: Icons.directions_car),
+            const SizedBox(height: 10),
+            customHeader(
+              label: widget.label,
+              icon: Icons.directions_car,
+              showBackButton: true,
+              onPressed: () => Navigator.pop(context),
+            ),
             Expanded(
-              child: ListView(
-                children: [
-                  CarInfoCard(
-                    carModel: 'BMW X6',
-                    licensePlate: 'KDF 001A',
-                    status: 'Moving',
-                    statusColor: Colors.green,
-                    statusBackgroundColor: Color(0xFFE8F5E8),
-                    currentSpeed: '65 km/h',
-                    topSpeed: '78 km/h',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SelectedCarScreen(
-                            carModel: 'BMW X6',
-                            licensePlate: 'AG 5758 SS',
-                            batteryLevel: 4,
+              child: devices.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.directions_car, color: kGrey, size: 40),
+                          const SizedBox(height: 10),
+                          Text(
+                            "No devices found",
+                            style: TextStyle(color: kGrey, fontSize: 18),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  CarInfoCard(
-                    carModel: 'Isuzu NQR',
-                    licensePlate: 'KDF 001A',
-                    status: 'Overspeed',
-                    statusColor: kRed,
-                    statusBackgroundColor: kRed.withOpacity(0.1),
-                    currentSpeed: '80 km/h',
-                    topSpeed: '90 km/h',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SelectedCarScreen(
-                            carModel: 'Isuzu NQR',
-                            licensePlate: 'AG 5758 SS',
-                            batteryLevel: 4,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: devices.length,
+                      itemBuilder: (context, index) {
+                        final device = devices[index];
+
+                        return CarInfoCard(
+                          carModel: device.make,
+                          licensePlate: device.numberPlate,
+                          status: device.isDeviceOnline ? "Online" : "Offline",
+                          statusColor: device.isDeviceOnline
+                              ? kSuccessGreen
+                              : kRed,
+                          statusBackgroundColor: device.isDeviceOnline
+                              ? const Color(0xFFE8F5E8)
+                              : kRed.withOpacity(0.1),
+                          currentSpeed: "${device.speed} km/h",
+                          topSpeed: "",
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SelectedCarScreen(
+                                  carModel: device.make,
+                                  licensePlate: device.numberPlate,
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),
