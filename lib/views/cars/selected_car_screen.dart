@@ -1,6 +1,7 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/routes/routes.dart';
+import 'package:atom/utils/utils.dart';
 import 'package:atom/views/cars/car_report.dart';
 import 'package:atom/views/cars/commands.dart';
 import 'package:atom/views/cars/driver_behaviour.dart';
@@ -27,6 +28,7 @@ class SelectedCarScreen extends StatefulWidget {
 
 class _SelectedCarScreenState extends State<SelectedCarScreen> {
   bool isVehicleActive = true;
+  final _utils = Utils();
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +242,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               _buildDivider(),
                               _buildCommandItem(
                                 title: 'Certificate',
-                                subtitle: "Expiry: 22/12/2025.",
+                                subtitle: _utils.formatDate(
+                                  widget.devices.certificateExpirey,
+                                ),
                                 onTap: () {},
                               ),
                             ],
