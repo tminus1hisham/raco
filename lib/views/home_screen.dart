@@ -629,7 +629,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => PlaybackScreen(),
+                                builder: (context) => PlaybackScreen(
+                                  numberPlate: device.numberPlate,
+                                ),
                               ),
                             );
                           },

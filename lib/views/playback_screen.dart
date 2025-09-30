@@ -1,52 +1,73 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/playback_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:intl/intl.dart'; // for formatting time
+import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
 
 class PlaybackScreen extends StatefulWidget {
+  final String numberPlate;
+
+  PlaybackScreen({required this.numberPlate});
+
   @override
   _PlaybackScreenState createState() => _PlaybackScreenState();
 }
 
 class _PlaybackScreenState extends State<PlaybackScreen> {
   final MapController _mapController = MapController();
+  final PlaybackController controller = Get.put(PlaybackController());
+  DateTime? _pickedDate;
 
-  LatLng? _selectedPoint; // track which marker is tapped
-  String? _selectedMessage;
+  List<Polyline> _buildColoredPolylines(List history) {
+    final polylines = <Polyline>[];
 
-  final List<CarRoute> carRoutes = [
-    CarRoute(
-      name: "Car A",
-      color: Colors.blue,
-      points: [
-        CarPoint(
-          position: LatLng(-1.2671967137432802, 36.80382743368107),
-          time: DateTime.utc(2025, 9, 19, 8, 0, 0),
+    for (int i = 0; i < history.length - 1; i++) {
+      final current = history[i];
+      final next = history[i + 1];
+
+      final currentPoint = LatLng(
+        double.parse(current.lt),
+        double.parse(current.lg),
+      );
+      final nextPoint = LatLng(double.parse(next.lt), double.parse(next.lg));
+
+      final speed = double.tryParse(current.spd.toString()) ?? 0.0;
+
+      final color = speed == 0
+          ? Colors.orange
+          : speed > 60
+          ? Colors.red
+          : Colors.blue;
+
+      polylines.add(
+        Polyline(
+          points: [currentPoint, nextPoint],
+          strokeWidth: 6.0,
+          color: color,
         ),
-        CarPoint(
-          position: LatLng(-1.2714561687422843, 36.808152658068515),
-          time: DateTime.utc(2025, 9, 19, 8, 5, 0),
-        ),
-        CarPoint(
-          position: LatLng(-1.276433775908415, 36.81348502573813),
-          time: DateTime.utc(2025, 9, 19, 8, 10, 0),
-        ),
-        CarPoint(
-          position: LatLng(-1.2817113819634032, 36.815034476941435),
-          time: DateTime.utc(2025, 9, 19, 8, 15, 0),
-        ),
-        CarPoint(
-          position: LatLng(-1.2797103440514344, 36.82054875802763),
-          time: DateTime.utc(2025, 9, 19, 8, 20, 0),
-        ),
-        CarPoint(
-          position: LatLng(-1.269454142430596, 36.83157928153062),
-          time: DateTime.utc(2025, 9, 19, 8, 25, 0),
-        ),
-      ],
-    ),
-  ];
+      );
+    }
+
+    return polylines;
+  }
+
+  Future<void> _pickDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        _pickedDate = picked;
+      });
+      // Full UTC timestamp
+      final String formattedDate = picked.toUtc().toIso8601String();
+      controller.fetchHistory(widget.numberPlate, formattedDate);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,143 +76,60 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
         title: Text("Play Back", style: TextStyle(color: kWhite)),
         backgroundColor: kBlue,
         iconTheme: IconThemeData(color: kWhite),
-      ),
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: carRoutes[0].points.last.position,
-              initialZoom: 15.0,
-              onTap: (_, __) {
-                // hide tooltip when tapping map
-                setState(() {
-                  _selectedPoint = null;
-                  _selectedMessage = null;
-                });
-              },
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.atom',
-              ),
-
-              // Draw polylines for each car
-              PolylineLayer(
-                polylines: carRoutes.map((car) {
-                  return Polyline(
-                    points: car.points.map((p) => p.position).toList(),
-                    strokeWidth: 8.0,
-                    color: car.color,
-                  );
-                }).toList(),
-              ),
-
-              // Draw markers
-              MarkerLayer(
-                markers: [
-                  // Pins for each point
-                  ...carRoutes.expand(
-                    (car) => car.points.map((point) {
-                      final localTime = point.time.toLocal();
-                      final formatted = DateFormat(
-                        "yyyy-MM-dd HH:mm:ss",
-                      ).format(localTime);
-
-                      return Marker(
-                        point: point.position,
-                        width: 50,
-                        height: 50,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedPoint = point.position;
-                              _selectedMessage =
-                                  "UTC: ${point.time.toIso8601String()}\nLocal: $formatted";
-                            });
-                          },
-                          child: const Icon(
-                            Icons.location_pin,
-                            color: Colors.red,
-                            size: 40,
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-
-                  // Car marker at last position
-                  ...carRoutes.map((car) {
-                    final lastPoint = car.points.last;
-                    return Marker(
-                      point: lastPoint.position,
-                      width: 50,
-                      height: 50,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: car.color,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.directions_car,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            ],
+        actions: [
+          IconButton(
+            icon: Icon(Icons.calendar_today),
+            onPressed: () => _pickDate(context),
           ),
-
-          // Tooltip bubble overlay
-          if (_selectedPoint != null && _selectedMessage != null)
-            Positioned(
-              left: 20,
-              right: 20,
-              top: 20,
-              child: Center(
-                child: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: kBlue,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _selectedMessage!,
-                    style: TextStyle(color: Colors.white, fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (controller.history.isEmpty) {
+          return Center(child: Text("No data for selected date"));
+        }
+
+        // Reverse the list so oldest -> newest
+        final points = controller.history.reversed.map((rec) {
+          return LatLng(double.parse(rec.lt), double.parse(rec.lg));
+        }).toList();
+
+        // Marker at the latest point (original first item)
+        final latestPoint = LatLng(
+          double.parse(controller.history.first.lt),
+          double.parse(controller.history.first.lg),
+        );
+
+        return FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: points.first, // start view at oldest
+            initialZoom: 15.0,
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.example.atom',
+            ),
+            PolylineLayer(
+              polylines: _buildColoredPolylines(controller.history),
+            ),
+            MarkerLayer(
+              markers: [
+                Marker(
+                  point: latestPoint,
+                  width: 40,
+                  height: 40,
+                  child: Icon(Icons.location_pin, color: Colors.red, size: 40),
+                ),
+              ],
+            ),
+          ],
+        );
+      }),
     );
   }
-}
-
-class CarRoute {
-  final String name;
-  final Color color;
-  final List<CarPoint> points;
-
-  CarRoute({required this.name, required this.color, required this.points});
-}
-
-class CarPoint {
-  final LatLng position;
-  final DateTime time; // stored in UTC
-
-  CarPoint({required this.position, required this.time});
 }

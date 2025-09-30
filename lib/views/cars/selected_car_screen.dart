@@ -133,7 +133,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => PlaybackScreen(),
+                                      builder: (context) => PlaybackScreen(
+                                        numberPlate: widget.devices.numberPlate,
+                                      ),
                                     ),
                                   );
                                 },

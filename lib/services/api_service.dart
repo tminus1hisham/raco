@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:atom/config/constants.dart';
+import 'package:atom/models/playback_model.dart';
 import 'package:atom/models/profile_picture_model.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:http/http.dart' as http;
@@ -76,6 +77,30 @@ class ApiService {
       return DevicesModel.fromJson(data);
     } else {
       throw Exception('Failed to load devices');
+    }
+  }
+
+  static Future<List<DeviceRecord>> fetchDeviceHistory(
+    String numberPlate,
+    String date,
+  ) async {
+    String token = await StorageService.getData('access_token');
+
+    final response = await http.get(
+      Uri.parse(
+        '$base_url/devices/get/tracking/history?numberPlate=$numberPlate&date=$date',
+      ),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as List;
+      return DeviceRecord.fromJsonList(data);
+    } else {
+      throw Exception('Failed to load history');
     }
   }
 }
