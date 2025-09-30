@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class PlaybackScreen extends StatefulWidget {
   final String numberPlate;
@@ -272,7 +273,15 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return Center(child: CircularProgressIndicator());
+          return Container(
+            color: Colors.black.withOpacity(0.3),
+            child: Center(
+              child: LoadingAnimationWidget.fourRotatingDots(
+                color: kBlue,
+                size: 50,
+              ),
+            ),
+          );
         }
 
         if (controller.history.isEmpty) {

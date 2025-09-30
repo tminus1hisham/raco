@@ -150,7 +150,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                 onPressed: () {
                                   Navigator.pushNamed(
                                     context,
-                                    AppRoutes.driver_behaviour,
+                                    AppRoutes.violations,
                                   );
                                 },
                               ),
