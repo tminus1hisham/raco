@@ -350,12 +350,31 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
               child: _buildDropdownButton(),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              child: CustomButton(
-                callBackFunction: _getViolations,
-                label: "Get Violations",
-                backgroundColor: kBlue,
-                txtColor: kWhite,
+              padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+
+              child: Row(
+                children: [
+                  Expanded(
+                    child: CustomButton(
+                      callBackFunction: _getViolations,
+                      label: "Get Violations",
+                      backgroundColor: kBlue,
+                      txtColor: kWhite,
+                    ),
+                  ),
+                  SizedBox(width: 5),
+                  Expanded(
+                    child: CustomButton(
+                      callBackFunction: () {
+                        final url = _violationsController.reportUrl.value!;
+                        print(url);
+                      },
+                      label: "Download",
+                      backgroundColor: kBlue,
+                      txtColor: kWhite,
+                    ),
+                  ),
+                ],
               ),
             ),
 

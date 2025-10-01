@@ -1,9 +1,9 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/device_controller.dart';
 import 'package:atom/models/vehicle_model.dart';
-import 'package:atom/routes/routes.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/views/playback_screen.dart';
+import 'package:atom/views/violations_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
@@ -644,9 +644,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           icon: Icons.warning_amber,
                           color: kRed,
                           onPressed: () {
-                            Navigator.pushNamed(
+                            Navigator.push(
                               context,
-                              AppRoutes.driver_behaviour,
+                              MaterialPageRoute(
+                                builder: (context) => ViolationsScreen(
+                                  numberPlate: device.numberPlate,
+                                ),
+                              ),
                             );
                           },
                         ),

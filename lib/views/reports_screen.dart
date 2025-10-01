@@ -159,17 +159,36 @@ class _ReportsScreenState extends State<ReportsScreen> {
               child: _buildDropdownButton(),
             ),
 
-            // Button
+            SizedBox(height: 10),
+
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              child: CustomButton(
-                callBackFunction: _getReports,
-                label: "Get Reports",
-                backgroundColor: kBlue,
-                txtColor: kWhite,
+              padding: EdgeInsets.symmetric(horizontal: 15),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: CustomButton(
+                      callBackFunction: _getReports,
+                      label: "Get Report",
+                      backgroundColor: kBlue,
+                      txtColor: kWhite,
+                    ),
+                  ),
+                  SizedBox(width: 5),
+                  Expanded(
+                    child: CustomButton(
+                      callBackFunction: () {
+                        final url = _reportsController.reportUrl.value;
+                        print(url);
+                      },
+                      label: "Download",
+                      backgroundColor: kBlue,
+                      txtColor: kWhite,
+                    ),
+                  ),
+                ],
               ),
             ),
-
+            SizedBox(height: 10),
             // Reports list
             Expanded(
               child: Obx(() {

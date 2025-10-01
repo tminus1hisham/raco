@@ -104,7 +104,7 @@ class ApiService {
     }
   }
 
-  static Future<List<DeviceRecord>> fetchViolations(
+  static Future<Map<String, dynamic>> fetchViolations(
     String numberPlate,
     String startDate,
     String endDate,
@@ -126,14 +126,18 @@ class ApiService {
       final decoded = jsonDecode(response.body);
 
       final List<dynamic> data = decoded['devices'] ?? [];
+      final String? reportUrl = decoded['reportUrl'];
 
-      return DeviceRecord.fromJsonList(data);
+      return {
+        "devices": DeviceRecord.fromJsonList(data),
+        "reportUrl": reportUrl,
+      };
     } else {
       throw Exception('Failed to load violations');
     }
   }
 
-  static Future<List<DeviceRecord>> fetchReports(
+  static Future<Map<String, dynamic>> fetchReports(
     String numberPlate,
     String reportType,
   ) async {
@@ -152,9 +156,13 @@ class ApiService {
     if (response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
 
-      final data = decoded['devices'] as List<dynamic>;
+      final List<dynamic> data = decoded['devices'] ?? [];
+      final String? reportUrl = decoded['reportUrl'];
 
-      return DeviceRecord.fromJsonList(data);
+      return {
+        "devices": DeviceRecord.fromJsonList(data),
+        "reportUrl": reportUrl,
+      };
     } else {
       throw Exception('Failed to load reports');
     }

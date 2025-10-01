@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 class ViolationsController extends GetxController {
   var isLoading = false.obs;
   var violations = <DeviceRecord>[].obs;
+  var reportUrl = RxnString();
 
   Future<void> fetchViolations(
     String numberPlate,
@@ -14,13 +15,15 @@ class ViolationsController extends GetxController {
   ) async {
     try {
       isLoading(true);
-      var fetchedHistory = await ApiService.fetchViolations(
+      var result = await ApiService.fetchViolations(
         numberPlate,
         startDate,
         endDate,
         violationType,
       );
-      violations.assignAll(fetchedHistory);
+
+      violations.assignAll(result["devices"]);
+      reportUrl.value = result["reportUrl"];
     } finally {
       isLoading(false);
     }
