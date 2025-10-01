@@ -103,7 +103,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
   String getMarkerImage(String speed) {
     final spd = double.tryParse(speed) ?? 0.0;
-
     return "assets/blue_car.png";
   }
 
@@ -264,7 +263,11 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     );
     if (picked != null) {
       setState(() => _pickedDate = picked);
-      final String formattedDate = picked.toUtc().toIso8601String();
+      final String formattedDate = picked
+          .add(const Duration(days: 1))
+          .toUtc()
+          .toIso8601String();
+
       await controller.fetchHistory(widget.numberPlate, formattedDate);
       if (controller.history.isNotEmpty) _stopPlayback();
     }
@@ -601,14 +604,14 @@ class _InfoItem extends StatelessWidget {
             SizedBox(width: 4),
             Text(
               label,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 15, color: Colors.grey[600]),
             ),
           ],
         ),
         SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ],
     );

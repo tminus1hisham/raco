@@ -96,6 +96,9 @@ class ApiService {
       },
     );
 
+    print('HAPA');
+    print(date);
+
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as List;
       return DeviceRecord.fromJsonList(data);
