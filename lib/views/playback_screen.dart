@@ -26,18 +26,18 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   Timer? _playbackTimer;
   int _currentIndex = 0;
   bool _isPlaying = false;
+  double _playbackSpeed = 1.0; // 0.5x to 3x speed
 
   Size getMarkerSize(bool isOnline, int ignitionStatus) {
     if (isOnline && ignitionStatus == 1) {
-      return const Size(75, 75); // online and moving
+      return const Size(40, 40);
     } else if (!isOnline) {
-      return const Size(60, 60); // offline
+      return const Size(50, 50);
     } else {
-      return const Size(67, 67); // online but idle/stopped
+      return const Size(57, 57);
     }
   }
 
-  /// ✅ Calculate bearing between two points
   double _calculateBearing(LatLng from, LatLng to) {
     final lat1 = from.latitude * math.pi / 180;
     final lon1 = from.longitude * math.pi / 180;
@@ -58,9 +58,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     return bearing;
   }
 
-  /// ✅ Get bearing for current position
   double _getCurrentBearing(List history, int currentIndex) {
-    // If we have valid course data from the record, use it
     final currentRecord = history[currentIndex];
     final course = double.tryParse(currentRecord.course.toString());
 
@@ -68,7 +66,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       return course;
     }
 
-    // Otherwise calculate bearing from previous and next points
     if (currentIndex > 0 && currentIndex < history.length - 1) {
       final prevPoint = LatLng(
         double.parse(history[currentIndex - 1].lt),
@@ -80,7 +77,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       );
       return _calculateBearing(prevPoint, nextPoint);
     } else if (currentIndex > 0) {
-      // If we're at the end, use the previous point
       final prevPoint = LatLng(
         double.parse(history[currentIndex - 1].lt),
         double.parse(history[currentIndex - 1].lg),
@@ -91,7 +87,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       );
       return _calculateBearing(prevPoint, currentPoint);
     } else if (currentIndex < history.length - 1) {
-      // If we're at the start, use the next point
       final currentPoint = LatLng(
         double.parse(currentRecord.lt),
         double.parse(currentRecord.lg),
@@ -103,64 +98,41 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       return _calculateBearing(currentPoint, nextPoint);
     }
 
-    return 0.0; // Default bearing
+    return 0.0;
   }
 
-  /// ✅ Speed-based marker image
   String getMarkerImage(String speed) {
     final spd = double.tryParse(speed) ?? 0.0;
 
-    if (spd == 0) {
-      return "assets/blue_car.png"; // parked
-    } else if (spd > 80) {
-      return "assets/red_car.png"; // overspeed
-    } else {
-      return "assets/green_car.png"; // moving
-    }
+    return "assets/blue_car.png";
   }
 
-  /// ✅ Determine if vehicle is online (for playback context)
-  /// In playback, we can consider it "online" if it's the most recent data point
-  /// or based on timestamp comparison
+  // String getMarkerImage(String speed) {
+  //   final spd = double.tryParse(speed) ?? 0.0;
+  //   if (spd == 0) {
+  //     return "assets/blue_car.png";
+  //   } else if (spd > 80) {
+  //     return "assets/red_car.png";
+  //   } else {
+  //     return "assets/green_car.png";
+  //   }
+  // }
+
   bool _isVehicleOnline(List history, int currentIndex) {
-    // For playback, you might want different logic. Here are some options:
-
-    // Option 1: Consider all historical data as "online" since we're playing it back
-    // return true;
-
-    // Option 2: Check if the current point is within a reasonable time window
     final currentRecord = history[currentIndex];
     final currentTime = DateTime.fromMillisecondsSinceEpoch(
       currentRecord.dt * 1000,
     );
     final now = DateTime.now();
     final difference = now.difference(currentTime);
-
-    // Consider online if data is less than 15 minutes old (adjust as needed)
     return difference.inMinutes < 15;
-
-    // Option 3: Use actual online status from your data if available
-    // return currentRecord.isOnline ?? true;
   }
 
-  /// ✅ Get ignition status from record
-  /// You'll need to adjust this based on your data structure
   int _getIgnitionStatus(dynamic record) {
-    // Adjust this based on how ignition status is stored in your data
-    // Some common ways:
-
-    // If you have direct ignition field:
-    // return record.ignition ?? 0;
-
-    // If ignition is derived from speed:
     final speed = double.tryParse(record.spd.toString()) ?? 0.0;
     return speed > 0 ? 1 : 0;
-
-    // If you have specific ignition field name, use that:
-    // return record.ign ?? 0;
   }
 
-  /// ✅ Build colored polylines based on speed
   List<Polyline> _buildColoredPolylines(List history) {
     final polylines = <Polyline>[];
 
@@ -194,21 +166,29 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     return polylines;
   }
 
-  /// ✅ Start playback animation
   void _startPlayback(List history) {
     if (_isPlaying) return;
-    _isPlaying = true;
+    setState(() => _isPlaying = true);
     _currentIndex = 0;
 
     _playbackTimer?.cancel();
-    _playbackTimer = Timer.periodic(Duration(milliseconds: 10), (timer) {
+
+    // Use a fixed fast interval and control speed by skipping frames
+    _playbackTimer = Timer.periodic(Duration(milliseconds: 50), (timer) {
       if (_currentIndex >= history.length - 1) {
         timer.cancel();
-        _isPlaying = false;
+        setState(() => _isPlaying = false);
         return;
       }
+
+      // Calculate how many frames to skip based on speed
+      final skipFrames = (_playbackSpeed * 2).round();
+
       setState(() {
-        _currentIndex++;
+        _currentIndex = math.min(
+          _currentIndex + skipFrames,
+          history.length - 1,
+        );
       });
 
       final current = history[_currentIndex];
@@ -221,13 +201,48 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
   void _pausePlayback() {
     _playbackTimer?.cancel();
-    _isPlaying = false;
+    setState(() => _isPlaying = false);
+  }
+
+  void _resumePlayback(List history) {
+    if (_isPlaying) return;
+    setState(() => _isPlaying = true);
+
+    _playbackTimer?.cancel();
+
+    _playbackTimer = Timer.periodic(Duration(milliseconds: 50), (timer) {
+      if (_currentIndex >= history.length - 1) {
+        timer.cancel();
+        setState(() => _isPlaying = false);
+        return;
+      }
+
+      final skipFrames = (_playbackSpeed * 2).round();
+
+      setState(() {
+        _currentIndex = math.min(
+          _currentIndex + skipFrames,
+          history.length - 1,
+        );
+      });
+
+      final current = history[_currentIndex];
+      _mapController.move(
+        LatLng(double.parse(current.lt), double.parse(current.lg)),
+        _mapController.camera.zoom,
+      );
+    });
+  }
+
+  void _updatePlaybackSpeed(double newSpeed) {
+    setState(() => _playbackSpeed = newSpeed);
+    // No need to restart - the timer will pick up the new speed on next tick
   }
 
   void _stopPlayback() {
     _playbackTimer?.cancel();
-    _isPlaying = false;
     setState(() {
+      _isPlaying = false;
       _currentIndex = 0;
     });
   }
@@ -235,20 +250,32 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   Future<void> _pickDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _pickedDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(primary: kBlue, onPrimary: kWhite),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() => _pickedDate = picked);
-
       final String formattedDate = picked.toUtc().toIso8601String();
       await controller.fetchHistory(widget.numberPlate, formattedDate);
-
-      if (controller.history.isNotEmpty) {
-        _stopPlayback();
-      }
+      if (controller.history.isNotEmpty) _stopPlayback();
     }
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final hour = dateTime.hour % 12 == 0 ? 12 : dateTime.hour % 12;
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final second = dateTime.second.toString().padLeft(2, '0');
+    final amPm = dateTime.hour < 12 ? 'AM' : 'PM';
+    return '${dateTime.month}/${dateTime.day}/${dateTime.year} $hour:$minute:$second $amPm';
   }
 
   @override
@@ -260,21 +287,20 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: Text("Play Back", style: TextStyle(color: kWhite)),
+        elevation: 0,
+        title: Text(
+          "Playback",
+          style: TextStyle(color: kWhite, fontWeight: FontWeight.w600),
+        ),
         backgroundColor: kBlue,
         iconTheme: IconThemeData(color: kWhite),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.calendar_today),
-            onPressed: () => _pickDate(context),
-          ),
-        ],
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
           return Container(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.white,
             child: Center(
               child: LoadingAnimationWidget.fourRotatingDots(
                 color: kBlue,
@@ -285,7 +311,40 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
         }
 
         if (controller.history.isEmpty) {
-          return Center(child: Text("No data for selected date"));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.map_outlined, size: 80, color: Colors.grey[400]),
+                SizedBox(height: 20),
+                Text(
+                  "No playback data available",
+                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  "Select a date to view vehicle history",
+                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                ),
+                SizedBox(height: 30),
+                ElevatedButton.icon(
+                  onPressed: () => _pickDate(context),
+                  icon: Icon(Icons.calendar_today, size: 20),
+                  label: Text(
+                    _pickedDate == null ? "Select Date" : "Change Date",
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kBlue,
+                    foregroundColor: kWhite,
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
         }
 
         final history = controller.history.reversed.toList();
@@ -294,24 +353,11 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           double.parse(currentRecord.lt),
           double.parse(currentRecord.lg),
         );
-
         final markerImage = getMarkerImage(currentRecord.spd);
-
-        // Get proper bearing
         final bearing = _getCurrentBearing(history, _currentIndex);
-
-        // Get marker size based on online status and ignition
         final isOnline = _isVehicleOnline(history, _currentIndex);
         final ignitionStatus = _getIgnitionStatus(currentRecord);
         final markerSize = getMarkerSize(isOnline, ignitionStatus);
-
-        String _formatDateTime(DateTime dateTime) {
-          final hour = dateTime.hour % 12 == 0 ? 12 : dateTime.hour % 12;
-          final minute = dateTime.minute.toString().padLeft(2, '0');
-          final second = dateTime.second.toString().padLeft(2, '0');
-          final amPm = dateTime.hour < 12 ? 'AM' : 'PM';
-          return '${dateTime.month}/${dateTime.day}/${dateTime.year} $hour:$minute:$second $amPm';
-        }
 
         return Stack(
           children: [
@@ -334,7 +380,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                       width: markerSize.width,
                       height: markerSize.height,
                       child: Transform.rotate(
-                        angle: bearing * math.pi / 180, // Convert to radians
+                        angle: bearing * math.pi / 180,
                         child: Image.asset(markerImage),
                       ),
                     ),
@@ -342,77 +388,260 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 ),
               ],
             ),
+
+            // Info Card
             Positioned(
-              top: 20,
-              left: 20,
-              child: Container(
-                padding: EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Plate: ${currentRecord.rg}",
-                      style: TextStyle(color: Colors.white, fontSize: 15),
-                    ),
-                    Text(
-                      "Speed: ${currentRecord.spd} km/h",
-                      style: TextStyle(color: Colors.white, fontSize: 15),
-                    ),
-                    Text(
-                      "Ignition: ${ignitionStatus == 1 ? 'ON' : 'OFF'}",
-                      style: TextStyle(color: Colors.white, fontSize: 15),
-                    ),
-                    // Text(
-                    //   "Bearing: ${bearing.toStringAsFixed(1)}°",
-                    //   style: TextStyle(color: Colors.white),
-                    // ),
-                    Text(
-                      "Time: ${_formatDateTime(DateTime.fromMillisecondsSinceEpoch(currentRecord.dt * 1000))}",
-                      style: TextStyle(color: Colors.white, fontSize: 15),
-                    ),
-                  ],
+              top: 16,
+              left: 16,
+              right: 16,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            currentRecord.rg,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: ignitionStatus == 1
+                                  ? Colors.green[100]
+                                  : Colors.grey[300],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              ignitionStatus == 1 ? 'ON' : 'OFF',
+                              style: TextStyle(
+                                color: ignitionStatus == 1
+                                    ? Colors.green[800]
+                                    : Colors.grey[700],
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _InfoItem(
+                              icon: Icons.speed,
+                              label: "Speed",
+                              value: "${currentRecord.spd} km/h",
+                            ),
+                          ),
+                          Expanded(
+                            child: _InfoItem(
+                              icon: Icons.access_time,
+                              label: "Time",
+                              value: _formatDateTime(
+                                DateTime.fromMillisecondsSinceEpoch(
+                                  currentRecord.dt * 1000,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
 
-            /// ✅ Playback controls
-            // Positioned(
-            //   bottom: 20,
-            //   left: 0,
-            //   right: 0,
-            //   child: Row(
-            //     mainAxisAlignment: MainAxisAlignment.center,
-            //     children: [
-            //       FloatingActionButton(
-            //         heroTag: "play",
-            //         onPressed: () => _startPlayback(history),
-            //         backgroundColor: kBlue,
-            //         child: Icon(Icons.play_arrow, color: kWhite),
-            //       ),
-            //       SizedBox(width: 20),
-            //       FloatingActionButton(
-            //         heroTag: "pause",
-            //         onPressed: _pausePlayback,
-            //         backgroundColor: kBlue,
-            //         child: Icon(Icons.pause, color: kWhite),
-            //       ),
-            //       SizedBox(width: 20),
-            //       FloatingActionButton(
-            //         heroTag: "stop",
-            //         onPressed: _stopPlayback,
-            //         backgroundColor: kBlue,
-            //         child: Icon(Icons.stop, color: kWhite),
-            //       ),
-            //     ],
-            //   ),
-            // ),
+            // Control Panel
+            Positioned(
+              bottom: 20,
+              left: 16,
+              right: 16,
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Speed Control Slider
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.slow_motion_video,
+                            size: 20,
+                            color: Colors.grey[600],
+                          ),
+                          Expanded(
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: kBlue,
+                                inactiveTrackColor: Colors.grey[300],
+                                thumbColor: kBlue,
+                                overlayColor: kBlue.withOpacity(0.2),
+                                trackHeight: 3,
+                              ),
+                              child: Slider(
+                                value: _playbackSpeed,
+                                min: 0.5,
+                                max: 3.0,
+                                divisions: 5,
+                                label: '${_playbackSpeed.toStringAsFixed(1)}x',
+                                onChanged: (value) =>
+                                    _updatePlaybackSpeed(value),
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.fast_forward,
+                            size: 20,
+                            color: Colors.grey[600],
+                          ),
+                          SizedBox(width: 8),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: kBlue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${_playbackSpeed.toStringAsFixed(1)}x',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: kBlue,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+                      // Playback Controls
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _ControlButton(
+                            icon: Icons.calendar_today,
+                            onPressed: () => _pickDate(context),
+                            color: kBlue,
+                          ),
+                          _ControlButton(
+                            icon: _isPlaying ? Icons.pause : Icons.play_arrow,
+                            onPressed: () => _isPlaying
+                                ? _pausePlayback()
+                                : (_currentIndex == 0
+                                      ? _startPlayback(history)
+                                      : _resumePlayback(history)),
+                            color: kBlue,
+                            isLarge: true,
+                          ),
+                          _ControlButton(
+                            icon: Icons.stop,
+                            onPressed: _stopPlayback,
+                            color: Colors.red[400]!,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         );
       }),
+    );
+  }
+}
+
+class _InfoItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _InfoItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: Colors.grey[600]),
+            SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
+}
+
+class _ControlButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+  final Color color;
+  final bool isLarge;
+
+  const _ControlButton({
+    required this.icon,
+    required this.onPressed,
+    required this.color,
+    this.isLarge = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(isLarge ? 30 : 25),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(isLarge ? 30 : 25),
+        child: Container(
+          width: isLarge ? 60 : 50,
+          height: isLarge ? 60 : 50,
+          child: Icon(icon, color: Colors.white, size: isLarge ? 32 : 24),
+        ),
+      ),
     );
   }
 }

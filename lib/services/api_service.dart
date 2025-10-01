@@ -103,4 +103,26 @@ class ApiService {
       throw Exception('Failed to load history');
     }
   }
+
+  static Future<List<DeviceRecord>> fetchViolations(
+    String numberPlate,
+    String date,
+  ) async {
+    String token = await StorageService.getData('access_token');
+
+    final response = await http.get(
+      Uri.parse('$base_url/devices/get/all/violations'),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as List;
+      return DeviceRecord.fromJsonList(data);
+    } else {
+      throw Exception('Failed to load violations');
+    }
+  }
 }
