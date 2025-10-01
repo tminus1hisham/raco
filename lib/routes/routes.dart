@@ -9,7 +9,6 @@ import 'package:atom/views/cars/geofencing_screen.dart';
 import 'package:atom/views/dashboard.dart';
 import 'package:atom/views/notification_screen.dart';
 import 'package:atom/views/settings/account_screen.dart';
-import 'package:atom/views/violations_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -28,7 +27,6 @@ class AppRoutes {
   static const String driver_behaviour = 'driver_behaviour';
   static const String commands = 'commands';
   static const String commandHistory = 'commandHistory';
-  static const String violations = 'violations';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -64,8 +62,6 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => Commands());
       case commandHistory:
         return MaterialPageRoute(builder: (_) => CommandHistory());
-      case violations:
-        return MaterialPageRoute(builder: (_) => ViolationsScreen());
       default:
         return MaterialPageRoute(
           builder: (_) =>

@@ -96,9 +96,6 @@ class ApiService {
       },
     );
 
-    print('HAPA');
-    print(date);
-
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as List;
       return DeviceRecord.fromJsonList(data);
@@ -109,7 +106,9 @@ class ApiService {
 
   static Future<List<DeviceRecord>> fetchViolations(
     String numberPlate,
-    String date,
+    String startDate,
+    String endDate,
+    String violationType,
   ) async {
     String token = await StorageService.getData('access_token');
 

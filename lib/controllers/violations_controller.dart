@@ -1,0 +1,28 @@
+import 'package:atom/models/playback_model.dart';
+import 'package:atom/services/api_service.dart';
+import 'package:get/get.dart';
+
+class ViolationsController extends GetxController {
+  var isLoading = false.obs;
+  var violations = <DeviceRecord>[].obs;
+
+  Future<void> fetchViolations(
+    String numberPlate,
+    String startDate,
+    String endDate,
+    String violationType,
+  ) async {
+    try {
+      isLoading(true);
+      var fetchedHistory = await ApiService.fetchViolations(
+        numberPlate,
+        startDate,
+        endDate,
+        violationType,
+      );
+      violations.assignAll(fetchedHistory);
+    } finally {
+      isLoading(false);
+    }
+  }
+}

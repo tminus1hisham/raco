@@ -7,6 +7,7 @@ import 'package:atom/views/cars/commands.dart';
 import 'package:atom/views/cars/driver_behaviour.dart';
 import 'package:atom/views/cars/vehicle_details.dart';
 import 'package:atom/views/playback_screen.dart';
+import 'package:atom/views/violations_screen.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 
@@ -148,9 +149,13 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                 icon: Icons.warning_amber,
                                 color: kRed,
                                 onPressed: () {
-                                  Navigator.pushNamed(
+                                  Navigator.push(
                                     context,
-                                    AppRoutes.violations,
+                                    MaterialPageRoute(
+                                      builder: (context) => ViolationsScreen(
+                                        numberPlate: widget.devices.numberPlate,
+                                      ),
+                                    ),
                                   );
                                 },
                               ),
