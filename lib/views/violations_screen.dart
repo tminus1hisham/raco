@@ -62,29 +62,8 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
 
     // Cache filtered violations once instead of recalculating in build
     setState(() {
-      _filteredViolations = _filterViolations();
+      _filteredViolations = _violationsController.violations;
     });
-  }
-
-  List<DeviceRecord> _filterViolations() {
-    if (_selectedViolation == null) return [];
-
-    final records = _violationsController.violations;
-
-    if (_selectedViolation == "Speed Violations") {
-      return records
-          .where(
-            (v) =>
-                double.tryParse(v.spd.toString()) != null &&
-                double.parse(v.spd.toString()) > 80,
-          )
-          .toList();
-    } else if (_selectedViolation == "Signal Wire Violations") {
-      return records.where((v) => v.wr == 1).toList();
-    } else if (_selectedViolation == "Power Cut Violations") {
-      return records.where((v) => v.bt == 0).toList();
-    }
-    return [];
   }
 
   Future<void> _pickStartDate(BuildContext context) async {

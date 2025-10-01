@@ -2,11 +2,11 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/utils/utils.dart';
-import 'package:atom/views/cars/car_report.dart';
 import 'package:atom/views/cars/commands.dart';
 import 'package:atom/views/cars/driver_behaviour.dart';
 import 'package:atom/views/cars/vehicle_details.dart';
 import 'package:atom/views/playback_screen.dart';
+import 'package:atom/views/reports_screen.dart';
 import 'package:atom/views/violations_screen.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -241,7 +241,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => CarReports(),
+                                      builder: (context) => ReportsScreen(
+                                        numberPlate: widget.licensePlate,
+                                      ),
                                     ),
                                   );
                                 },

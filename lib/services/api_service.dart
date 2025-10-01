@@ -113,7 +113,9 @@ class ApiService {
     String token = await StorageService.getData('access_token');
 
     final response = await http.get(
-      Uri.parse('$base_url/devices/get/all/violations'),
+      Uri.parse(
+        '$base_url/devices/get/violations?numberPlate=$numberPlate&startDate=$startDate&endDate=$endDate&violationType=$violationType',
+      ),
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",
@@ -121,10 +123,40 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as List;
+      final decoded = jsonDecode(response.body);
+
+      final List<dynamic> data = decoded['devices'] ?? [];
+
       return DeviceRecord.fromJsonList(data);
     } else {
       throw Exception('Failed to load violations');
+    }
+  }
+
+  static Future<List<DeviceRecord>> fetchReports(
+    String numberPlate,
+    String reportType,
+  ) async {
+    String token = await StorageService.getData('access_token');
+
+    final response = await http.get(
+      Uri.parse(
+        '$base_url/devices/get/tracking/reports?numberPlate=$numberPlate&reportType=$reportType',
+      ),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+
+      final data = decoded['devices'] as List<dynamic>;
+
+      return DeviceRecord.fromJsonList(data);
+    } else {
+      throw Exception('Failed to load reports');
     }
   }
 }

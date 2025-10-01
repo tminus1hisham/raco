@@ -1,0 +1,21 @@
+import 'package:atom/models/playback_model.dart';
+import 'package:atom/services/api_service.dart';
+import 'package:get/get.dart';
+
+class ReportsController extends GetxController {
+  var isLoading = false.obs;
+  var reports = <DeviceRecord>[].obs;
+
+  Future<void> fetchReports(String numberPlate, String reportType) async {
+    try {
+      isLoading(true);
+      var fetchedReports = await ApiService.fetchReports(
+        numberPlate,
+        reportType,
+      );
+      reports.assignAll(fetchedReports);
+    } finally {
+      isLoading(false);
+    }
+  }
+}
