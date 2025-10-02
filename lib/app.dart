@@ -2,6 +2,7 @@ import 'package:animated_splash_screen/animated_splash_screen.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/services/local_storage_service.dart';
+import 'package:atom/services/location_service.dart';
 import 'package:atom/services/mqtt_client.dart';
 import 'package:atom/views/auth/onboarding_screen.dart';
 import 'package:atom/views/dashboard.dart';
@@ -26,6 +27,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    LocationService().requestLocationPermission();
     _mqttConnect = MqttService().initializeMqtt();
     _isAuthenticated = _checkIfLoggedIn();
     _combinedFuture = Future.wait([_isAuthenticated, _mqttConnect!]);
