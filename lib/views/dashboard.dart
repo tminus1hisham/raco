@@ -1,6 +1,5 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/views/cars/cars_screen.dart';
-import 'package:atom/views/notification_screen.dart';
 import 'package:atom/views/settings_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -19,7 +18,7 @@ class _DashboardState extends State<Dashboard> {
   final List<Widget> _screens = [
     HomeScreen(),
     CarsScreen(),
-    NotificationScreen(),
+    // NotificationScreen(),
     SettingsScreen(),
   ];
 
@@ -41,10 +40,10 @@ class _DashboardState extends State<Dashboard> {
         unselectedFontSize: 14,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.directions_car_rounded),
-            label: 'Vehicles',
-          ),
+          // BottomNavigationBarItem(
+          //   icon: Icon(Icons.directions_car_rounded),
+          //   label: 'Vehicles',
+          // ),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications),
             label: 'Notifications',

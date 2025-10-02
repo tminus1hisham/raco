@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:atom/config/constants.dart';
+import 'package:atom/models/location_model.dart';
 import 'package:atom/models/playback_model.dart';
 import 'package:atom/models/profile_picture_model.dart';
 import 'package:atom/models/vehicle_model.dart';
@@ -165,6 +166,27 @@ class ApiService {
       };
     } else {
       throw Exception('Failed to load reports');
+    }
+  }
+
+  Future<Map<String, dynamic>?> login(LocationModel request) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${BASE_URL}/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(request.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data;
+      } else {
+        throw Exception('Failed to login');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred during login: $e');
     }
   }
 }

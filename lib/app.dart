@@ -2,6 +2,7 @@ import 'package:animated_splash_screen/animated_splash_screen.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/services/local_storage_service.dart';
+import 'package:atom/services/mqtt_client.dart';
 import 'package:atom/views/auth/onboarding_screen.dart';
 import 'package:atom/views/dashboard.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late Future<bool> _isAuthenticated;
+  Future<void>? _mqttConnect;
+  late Future<List<dynamic>> _combinedFuture;
 
   Future<bool> _checkIfLoggedIn() async {
     bool? isLoggedIn = await StorageService.getData('isLoggedin');
@@ -23,15 +26,17 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    _mqttConnect = MqttService().initializeMqtt();
     _isAuthenticated = _checkIfLoggedIn();
+    _combinedFuture = Future.wait([_isAuthenticated, _mqttConnect!]);
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _isAuthenticated,
+    return FutureBuilder<List<dynamic>>(
+      future: _combinedFuture,
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState != ConnectionState.done) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             home: Scaffold(
@@ -40,7 +45,18 @@ class _MyAppState extends State<MyApp> {
           );
         }
 
-        final nextScreen = snapshot.data! ? Dashboard() : Onboarding();
+        if (snapshot.hasError) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
+              body: Center(child: Text("Error: ${snapshot.error}")),
+            ),
+          );
+        }
+
+        final bool isAuthenticated = snapshot.data![0] as bool;
+
+        final nextScreen = isAuthenticated ? Dashboard() : Onboarding();
 
         return GetMaterialApp(
           debugShowCheckedModeBanner: false,
