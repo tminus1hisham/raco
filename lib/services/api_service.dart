@@ -62,6 +62,7 @@ class ApiService {
         final data = json.decode(response.body);
         return data;
       } else {
+        _handleAuthError(response.statusCode);
         throw Exception('Failed to update profile picture');
       }
     } on SocketException catch (_) {
@@ -86,6 +87,7 @@ class ApiService {
       final data = jsonDecode(response.body);
       return DevicesModel.fromJson(data);
     } else {
+      _handleAuthError(response.statusCode);
       throw Exception('Failed to load devices');
     }
   }
@@ -110,6 +112,7 @@ class ApiService {
       final data = jsonDecode(response.body) as List;
       return DeviceRecord.fromJsonList(data);
     } else {
+      _handleAuthError(response.statusCode);
       throw Exception('Failed to load history');
     }
   }
@@ -143,6 +146,7 @@ class ApiService {
         "reportUrl": reportUrl,
       };
     } else {
+      _handleAuthError(response.statusCode);
       throw Exception('Failed to load violations');
     }
   }
@@ -174,6 +178,7 @@ class ApiService {
         "reportUrl": reportUrl,
       };
     } else {
+      _handleAuthError(response.statusCode);
       throw Exception('Failed to load reports');
     }
   }
@@ -195,6 +200,7 @@ class ApiService {
         final data = json.decode(response.body);
         return data;
       } else {
+        _handleAuthError(response.statusCode);
         throw Exception('Failed to create geo fence');
       }
     } on SocketException catch (_) {
@@ -228,6 +234,7 @@ class ApiService {
         "reportUrl": reportUrl,
       };
     } else {
+      _handleAuthError(response.statusCode);
       throw Exception('Failed to load reports');
     }
   }
