@@ -8,9 +8,9 @@ import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/views/playback_screen.dart';
 import 'package:atom/views/violations_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 
@@ -24,8 +24,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int selectedVehicleType = 0;
   int selectedVehicleIndex = 0;
-  final MapController mapController = MapController();
   bool showBottomSheet = false;
+  bool isLoadingLocation = false;
+
+  GoogleMapController? mapController;
+  LatLng? userLocation;
+  double currentZoom = 14.0;
+  Set<Marker> markers = {};
+  late final Widget mapWidget;
+  MapType _currentMapType = MapType.normal;
 
   final DeviceController _controller = Get.put(DeviceController());
   final MqttService _mqttService = MqttService();
@@ -35,6 +42,95 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _controller.fetchDevices();
     _subscribeToVehicleTopics();
+    _getUserLocation();
+    mapWidget = _buildFullScreenMap([]);
+  }
+
+  Future<void> _getUserLocation() async {
+    setState(() {
+      isLoadingLocation = true;
+    });
+
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        // Location services are not enabled
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please enable location services')),
+        );
+        setState(() {
+          isLoadingLocation = false;
+        });
+        return;
+      }
+
+      // Check for location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Location permission denied')));
+          setState(() {
+            isLoadingLocation = false;
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Location permissions are permanently denied'),
+          ),
+        );
+        setState(() {
+          isLoadingLocation = false;
+        });
+        return;
+      }
+
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() {
+        userLocation = LatLng(position.latitude, position.longitude);
+        isLoadingLocation = false;
+      });
+    } catch (e) {
+      print('Error getting location: $e');
+      setState(() {
+        isLoadingLocation = false;
+      });
+    }
+  }
+
+  void _moveToUserLocation() async {
+    if (userLocation == null) await _getUserLocation();
+
+    if (userLocation != null && mapController != null) {
+      mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(userLocation!, 15.0),
+      );
+    }
+  }
+
+  void _zoomIn() async {
+    if (mapController != null) {
+      currentZoom += 1;
+      mapController!.animateCamera(CameraUpdate.zoomTo(currentZoom));
+    }
+  }
+
+  void _zoomOut() async {
+    if (mapController != null) {
+      currentZoom -= 1;
+      mapController!.animateCamera(CameraUpdate.zoomTo(currentZoom));
+    }
   }
 
   void _subscribeToVehicleTopics() {
@@ -94,7 +190,8 @@ class _HomeScreenState extends State<HomeScreen> {
         double.tryParse(device.latitude) ?? -1.2842,
         double.tryParse(device.longitude) ?? 36.8163,
       );
-      mapController.move(position, 15.0);
+      mapController?.animateCamera(CameraUpdate.newLatLngZoom(position, 15.0));
+
       _showVehicleBottomSheet(device);
     }
   }
@@ -206,6 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         body: TabBarView(
+          physics: const NeverScrollableScrollPhysics(),
           children: [
             // Tab 1: Map view
             Obx(() {
@@ -230,7 +328,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     top: 10,
                     left: 20,
                     right: 20,
-                    child: _buildSearchBar(),
+                    child: IgnorePointer(
+                      ignoring: false,
+                      // set to true if you want the map to be touchable through it
+                      child: _buildSearchBar(),
+                    ),
                   ),
                   Positioned(right: 20, top: 70, child: _buildMapControls()),
                 ],
@@ -245,6 +347,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _toggleMapType() {
+    setState(() {
+      if (_currentMapType == MapType.normal) {
+        _currentMapType = MapType.satellite;
+      } else if (_currentMapType == MapType.satellite) {
+        _currentMapType = MapType.terrain;
+      } else if (_currentMapType == MapType.terrain) {
+        _currentMapType = MapType.hybrid;
+      } else {
+        _currentMapType = MapType.normal;
+      }
+    });
+  }
+
   Widget _buildFullScreenMap(List<dynamic> devices) {
     final firstDevice = devices.isNotEmpty ? devices[0] as Device : null;
     final initialPosition = firstDevice != null
@@ -254,52 +370,48 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         : LatLng(-1.2842, 36.8163);
 
-    return Positioned.fill(
-      child: FlutterMap(
-        mapController: mapController,
-        options: MapOptions(
-          initialCenter: initialPosition,
-          initialZoom: 13.0,
-          interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
-        ),
-        children: [
-          TileLayer(
-            // urlTemplate:
-            // "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-            urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-            userAgentPackageName: 'com.example.atom',
-          ),
-          MarkerLayer(
-            markers: devices.asMap().entries.map((entry) {
-              int index = entry.key;
-              Device device = entry.value as Device;
+    // build markers
+    final Set<Marker> deviceMarkers = devices.asMap().entries.map((entry) {
+      int index = entry.key;
+      Device device = entry.value as Device;
 
-              final latitude = double.tryParse(device.latitude) ?? -1.2842;
-              final longitude = double.tryParse(device.longitude) ?? 36.8163;
-              final position = LatLng(latitude, longitude);
+      final latitude = double.tryParse(device.latitude) ?? -1.2842;
+      final longitude = double.tryParse(device.longitude) ?? 36.8163;
 
-              final imagePath = getMarkerImage(
-                device.isDeviceOnline,
-                device.ignitionStatus,
-              );
-              final size = getMarkerSize(
-                device.isDeviceOnline,
-                device.ignitionStatus,
-              );
+      final imagePath = getMarkerImage(
+        device.isDeviceOnline,
+        device.ignitionStatus,
+      );
+      final markerIcon = BitmapDescriptor.fromAssetImage(
+        const ImageConfiguration(size: Size(48, 48)),
+        imagePath,
+      );
 
-              return Marker(
-                point: position,
-                width: size.width,
-                height: size.height,
-                child: GestureDetector(
-                  onTap: () => _selectVehicle(index),
-                  child: Image.asset(imagePath, fit: BoxFit.contain),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
+      return Marker(
+        markerId: MarkerId(device.numberPlate),
+        position: LatLng(latitude, longitude),
+        icon: BitmapDescriptor.defaultMarker, // Temporary placeholder
+        onTap: () => _selectVehicle(index),
+      );
+    }).toSet();
+
+    return GoogleMap(
+      mapType: _currentMapType,
+      initialCameraPosition: CameraPosition(
+        target: initialPosition,
+        zoom: currentZoom,
       ),
+      myLocationEnabled: true,
+      myLocationButtonEnabled: true,
+      scrollGesturesEnabled: true,
+      // zoomGesturesEnabled: true,
+      // zoomControlsEnabled: false,
+      tiltGesturesEnabled: true,
+      rotateGesturesEnabled: true,
+      markers: deviceMarkers.union(markers),
+      onMapCreated: (GoogleMapController controller) {
+        mapController = controller;
+      },
     );
   }
 
@@ -371,9 +483,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: IconButton(
             icon: Icon(Icons.add, color: Colors.grey[700]),
-            onPressed: () {
-              // Zoom in functionality
-            },
+            onPressed: _zoomIn,
           ),
         ),
         SizedBox(height: 10),
@@ -383,12 +493,17 @@ class _HomeScreenState extends State<HomeScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
           child: IconButton(
             icon: Icon(Icons.remove, color: Colors.grey[700]),
-            onPressed: () {
-              // Zoom out functionality
-            },
+            onPressed: _zoomOut,
           ),
         ),
         SizedBox(height: 10),
@@ -398,12 +513,17 @@ class _HomeScreenState extends State<HomeScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
           child: IconButton(
-            icon: Icon(Icons.map, color: Colors.grey[700]),
-            onPressed: () {
-              // Zoom out functionality
-            },
+            icon: Icon(Icons.layers, color: Colors.grey[700]),
+            onPressed: _toggleMapType,
           ),
         ),
         SizedBox(height: 10),
@@ -413,13 +533,29 @@ class _HomeScreenState extends State<HomeScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
-          child: IconButton(
-            icon: Icon(Icons.my_location, color: Colors.grey[700]),
-            onPressed: () {
-              // Zoom out functionality
-            },
-          ),
+          child: isLoadingLocation
+              ? Padding(
+                  padding: EdgeInsets.all(12),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: kBlue,
+                  ),
+                )
+              : IconButton(
+                  icon: Icon(
+                    Icons.my_location,
+                    color: userLocation != null ? kBlue : Colors.grey[700],
+                  ),
+                  onPressed: _moveToUserLocation,
+                ),
         ),
       ],
     );
@@ -608,14 +744,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         "Driver Behaviour: ",
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
-                      // Text(
-                      //   vehicle.driverBehaviour,
-                      //   style: TextStyle(
-                      //     fontSize: 16,
-                      //     color: Colors.green,
-                      //     fontWeight: FontWeight.w600,
-                      //   ),
-                      // ),
                     ],
                   ),
 
@@ -627,14 +755,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         "Engine: ",
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
-                      // Text(
-                      //   "${device.engineStatus} (${vehicle.engineRunTime})",
-                      //   style: TextStyle(
-                      //     fontSize: 16,
-                      //     color: Colors.black87,
-                      //     fontWeight: FontWeight.w500,
-                      //   ),
-                      // ),
                       Text(
                         "${device.ignitionStatus == 1 ? "ON" : "OFF"}",
                         style: TextStyle(
@@ -644,10 +764,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       Spacer(),
-                      // Text(
-                      //   "Today: ${vehicle.todayDistance}",
-                      //   style: TextStyle(fontSize: 16, color: Colors.black87),
-                      // ),
                     ],
                   ),
 

@@ -457,17 +457,34 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   }
 
   void _handlePointerMove(PointerMoveEvent event) {
-    if (isDrawingMode && isDrawing) {
-      final localPoint = (context.findRenderObject() as RenderBox)
-          .globalToLocal(event.position);
-      final latLng = mapController.pointToLatLng(
-        CustomPoint(localPoint.dx, localPoint.dy),
-      );
-      if (latLng != null && drawStartPoint != null) {
-        final distance =
-            Distance().as(LengthUnit.Meter, drawStartPoint!, latLng) / 1000;
-        setState(() => radiusKm = distance.clamp(0.1, 50.0));
-      }
+    if (isDrawingMode && isDrawing && drawStartPoint != null) {
+      // Get the render box of the map widget
+      final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+      if (renderBox == null) return;
+
+      // Convert global position to local coordinates
+      final localPosition = renderBox.globalToLocal(event.position);
+
+      // Get the map camera
+      final camera = mapController.camera;
+
+      // Convert screen point to LatLng using the camera
+      // final point = camera.pointToLatLng(
+      //   Point(localPosition.dx, localPosition.dy),
+      // );
+      //
+      // if (point != null) {
+      //   // Calculate distance between start point and current point
+      //   final distance = Distance().as(
+      //     LengthUnit.Meter,
+      //     drawStartPoint!,
+      //     point,
+      //   ) / 1000; // Convert to kilometers
+      //
+      //   setState(() {
+      //     radiusKm = distance.clamp(0.1, 50.0);
+      //   });
+      // }
     }
   }
 

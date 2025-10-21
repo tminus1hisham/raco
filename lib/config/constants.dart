@@ -12,3 +12,5 @@ const kLightGrey = Color(0xFFBDBDBD);
 
 const String BASE_URL = 'https://tracking-api.greenthumb.co.ke/v1/api';
 const String base_url = 'https://tracking-api.greenthumb.co.ke/api';
+
+const GOOGLE_API_KEY = "AIzaSyDRRo79vnVAKfnJtGXtCwftcTBpmal4upQ";
