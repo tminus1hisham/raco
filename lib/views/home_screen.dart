@@ -40,10 +40,19 @@ class _HomeScreenState extends State<HomeScreen> {
   final MqttService _mqttService = MqttService();
   Map<String, BitmapDescriptor> customIcons = {};
 
+  final TextEditingController _searchController = TextEditingController();
+  List<Device> _filteredDevices = [];
+
   @override
   void initState() {
     super.initState();
     _controller.fetchDevices();
+    ever(_controller.devicesModel, (_) {
+      final devices = _controller.devicesModel.value?.devices ?? [];
+      setState(() {
+        _filteredDevices = devices;
+      });
+    });
     _subscribeToVehicleTopics();
     _getUserLocation();
     _loadCustomIcons();
@@ -353,7 +362,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
               return Stack(
                 children: [
-                  _buildFullScreenMap(devices),
+                  // _buildFullScreenMap(devices),
+                  _buildFullScreenMap(_filteredDevices),
                   Positioned(
                     top: 10,
                     left: 20,
@@ -448,6 +458,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _focusOnSearchedCar(Device device) {
+    if (mapController == null) return;
+
+    final lat = double.tryParse(device.latitude) ?? -1.2842;
+    final lng = double.tryParse(device.longitude) ?? 36.8163;
+    mapController!.animateCamera(
+      CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16.0),
+    );
+  }
+
   Widget _buildSearchBar() {
     return Container(
       height: 50,
@@ -471,8 +491,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Expanded(
             child: TextField(
+              controller: _searchController,
               decoration: InputDecoration(
-                hintText: "Search",
+                hintText: "Search by number plate",
                 hintStyle: TextStyle(color: Colors.grey[600], fontSize: 16),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(
@@ -480,21 +501,88 @@ class _HomeScreenState extends State<HomeScreen> {
                   vertical: 15,
                 ),
               ),
+              onChanged: (query) {
+                final allDevices =
+                    _controller.devicesModel.value?.devices ?? [];
+                setState(() {
+                  _filteredDevices = allDevices
+                      .where(
+                        (device) => device.numberPlate.toLowerCase().contains(
+                          query.toLowerCase(),
+                        ),
+                      )
+                      .toList();
+                });
+
+                // Automatically focus on car if an exact match is found
+                if (_filteredDevices.length == 1) {
+                  _focusOnSearchedCar(_filteredDevices.first);
+                }
+              },
             ),
           ),
-          Container(
-            color: kGrey.withOpacity(0.1),
-            margin: EdgeInsets.only(right: 5),
-            padding: EdgeInsets.all(8),
-            child: Padding(
-              padding: EdgeInsets.only(left: 25),
-              child: Icon(Icons.tune, color: Colors.grey[600], size: 20),
-            ),
+          IconButton(
+            icon: Icon(Icons.clear, color: Colors.grey[600]),
+            onPressed: () {
+              _searchController.clear();
+              setState(() {
+                _filteredDevices =
+                    _controller.devicesModel.value?.devices ?? [];
+              });
+            },
           ),
         ],
       ),
     );
   }
+
+  // Widget _buildSearchBar() {
+  //   return Container(
+  //     height: 50,
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(5),
+  //       border: Border.all(color: Colors.grey.shade400, width: 1),
+  //       boxShadow: [
+  //         BoxShadow(
+  //           color: Colors.black.withOpacity(0.1),
+  //           blurRadius: 10,
+  //           offset: Offset(0, 2),
+  //         ),
+  //       ],
+  //     ),
+  //     child: Row(
+  //       children: [
+  //         Padding(
+  //           padding: EdgeInsets.only(left: 20),
+  //           child: Icon(Icons.search, color: Colors.grey[600], size: 24),
+  //         ),
+  //         Expanded(
+  //           child: TextField(
+  //             decoration: InputDecoration(
+  //               hintText: "Search",
+  //               hintStyle: TextStyle(color: Colors.grey[600], fontSize: 16),
+  //               border: InputBorder.none,
+  //               contentPadding: EdgeInsets.symmetric(
+  //                 horizontal: 16,
+  //                 vertical: 15,
+  //               ),
+  //             ),
+  //           ),
+  //         ),
+  //         Container(
+  //           color: kGrey.withOpacity(0.1),
+  //           margin: EdgeInsets.only(right: 5),
+  //           padding: EdgeInsets.all(8),
+  //           child: Padding(
+  //             padding: EdgeInsets.only(left: 25),
+  //             child: Icon(Icons.tune, color: Colors.grey[600], size: 20),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildMapControls() {
     return Column(
