@@ -1,7 +1,10 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/notifcations_controller.dart';
 import 'package:atom/widgets/cards/notifications_card.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 class NotificationScreen extends StatefulWidget {
   @override
@@ -9,38 +12,15 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  List<NotificationItem> notifications = [
-    NotificationItem(
-      id: '1',
-      title: 'New Message',
-      message: 'You have received a new message from John Doe',
-      timestamp: DateTime.now().subtract(Duration(minutes: 5)),
-    ),
-    NotificationItem(
-      id: '2',
-      title: 'Payment Successful',
-      message: 'Your payment of \$99.99 has been processed successfully',
-      timestamp: DateTime.now().subtract(Duration(hours: 2)),
-    ),
-    NotificationItem(
-      id: '3',
-      title: 'App Update Available',
-      message: 'Version 2.1.0 is now available with new features and bug fixes',
-      timestamp: DateTime.now().subtract(Duration(days: 1)),
-    ),
-    NotificationItem(
-      id: '4',
-      title: 'Security Alert',
-      message: 'New login detected from Chrome on Windows',
-      timestamp: DateTime.now().subtract(Duration(days: 2)),
-    ),
-    NotificationItem(
-      id: '5',
-      title: 'Weekly Report',
-      message: 'Your weekly activity report is ready to view',
-      timestamp: DateTime.now().subtract(Duration(days: 3)),
-    ),
-  ];
+  final NotificationsController _controller = Get.put(
+    NotificationsController(),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.fetchNotifications();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,22 +32,30 @@ class _NotificationScreenState extends State<NotificationScreen> {
             const SizedBox(height: 10),
             customHeader(label: "Notifications", icon: Icons.notifications),
             const SizedBox(height: 10),
+
             Expanded(
-              child: notifications.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: notifications.length,
-                      itemBuilder: (context, index) {
-                        return NotificationCard(
-                          notification: notifications[index],
-                          onTap: () =>
-                              _handleNotificationTap(notifications[index]),
-                          onDelete: () =>
-                              _deleteNotification(notifications[index]),
-                        );
-                      },
-                    ),
+              child: Obx(() {
+                if (_controller.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (_controller.notifications.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: _controller.notifications.length,
+                  itemBuilder: (context, index) {
+                    final notification = _controller.notifications[index];
+                    return NotificationCard(
+                      notification: notification,
+                      onTap: () => _handleNotificationTap(notification),
+                      onDelete: () => _deleteNotification(notification),
+                    );
+                  },
+                );
+              }),
             ),
           ],
         ),
@@ -90,26 +78,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
               color: Colors.grey[600],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'You\'re all caught up!',
-            style: TextStyle(fontSize: 16, color: Colors.grey[500]),
-          ),
         ],
       ),
     );
   }
 
-  void _deleteNotification(NotificationItem notification) {
-    setState(() {
-      notifications.remove(notification);
-    });
+  void _deleteNotification(notification) {
+    _controller.notifications.remove(notification);
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Notification deleted')));
   }
 
-  void _handleNotificationTap(NotificationItem notification) {
+  void _handleNotificationTap(notification) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -157,7 +138,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                 ),
                                 child: Icon(Icons.notifications, color: kBlue),
                               ),
-                              const SizedBox(width: 16),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   notification.title,
@@ -177,9 +158,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             ],
                           ),
 
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 10),
                           Divider(color: Colors.grey[200]),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 10),
 
                           // Message
                           Text(
@@ -191,6 +172,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             ),
                           ),
 
+                          const SizedBox(height: 20),
+                          Text(
+                            'Date: ${DateFormat('yyyy-MM-dd').format(notification.createdAt.toLocal())}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[500],
+                            ),
+                          ),
                           const SizedBox(height: 20),
                         ],
                       ),

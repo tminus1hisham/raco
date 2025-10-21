@@ -238,4 +238,30 @@ class ApiService {
       throw Exception('Failed to load reports');
     }
   }
+
+  static Future<List<dynamic>?> fetchNotifications() async {
+    String token = await StorageService.getData('access_token');
+
+    try {
+      final response = await http.get(
+        Uri.parse('$base_url/devices/get/violations/notifications'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data;
+      } else {
+        _handleAuthError(response.statusCode);
+        throw Exception('Failed to fetch notifications');
+      }
+    } on SocketException {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred while fetching notifications: $e');
+    }
+  }
 }

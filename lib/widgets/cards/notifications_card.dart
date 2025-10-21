@@ -1,8 +1,9 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/models/notifications_model.dart';
 import 'package:flutter/material.dart';
 
 class NotificationCard extends StatelessWidget {
-  final NotificationItem notification;
+  final NotificationModel notification;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
 
@@ -77,7 +78,7 @@ class NotificationCard extends StatelessWidget {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      _formatTimestamp(notification.timestamp),
+                      _formatTimestamp(notification.createdAt),
                       style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ],
@@ -120,20 +121,4 @@ class NotificationCard extends StatelessWidget {
       return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
     }
   }
-}
-
-class NotificationItem {
-  final String id;
-  final String title;
-  final String message;
-  final DateTime timestamp;
-  bool isRead;
-
-  NotificationItem({
-    required this.id,
-    required this.title,
-    required this.message,
-    required this.timestamp,
-    this.isRead = false,
-  });
 }
