@@ -76,7 +76,7 @@ class ApiService {
     String token = await StorageService.getData('access_token');
 
     final response = await http.get(
-      Uri.parse('$base_url/devices/get/vehicles/dashboard'),
+      Uri.parse('$base_url/devices/get/vehicles/dashboard?company=All'),
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",

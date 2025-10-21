@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/device_controller.dart';
@@ -8,6 +9,7 @@ import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/views/playback_screen.dart';
 import 'package:atom/views/violations_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle, ByteData;
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -36,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final DeviceController _controller = Get.put(DeviceController());
   final MqttService _mqttService = MqttService();
+  Map<String, BitmapDescriptor> customIcons = {};
 
   @override
   void initState() {
@@ -43,7 +46,34 @@ class _HomeScreenState extends State<HomeScreen> {
     _controller.fetchDevices();
     _subscribeToVehicleTopics();
     _getUserLocation();
+    _loadCustomIcons();
     mapWidget = _buildFullScreenMap([]);
+  }
+
+  Future<BitmapDescriptor> _resizeAndLoadIcon(
+    String assetPath,
+    int width,
+  ) async {
+    final ByteData data = await rootBundle.load(assetPath);
+    final ui.Codec codec = await ui.instantiateImageCodec(
+      data.buffer.asUint8List(),
+      targetWidth: width,
+    );
+    final ui.FrameInfo fi = await codec.getNextFrame();
+    final ByteData? bytes = await fi.image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
+    return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
+  }
+
+  Future<void> _loadCustomIcons() async {
+    customIcons['green'] = await _resizeAndLoadIcon(
+      'assets/green_car.png',
+      100,
+    );
+    customIcons['blue'] = await _resizeAndLoadIcon('assets/blue_car.png', 100);
+    customIcons['red'] = await _resizeAndLoadIcon('assets/red_car.png', 100);
+    setState(() {});
   }
 
   Future<void> _getUserLocation() async {
@@ -378,19 +408,22 @@ class _HomeScreenState extends State<HomeScreen> {
       final latitude = double.tryParse(device.latitude) ?? -1.2842;
       final longitude = double.tryParse(device.longitude) ?? 36.8163;
 
-      final imagePath = getMarkerImage(
-        device.isDeviceOnline,
-        device.ignitionStatus,
-      );
-      final markerIcon = BitmapDescriptor.fromAssetImage(
-        const ImageConfiguration(size: Size(48, 48)),
-        imagePath,
-      );
+      // final imageKey = getMarkerImage(
+      //   device.isDeviceOnline,
+      //   device.ignitionStatus,
+      // );
+
+      final imageKey = device.isDeviceOnline
+          ? (device.ignitionStatus == 1 ? 'green' : 'blue')
+          : 'red';
+
+      final markerIcon =
+          customIcons[imageKey] ?? BitmapDescriptor.defaultMarker;
 
       return Marker(
         markerId: MarkerId(device.numberPlate),
         position: LatLng(latitude, longitude),
-        icon: BitmapDescriptor.defaultMarker, // Temporary placeholder
+        icon: markerIcon,
         onTap: () => _selectVehicle(index),
       );
     }).toSet();
@@ -806,7 +839,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       SizedBox(width: 12),
                       Expanded(
                         child: _buildQuickActionButton(
-                          title: 'Violations ( 10 )',
+                          title: 'Violations',
                           icon: Icons.warning_amber,
                           color: kRed,
                           onPressed: () {
