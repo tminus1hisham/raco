@@ -4,7 +4,6 @@ import 'package:atom/views/auth/onboarding_screen.dart';
 import 'package:atom/views/auth/register_screen.dart';
 import 'package:atom/views/cars/commands.dart';
 import 'package:atom/views/cars/driver_behaviour.dart';
-import 'package:atom/views/cars/geofencing_screen.dart';
 import 'package:atom/views/dashboard.dart';
 import 'package:atom/views/notification_screen.dart';
 import 'package:atom/views/settings/account_screen.dart';
@@ -19,7 +18,6 @@ class AppRoutes {
   static const String onboarding = '/onboarding';
   static const String forgotPassword = '/forgotPassword';
   static const String dashboard = '/dashboard';
-  static const String geofencingScreen = 'geofencingScreen';
   static const String notifications = 'notifications';
   static const String account = 'account';
   static const String driver_behaviour = 'driver_behaviour';
@@ -46,8 +44,6 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => ForgotPasswordScreen());
       case dashboard:
         return MaterialPageRoute(builder: (_) => Dashboard());
-      case geofencingScreen:
-        return MaterialPageRoute(builder: (_) => GeofencingScreen());
       case notifications:
         return MaterialPageRoute(builder: (_) => NotificationScreen());
       case account:

@@ -4,6 +4,7 @@ import 'package:atom/routes/routes.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/cars/commands.dart';
 import 'package:atom/views/cars/driver_behaviour.dart';
+import 'package:atom/views/cars/geofencing_screen.dart';
 import 'package:atom/views/cars/vehicle_details.dart';
 import 'package:atom/views/playback_screen.dart';
 import 'package:atom/views/reports_screen.dart';
@@ -221,9 +222,13 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                 subtitle:
                                     "Set a radius where your car to operate.",
                                 onTap: () {
-                                  Navigator.pushNamed(
+                                  Navigator.push(
                                     context,
-                                    AppRoutes.geofencingScreen,
+                                    MaterialPageRoute(
+                                      builder: (context) => GeofencingScreen(
+                                        numberPlate: widget.licensePlate,
+                                      ),
+                                    ),
                                   );
                                 },
                               ),

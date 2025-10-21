@@ -6,11 +6,19 @@ import 'package:atom/models/location_model.dart';
 import 'package:atom/models/playback_model.dart';
 import 'package:atom/models/profile_picture_model.dart';
 import 'package:atom/models/vehicle_model.dart';
+import 'package:atom/views/auth/login_screen.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
 import 'local_storage_service.dart';
 
 class ApiService {
+  static void _handleAuthError(int statusCode) async {
+    if (statusCode == 403) {
+      Get.offAll(() => LoginScreen());
+    }
+  }
+
   Future<Map<String, dynamic>?> fetchUserData() async {
     String token = await StorageService.getData('access_token');
     try {
@@ -26,6 +34,7 @@ class ApiService {
         final data = json.decode(response.body);
         return data;
       } else {
+        _handleAuthError(response.statusCode);
         throw Exception('Failed to fetch user data');
       }
     } on SocketException catch (_) {
@@ -169,11 +178,16 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>?> login(LocationModel request) async {
+  Future<Map<String, dynamic>?> addGeoFence(LocationModel request) async {
+    String token = await StorageService.getData('access_token');
+
     try {
       final response = await http.post(
-        Uri.parse('${BASE_URL}/auth/login'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('${base_url}/devices/create/geo/fence'),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
         body: jsonEncode(request.toJson()),
       );
 
@@ -181,12 +195,40 @@ class ApiService {
         final data = json.decode(response.body);
         return data;
       } else {
-        throw Exception('Failed to login');
+        throw Exception('Failed to create geo fence');
       }
     } on SocketException catch (_) {
       throw Exception('Network error, please check your connection');
     } catch (e) {
-      throw Exception('An error occurred during login: $e');
+      throw Exception('An error occurred during creation: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchGeoCoding(String numberPlate) async {
+    String token = await StorageService.getData('access_token');
+
+    final response = await http.get(
+      Uri.parse(
+        '$base_url/devices/get/all/geo/fences?numberPlate=$numberPlate',
+      ),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+
+      final List<dynamic> data = decoded['devices'] ?? [];
+      final String? reportUrl = decoded['reportUrl'];
+
+      return {
+        "devices": DeviceRecord.fromJsonList(data),
+        "reportUrl": reportUrl,
+      };
+    } else {
+      throw Exception('Failed to load reports');
     }
   }
 }

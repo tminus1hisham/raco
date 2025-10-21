@@ -39,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _subscribeToVehicleTopics() {
     if (!_mqttService.isConnected) {
-      print("❌ MQTT not connected yet");
+      print("MQTT not connected yet");
       return;
     }
 
@@ -68,15 +68,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleCarLocation(String carId, String message) {
-    print("🚗 Car $carId sent -> $message");
+    print(" Car $carId sent -> $message");
 
     try {
       final data = jsonDecode(message);
       print(data);
       // print("Parsed: lat=${data['lat']}, lng=${data['lng']}, speed=${data['speed']}");
-      // 👉 here you can update your map markers with setState
+      // here you can update your map markers with setState
     } catch (e) {
-      print("⚠️ Raw message: $message");
+      print("Raw message: $message");
     }
   }
 
@@ -264,6 +264,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         children: [
           TileLayer(
+            // urlTemplate:
+            // "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
             urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
             userAgentPackageName: 'com.example.atom',
           ),
