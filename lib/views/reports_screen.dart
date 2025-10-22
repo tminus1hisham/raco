@@ -1,6 +1,6 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/reports_violations.dart';
-import 'package:atom/models/playback_model.dart';
+import 'package:atom/models/report_model.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -98,7 +98,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildReportCard(DeviceRecord record) {
+  Widget _buildReportCard(ReportModel record) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
       padding: const EdgeInsets.all(12),
@@ -129,7 +129,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           const SizedBox(height: 4),
           Text("Speed: ${record.spd ?? "--"} km/h"),
           Text("Wire Cut: ${record.wr == 1 ? "Yes" : "No"}"),
-          Text("Battery: ${record.bt == 0 ? "Cut" : "On"}"),
+          Text("Battery: ${record.bt == 0 ? "Cut" : "Connected"}"),
           Text("IMEI: ${record.imei ?? "--"}"),
         ],
       ),
