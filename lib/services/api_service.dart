@@ -5,6 +5,7 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/models/location_model.dart';
 import 'package:atom/models/playback_model.dart';
 import 'package:atom/models/profile_picture_model.dart';
+import 'package:atom/models/report_model.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/views/auth/login_screen.dart';
 import 'package:get/get.dart';
@@ -14,7 +15,7 @@ import 'local_storage_service.dart';
 
 class ApiService {
   static void _handleAuthError(int statusCode) async {
-    if (statusCode == 403) {
+    if (statusCode == 403 || statusCode == 401) {
       Get.offAll(() => LoginScreen());
     }
   }
@@ -109,8 +110,9 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as List;
-      return DeviceRecord.fromJsonList(data);
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      final dataPoints = decoded['dataPoints'] as List<dynamic>;
+      return DeviceRecord.fromJsonList(dataPoints);
     } else {
       _handleAuthError(response.statusCode);
       throw Exception('Failed to load history');
@@ -174,7 +176,7 @@ class ApiService {
       final String? reportUrl = decoded['reportUrl'];
 
       return {
-        "devices": DeviceRecord.fromJsonList(data),
+        "devices": ReportModel.fromJsonList(data),
         "reportUrl": reportUrl,
       };
     } else {
@@ -262,6 +264,33 @@ class ApiService {
       throw Exception('Network error, please check your connection');
     } catch (e) {
       throw Exception('An error occurred while fetching notifications: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> renewCertificate(List request) async {
+    String token = await StorageService.getData('access_token');
+
+    try {
+      final response = await http.post(
+        Uri.parse('${base_url}/devices/renew/certificate'),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(request),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data;
+      } else {
+        _handleAuthError(response.statusCode);
+        throw Exception('Failed to renew certificate');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred during renewal: $e');
     }
   }
 }
