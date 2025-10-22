@@ -106,23 +106,12 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     return "assets/blue_car.png";
   }
 
-  // String getMarkerImage(String speed) {
-  //   final spd = double.tryParse(speed) ?? 0.0;
-  //   if (spd == 0) {
-  //     return "assets/blue_car.png";
-  //   } else if (spd > 80) {
-  //     return "assets/red_car.png";
-  //   } else {
-  //     return "assets/green_car.png";
-  //   }
-  // }
-
   bool _isVehicleOnline(List history, int currentIndex) {
     final currentRecord = history[currentIndex];
-    final currentTime = DateTime.fromMillisecondsSinceEpoch(
-      currentRecord.dt * 1000,
-    );
-    final now = DateTime.now();
+    final currentTime = currentRecord.createdAt is String
+        ? DateTime.parse(currentRecord.createdAt)
+        : currentRecord.createdAt;
+    final now = DateTime.now().toUtc();
     final difference = now.difference(currentTime);
     return difference.inMinutes < 15;
   }
@@ -453,17 +442,17 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                               value: "${currentRecord.spd} km/h",
                             ),
                           ),
-                          Expanded(
-                            child: _InfoItem(
-                              icon: Icons.access_time,
-                              label: "Time",
-                              value: _formatDateTime(
-                                DateTime.fromMillisecondsSinceEpoch(
-                                  currentRecord.dt * 1000,
-                                ),
-                              ),
-                            ),
-                          ),
+                          // Expanded(
+                          //   child: _InfoItem(
+                          //     icon: Icons.access_time,
+                          //     label: "Time",
+                          //     value: _formatDateTime(
+                          //       DateTime.fromMillisecondsSinceEpoch(
+                          //         currentRecord.dt * 1000,
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ),
                         ],
                       ),
                     ],
