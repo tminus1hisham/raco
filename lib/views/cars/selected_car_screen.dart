@@ -6,6 +6,7 @@ import 'package:atom/views/cars/commands.dart';
 import 'package:atom/views/cars/driver_behaviour.dart';
 import 'package:atom/views/cars/geofencing_screen.dart';
 import 'package:atom/views/cars/vehicle_details.dart';
+import 'package:atom/views/cars/vehicle_live_location.dart';
 import 'package:atom/views/playback_screen.dart';
 import 'package:atom/views/reports_screen.dart';
 import 'package:atom/views/violations_screen.dart';
@@ -31,6 +32,17 @@ class SelectedCarScreen extends StatefulWidget {
 class _SelectedCarScreenState extends State<SelectedCarScreen> {
   bool isVehicleActive = true;
   final _utils = Utils();
+
+  bool _isCertificateExpired(String expiryDate) {
+    try {
+      final parsedDate = DateTime.parse(expiryDate);
+      final now = DateTime.now();
+
+      return parsedDate.isBefore(now) || parsedDate.isAtSameMomentAs(now);
+    } catch (e) {
+      return true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -177,6 +189,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                           child: Column(
                             children: [
                               _buildCommandItem(
+                                showBanner: false,
                                 title: 'Details',
                                 subtitle:
                                     "View a detailed infomation of the vehicle.",
@@ -194,6 +207,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               ),
                               _buildDivider(),
                               _buildCommandItem(
+                                showBanner: false,
                                 title: 'Commands',
                                 subtitle: "View all the commands of a vehicle.",
                                 onTap: () {
@@ -207,6 +221,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               ),
                               _buildDivider(),
                               _buildCommandItem(
+                                showBanner: false,
                                 title: 'Command History',
                                 subtitle: "View all the commands actioned.",
                                 onTap: () {
@@ -218,6 +233,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               ),
                               _buildDivider(),
                               _buildCommandItem(
+                                showBanner: false,
                                 title: 'Geo Fence',
                                 subtitle:
                                     "Set a radius where your car to operate.",
@@ -234,12 +250,33 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               ),
                               _buildDivider(),
                               _buildCommandItem(
+                                showBanner: false,
                                 title: 'View Live Location',
                                 subtitle: "See your the vehicle live location.",
-                                onTap: () {},
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          VehicleLocationScreen(
+                                            latitude:
+                                                double.tryParse(
+                                                  widget.devices.latitude,
+                                                ) ??
+                                                0.0,
+                                            longitude:
+                                                double.tryParse(
+                                                  widget.devices.longitude,
+                                                ) ??
+                                                0.0,
+                                          ),
+                                    ),
+                                  );
+                                },
                               ),
                               _buildDivider(),
                               _buildCommandItem(
+                                showBanner: false,
                                 title: 'Reports',
                                 subtitle: "See all the reports.",
                                 onTap: () {
@@ -255,6 +292,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               ),
                               _buildDivider(),
                               _buildCommandItem(
+                                showBanner: _isCertificateExpired(
+                                  widget.devices.certificateExpirey,
+                                ),
                                 title: 'Certificate',
                                 subtitle: _utils.formatDate(
                                   widget.devices.certificateExpirey,
@@ -306,6 +346,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    required bool showBanner,
     Color? textColor,
   }) {
     return InkWell(
@@ -334,7 +375,37 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+            Row(
+              children: [
+                if (showBanner) ...[
+                  Container(
+                    decoration: BoxDecoration(
+                      color: kRed.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      "Expired",
+                      style: TextStyle(
+                        color: kRed,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(width: 5),
+                ],
+
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.grey.shade400,
+                  size: 20,
+                ),
+              ],
+            ),
           ],
         ),
       ),
