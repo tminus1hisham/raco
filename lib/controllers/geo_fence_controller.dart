@@ -3,8 +3,6 @@ import 'package:atom/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../routes/routes.dart';
-
 class GeoFenceController extends GetxController {
   var latitude = ''.obs;
   var fullName = ''.obs;
@@ -30,7 +28,6 @@ class GeoFenceController extends GetxController {
       final result = await _apiService.addGeoFence(locationModel);
 
       if (result != null) {
-        Get.offAllNamed(AppRoutes.dashboard);
         return true;
       } else {
         return false;

@@ -86,7 +86,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
         Circle(
           circleId: CircleId('selected_circle'),
           center: latLng,
-          radius: selectedGeofence!.radius * 1000,
+          radius: selectedGeofence!.radius.toDouble(),
           fillColor: Colors.blue.withOpacity(0.2),
           strokeColor: Colors.blue,
           strokeWidth: 2,
@@ -110,7 +110,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
         Circle(
           circleId: CircleId('new_circle'),
           center: selectedPoint!,
-          radius: radiusKm * 1000,
+          radius: radiusKm / 1000,
           fillColor: Colors.orange.withOpacity(0.3),
           strokeColor: Colors.orange,
           strokeWidth: 2,
@@ -174,7 +174,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     _geoFenceController.fullName.value = zoneNameController.text.trim();
     _geoFenceController.latitude.value = selectedPoint!.latitude.toString();
     _geoFenceController.longitude.value = selectedPoint!.longitude.toString();
-    _geoFenceController.radius.value = radiusKm.round();
+    _geoFenceController.radius.value = radiusKm.round() * 1000;
 
     bool success = await _geoFenceController.addGeoFence(context);
 
@@ -266,7 +266,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
           items: existingGeofences.map((GeofenceModel geofence) {
             return DropdownMenuItem<GeofenceModel>(
               value: geofence,
-              child: Text('${geofence.name} (${geofence.radius}km)'),
+              child: Text('${geofence.name} (${geofence.radius / 1000}km)'),
             );
           }).toList(),
           onChanged: _onGeofenceSelected,
@@ -426,7 +426,9 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
               Expanded(
                 child: CustomButton(
                   callBackFunction: () {
-                    isSaveEnabled ? _addGeofenceZone : null;
+                    if (isSaveEnabled) {
+                      _addGeofenceZone();
+                    }
                   },
                   label: "Save",
                   backgroundColor: isSaveEnabled ? kBlue : Colors.grey.shade400,
