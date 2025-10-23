@@ -87,6 +87,52 @@ class _HomeScreenState extends State<HomeScreen> {
     return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
   }
 
+  void _showNextVehicle() {
+    final devices = _filteredDevices;
+    if (devices.isEmpty) return;
+
+    setState(() {
+      selectedVehicleIndex =
+          (selectedVehicleIndex + 1) % devices.length; // move to next
+    });
+
+    _focusOnVehicle(selectedVehicleIndex);
+  }
+
+  void _showPreviousVehicle() {
+    final devices = _filteredDevices;
+    if (devices.isEmpty) return;
+
+    setState(() {
+      selectedVehicleIndex =
+          (selectedVehicleIndex - 1 + devices.length) %
+          devices.length; // move to prev
+    });
+
+    _focusOnVehicle(selectedVehicleIndex);
+  }
+
+  void _focusOnVehicle(int index) {
+    final devices = _filteredDevices;
+    if (index < 0 || index >= devices.length || mapController == null) return;
+
+    final device = devices[index];
+    final lat = double.tryParse(device.latitude) ?? -1.2842;
+    final lng = double.tryParse(device.longitude) ?? 36.8163;
+
+    mapController!.animateCamera(
+      CameraUpdate.newLatLngZoom(LatLng(lat, lng), 15.0),
+    );
+
+    _showVehicleInfoWindow(device);
+  }
+
+  void _showVehicleInfoWindow(Device device) {
+    if (mapController != null) {
+      mapController!.showMarkerInfoWindow(MarkerId(device.numberPlate));
+    }
+  }
+
   Future<void> _loadCustomIcons() async {
     customIcons['green'] = await _resizeAndLoadIcon(
       'assets/green_car.png',
@@ -456,6 +502,10 @@ class _HomeScreenState extends State<HomeScreen> {
         position: LatLng(latitude, longitude),
         icon: markerIcon,
         onTap: () => _selectVehicle(index),
+        infoWindow: InfoWindow(
+          title: device.numberPlate,
+          snippet: 'Speed: ${device.speed} km/h',
+        ),
       );
     }).toSet();
 
@@ -698,6 +748,52 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   onPressed: _moveToUserLocation,
                 ),
+        ),
+        SizedBox(height: 10),
+        Container(
+          width: 45,
+          height: 45,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: IconButton(
+            icon: Icon(
+              Icons.keyboard_arrow_up_rounded,
+              color: Colors.grey[700],
+            ),
+            onPressed: _showPreviousVehicle,
+          ),
+        ),
+        SizedBox(height: 10),
+        Container(
+          width: 45,
+          height: 45,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: IconButton(
+            icon: Icon(
+              Icons.keyboard_arrow_down_outlined,
+              color: Colors.grey[700],
+            ),
+            onPressed: _showNextVehicle,
+          ),
         ),
       ],
     );
