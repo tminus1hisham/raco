@@ -1,4 +1,5 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/markAsRead_contoller.dart';
 import 'package:atom/controllers/notifcations_controller.dart';
 import 'package:atom/widgets/cards/notifications_card.dart';
 import 'package:atom/widgets/custom_header.dart';
@@ -15,11 +16,42 @@ class _NotificationScreenState extends State<NotificationScreen> {
   final NotificationsController _controller = Get.put(
     NotificationsController(),
   );
+  final MarkasreadController _markAsReadController = Get.put(
+    MarkasreadController(),
+  );
 
   @override
   void initState() {
     super.initState();
     _controller.fetchNotifications();
+  }
+
+  Future<void> _markAllAsRead() async {
+    // Collect all IDs — they may already be int or String depending on your model
+    final allIds = _controller.notifications.map((n) => n.id).toList();
+
+    // Ensure all IDs are sent as strings (since API probably expects string IDs)
+    final List<String> stringIds = allIds.map((id) => id.toString()).toList();
+
+    final success = await _markAsReadController.markAsRead(context, stringIds);
+
+    if (success) {
+      for (var n in _controller.notifications) {
+        n.isRead = true;
+      }
+      _controller.notifications.refresh();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("All notifications marked as read"),
+          backgroundColor: kBlue,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -31,6 +63,48 @@ class _NotificationScreenState extends State<NotificationScreen> {
           children: [
             const SizedBox(height: 10),
             customHeader(label: "Notifications", icon: Icons.notifications),
+            const SizedBox(height: 10),
+
+            // 👇 Add this "Mark all as read" button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Recent Notifications",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _controller.notifications.isEmpty
+                        ? null
+                        : () => _markAllAsRead(),
+                    icon: const Icon(Icons.done_all, size: 18),
+                    label: const Text(
+                      "Mark all as read",
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kBlue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 10),
 
             Expanded(
@@ -55,7 +129,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         notification,
                         notification.isRead,
                       ),
-                      onDelete: () => _deleteNotification(notification),
                     );
                   },
                 );
@@ -87,14 +160,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  void _deleteNotification(notification) {
-    _controller.notifications.remove(notification);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Notification deleted')));
-  }
-
-  void _handleNotificationTap(notification, isRead) {
+  void _handleNotificationTap(notification, isRead) async {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -201,5 +267,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
         );
       },
     );
+    if (!isRead) {
+      final success = await _markAsReadController.markAsRead(context, [
+        notification.id.toString(),
+      ]);
+
+      if (success) {
+        notification.isRead = true;
+        _controller.notifications.refresh();
+      }
+    }
   }
 }

@@ -5,14 +5,13 @@ import 'package:flutter/material.dart';
 class NotificationCard extends StatelessWidget {
   final NotificationModel notification;
   final VoidCallback? onTap;
-  final VoidCallback? onDelete;
   final bool isRead;
 
   const NotificationCard({
     Key? key,
     required this.notification,
     this.onTap,
-    this.onDelete,
+
     required this.isRead,
   }) : super(key: key);
 
@@ -94,22 +93,6 @@ class NotificationCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (onDelete != null)
-                PopupMenuButton<String>(
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: Colors.grey[400],
-                    size: 20,
-                  ),
-                  onSelected: (value) {
-                    if (value == 'delete') {
-                      onDelete!();
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(value: 'delete', child: Text('Delete')),
-                  ],
-                ),
             ],
           ),
         ),

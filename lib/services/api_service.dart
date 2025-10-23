@@ -299,4 +299,31 @@ class ApiService {
       throw Exception('An error occurred during renewal: $e');
     }
   }
+
+  Future<Map<String, dynamic>?> markAllNotificationsAsRead(List request) async {
+    String token = await StorageService.getData('access_token');
+
+    try {
+      final response = await http.post(
+        Uri.parse('${base_url}/devices/mark/read/notifications'),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(request),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data;
+      } else {
+        _handleAuthError(response.statusCode);
+        throw Exception('Failed to mark all notifications as read');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred: $e');
+    }
+  }
 }

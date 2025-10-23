@@ -6,7 +6,7 @@ class NotificationModel {
   final String firebaseToken;
   final String createdBy;
   final String createdByName;
-  final bool isRead;
+  bool isRead;
   final DateTime createdAt;
   final DateTime updatedAt;
 
