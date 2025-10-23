@@ -596,6 +596,8 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.clear, color: Colors.grey[600]),
             onPressed: () {
               _searchController.clear();
+              FocusScope.of(context).unfocus();
+
               setState(() {
                 _filteredDevices =
                     _controller.devicesModel.value?.devices ?? [];
