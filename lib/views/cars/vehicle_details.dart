@@ -197,10 +197,11 @@ class _VehicleDetailsState extends State<VehicleDetails> {
 
   Widget _buildVehicleItem({required String title, required String subtitle}) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start, // 👈 aligns text to top
         children: [
+          // Title text
           Text(
             title,
             style: TextStyle(
@@ -209,13 +210,20 @@ class _VehicleDetailsState extends State<VehicleDetails> {
               color: Colors.grey.shade600,
             ),
           ),
-          SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-              fontWeight: FontWeight.bold,
+
+          const SizedBox(width: 10), // space between title and subtitle
+          // Subtitle text (wrapping allowed)
+          Expanded(
+            child: Text(
+              subtitle,
+              textAlign: TextAlign.right, // aligns long text neatly
+              softWrap: true, // 👈 allows wrapping to next line
+              overflow: TextOverflow.visible, // shows full text
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
