@@ -211,14 +211,13 @@ class _VehicleDetailsState extends State<VehicleDetails> {
             ),
           ),
 
-          const SizedBox(width: 10), // space between title and subtitle
-          // Subtitle text (wrapping allowed)
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               subtitle,
-              textAlign: TextAlign.right, // aligns long text neatly
-              softWrap: true, // 👈 allows wrapping to next line
-              overflow: TextOverflow.visible, // shows full text
+              textAlign: TextAlign.right,
+              softWrap: true,
+              overflow: TextOverflow.visible,
               style: const TextStyle(
                 fontSize: 14,
                 color: Colors.black87,

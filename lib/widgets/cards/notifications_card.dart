@@ -6,12 +6,14 @@ class NotificationCard extends StatelessWidget {
   final NotificationModel notification;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
+  final bool isRead;
 
   const NotificationCard({
     Key? key,
     required this.notification,
     this.onTap,
     this.onDelete,
+    required this.isRead,
   }) : super(key: key);
 
   @override
@@ -41,10 +43,16 @@ class NotificationCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: kBlue.withOpacity(0.1),
+                  color: !isRead
+                      ? kBlue.withOpacity(0.1)
+                      : kGrey.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.notifications, color: kBlue, size: 24),
+                child: Icon(
+                  Icons.notifications,
+                  color: !isRead ? kBlue : kGrey,
+                  size: 24,
+                ),
               ),
               SizedBox(width: 12),
               Expanded(

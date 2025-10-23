@@ -49,8 +49,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   itemBuilder: (context, index) {
                     final notification = _controller.notifications[index];
                     return NotificationCard(
+                      isRead: notification.isRead,
                       notification: notification,
-                      onTap: () => _handleNotificationTap(notification),
+                      onTap: () => _handleNotificationTap(
+                        notification,
+                        notification.isRead,
+                      ),
                       onDelete: () => _deleteNotification(notification),
                     );
                   },
@@ -90,7 +94,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     ).showSnackBar(const SnackBar(content: Text('Notification deleted')));
   }
 
-  void _handleNotificationTap(notification) {
+  void _handleNotificationTap(notification, isRead) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -133,10 +137,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  color: kBlue.withOpacity(0.1),
+                                  color: isRead
+                                      ? kGrey.withOpacity(0.1)
+                                      : kBlue.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Icon(Icons.notifications, color: kBlue),
+                                child: Icon(
+                                  Icons.notifications,
+                                  color: isRead ? kGrey : kBlue,
+                                ),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
