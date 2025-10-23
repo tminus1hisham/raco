@@ -3,10 +3,16 @@ import 'package:atom/controllers/violations_controller.dart';
 import 'package:atom/models/playback_model.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
+import 'package:atom/widgets/modal/infomation_modal.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_file_downloader/flutter_file_downloader.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:open_file/open_file.dart';
+
+import '../widgets/modal/custom_alert.dart';
 
 class ViolationsScreen extends StatefulWidget {
   final String numberPlate;
@@ -24,6 +30,88 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
   final ViolationsController _violationsController = Get.put(
     ViolationsController(),
   );
+  bool isDownloading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _violationsController.violations.clear();
+    _violationsController.reportUrl.value = null;
+  }
+
+  Future<void> downloadReport(
+    String url,
+    String documentName,
+    BuildContext context,
+  ) async {
+    try {
+      setState(() {
+        isDownloading = true;
+      });
+
+      String safeName = documentName
+          .replaceAll(RegExp(r"[^\w\s]+"), '')
+          .replaceAll(' ', '_');
+
+      String fileName =
+          "$safeName-${DateTime.now().millisecondsSinceEpoch}.pdf";
+
+      // Start downloading
+      FileDownloader.downloadFile(
+        url: url,
+        name: fileName,
+        onProgress: (fileName, progress) {
+          debugPrint('Downloading $fileName: $progress%');
+        },
+        onDownloadCompleted: (String path) async {
+          setState(() {
+            isDownloading = false;
+          });
+
+          String decodedPath = Uri.decodeFull(path);
+          debugPrint("Downloaded path: $decodedPath");
+
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => ActionDialog(
+              title: "Success",
+              message: "Document saved to:\n$decodedPath",
+              confirmText: "Open",
+              cancelText: "Cancel",
+              onConfirm: () async {
+                final result = await OpenFile.open(decodedPath);
+              },
+            ),
+          );
+        },
+        onDownloadError: (String error) {
+          setState(() {
+            isDownloading = false;
+          });
+
+          CustomAlertDialog(
+            context: context,
+            title: "Error",
+            message: "Failed to download the violations.",
+            icon: "assets/animations/Failed.json",
+            buttonColor: kRed,
+          );
+        },
+      );
+    } catch (e) {
+      setState(() {
+        isDownloading = false;
+      });
+
+      CustomAlertDialog(
+        context: context,
+        title: "Error",
+        message: "Failed to download the report.",
+        icon: "assets/animations/Failed.json",
+        buttonColor: kRed,
+      );
+    }
+  }
 
   String? _selectedViolation;
   final List<String> _violationOptions = [
@@ -350,38 +438,47 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
               child: _buildDropdownButton(),
             ),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              child: Obx(() {
+                final url = _violationsController.reportUrl.value;
 
-              child: Row(
-                children: [
-                  Expanded(
-                    child: CustomButton(
-                      callBackFunction: _getViolations,
-                      label: "Get Violations",
-                      backgroundColor: kBlue,
-                      txtColor: kWhite,
+                return Row(
+                  children: [
+                    // Get Violations Button
+                    Expanded(
+                      child: CustomButton(
+                        callBackFunction: _getViolations,
+                        label: "Get Violations",
+                        backgroundColor: kBlue,
+                        txtColor: kWhite,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 5),
-                  Expanded(
-                    child: CustomButton(
-                      callBackFunction: () {
-                        final url = _violationsController.reportUrl.value!;
-                        print(url);
-                      },
-                      label: "Download",
-                      backgroundColor: kBlue,
-                      txtColor: kWhite,
-                    ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 8),
+
+                    if (url != null && url.isNotEmpty)
+                      Expanded(
+                        child: CustomButton(
+                          callBackFunction: () async {
+                            await downloadReport(
+                              url,
+                              _selectedViolation ?? "Violations Report",
+                              context,
+                            );
+                          },
+                          label: "Download",
+                          backgroundColor: kBlue,
+                          txtColor: kWhite,
+                        ),
+                      ),
+                  ],
+                );
+              }),
             ),
 
             // Content area
             Expanded(
               child: Obx(() {
-                if (_violationsController.isLoading.value) {
+                if (_violationsController.isLoading.value || isDownloading) {
                   return Center(
                     child: LoadingAnimationWidget.fourRotatingDots(
                       color: kBlue,
