@@ -1,24 +1,19 @@
-import 'package:atom/models/playback_model.dart';
+import 'package:atom/models/geofence_model.dart';
 import 'package:atom/services/api_service.dart';
 import 'package:get/get.dart';
 
 class FetchGeofenceController extends GetxController {
   var isLoading = false.obs;
-  var reports = <DeviceRecord>[].obs;
-  var reportUrl = RxnString();
+  var geofences = <GeofenceModel>[].obs;
 
-  Future<void> fetchReports(String numberPlate, String reportType) async {
+  Future<void> fetchGeofence(String numberPlate) async {
     try {
       isLoading(true);
 
-      var fetchedReports = await ApiService.fetchReports(
-        numberPlate,
-        reportType,
-      );
-
-      reports.assignAll(fetchedReports["devices"]);
-
-      reportUrl.value = fetchedReports["reportUrl"];
+      final fetchedGeofences = await ApiService.fetchGeoFence(numberPlate);
+      geofences.assignAll(fetchedGeofences);
+    } catch (e) {
+      print("Error fetching geofences: $e");
     } finally {
       isLoading(false);
     }

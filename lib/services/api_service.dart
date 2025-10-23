@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:atom/config/constants.dart';
+import 'package:atom/models/geofence_model.dart';
 import 'package:atom/models/location_model.dart';
 import 'package:atom/models/playback_model.dart';
 import 'package:atom/models/profile_picture_model.dart';
@@ -212,7 +213,7 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> fetchGeoCoding(String numberPlate) async {
+  static Future<List<GeofenceModel>> fetchGeoFence(String numberPlate) async {
     String token = await StorageService.getData('access_token');
 
     final response = await http.get(
@@ -225,19 +226,24 @@ class ApiService {
       },
     );
 
+    print("HAPA");
+    print(response.body);
+
     if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
-      final List<dynamic> data = decoded['devices'] ?? [];
-      final String? reportUrl = decoded['reportUrl'];
-
-      return {
-        "devices": DeviceRecord.fromJsonList(data),
-        "reportUrl": reportUrl,
-      };
+      if (data is List) {
+        return data.map((item) => GeofenceModel.fromJson(item)).toList();
+      } else if (data is Map && data.containsKey("devices")) {
+        return (data["devices"] as List)
+            .map((item) => GeofenceModel.fromJson(item))
+            .toList();
+      } else {
+        throw Exception("Unexpected API response format");
+      }
     } else {
       _handleAuthError(response.statusCode);
-      throw Exception('Failed to load reports');
+      throw Exception('Failed to load geofences');
     }
   }
 

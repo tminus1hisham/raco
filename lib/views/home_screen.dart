@@ -43,20 +43,32 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Device> _filteredDevices = [];
 
+  bool _isDataReady = false;
+
   @override
   void initState() {
     super.initState();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    await _loadCustomIcons();
+
     _controller.fetchDevices();
-    ever(_controller.devicesModel, (_) {
-      final devices = _controller.devicesModel.value?.devices ?? [];
-      setState(() {
-        _filteredDevices = devices;
-      });
+
+    // Update filtered devices
+    final devices = _controller.devicesModel.value?.devices ?? [];
+    setState(() {
+      _filteredDevices = devices;
     });
+
+    setState(() {
+      _isDataReady = true;
+    });
+
+    // Subscribe to MQTT and get user location
     _subscribeToVehicleTopics();
     _getUserLocation();
-    _loadCustomIcons();
-    mapWidget = _buildFullScreenMap([]);
   }
 
   Future<BitmapDescriptor> _resizeAndLoadIcon(
@@ -78,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadCustomIcons() async {
     customIcons['green'] = await _resizeAndLoadIcon(
       'assets/green_car.png',
-      100,
+      180,
     );
     customIcons['blue'] = await _resizeAndLoadIcon('assets/blue_car.png', 100);
     customIcons['red'] = await _resizeAndLoadIcon('assets/red_car.png', 100);
@@ -346,14 +358,11 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // Tab 1: Map view
             Obx(() {
-              if (_controller.isLoading.value) {
-                return Container(
-                  color: Colors.black.withOpacity(0.3),
-                  child: Center(
-                    child: LoadingAnimationWidget.fourRotatingDots(
-                      color: kBlue,
-                      size: 50,
-                    ),
+              if (!_isDataReady || _controller.isLoading.value) {
+                return Center(
+                  child: LoadingAnimationWidget.fourRotatingDots(
+                    color: kBlue,
+                    size: 50,
                   ),
                 );
               }
@@ -423,9 +432,11 @@ class _HomeScreenState extends State<HomeScreen> {
       //   device.ignitionStatus,
       // );
 
-      final imageKey = device.isDeviceOnline
-          ? (device.ignitionStatus == 1 ? 'green' : 'blue')
-          : 'red';
+      // final imageKey = device.isDeviceOnline
+      //     ? (device.ignitionStatus == 1 ? 'green' : 'blue')
+      //     : 'red';
+
+      final imageKey = device.isDeviceOnline ? 'green' : 'red';
 
       final markerIcon =
           customIcons[imageKey] ?? BitmapDescriptor.defaultMarker;
