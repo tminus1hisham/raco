@@ -26,7 +26,10 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   Timer? _playbackTimer;
   int _currentIndex = 0;
   bool _isPlaying = false;
-  double _playbackSpeed = 1.0; // 0.5x to 3x speed
+  double _playbackSpeed = 0.5; // 0.5x to 3x speed
+
+  DateTime? _playbackStartTime;
+  int _playbackStartIndex = 0;
 
   Size getMarkerSize(bool isOnline, int ignitionStatus) {
     if (isOnline && ignitionStatus == 1) {
@@ -155,28 +158,24 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   }
 
   void _startPlayback(List history) {
-    if (_isPlaying) return;
-    setState(() => _isPlaying = true);
-    _currentIndex = 0;
+    if (_isPlaying || history.isEmpty) return;
+
+    setState(() {
+      _isPlaying = true;
+      _currentIndex = 0;
+    });
 
     _playbackTimer?.cancel();
 
-    // Use a fixed fast interval and control speed by skipping frames
-    _playbackTimer = Timer.periodic(Duration(milliseconds: 50), (timer) {
-      if (_currentIndex >= history.length - 1) {
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
+      if (!_isPlaying || _currentIndex >= history.length - 1) {
         timer.cancel();
         setState(() => _isPlaying = false);
         return;
       }
 
-      // Calculate how many frames to skip based on speed
-      final skipFrames = (_playbackSpeed * 2).round();
-
       setState(() {
-        _currentIndex = math.min(
-          _currentIndex + skipFrames,
-          history.length - 1,
-        );
+        _currentIndex++;
       });
 
       final current = history[_currentIndex];
@@ -186,6 +185,88 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       );
     });
   }
+
+  void _updatePlaybackPosition(List history) {
+    if (_playbackStartTime == null) return;
+
+    final elapsedSeconds =
+        DateTime.now().difference(_playbackStartTime!).inMilliseconds / 1000.0;
+    final totalPlaybackTime = _calculateTotalPlaybackTime(history);
+    final progress = (elapsedSeconds * _playbackSpeed) / totalPlaybackTime;
+
+    final newIndex =
+        (_playbackStartIndex +
+                (progress * (history.length - 1 - _playbackStartIndex)))
+            .toInt();
+
+    if (newIndex != _currentIndex && newIndex < history.length) {
+      setState(() {
+        _currentIndex = newIndex.clamp(0, history.length - 1);
+      });
+
+      // Smooth map movement
+      final current = history[_currentIndex];
+      _mapController.move(
+        LatLng(double.parse(current.lt), double.parse(current.lg)),
+        _mapController.camera.zoom,
+      );
+    }
+  }
+
+  double _calculateTotalPlaybackTime(List history) {
+    if (history.length < 2) return 1.0;
+
+    // Calculate total time based on actual timestamps if available
+    final first = history.first;
+    final last = history.last;
+
+    if (first.createdAt != null && last.createdAt != null) {
+      final startTime = first.createdAt is String
+          ? DateTime.parse(first.createdAt)
+          : first.createdAt;
+      final endTime = last.createdAt is String
+          ? DateTime.parse(last.createdAt)
+          : last.createdAt;
+
+      return endTime.difference(startTime).inSeconds.toDouble();
+    }
+
+    // Fallback: estimate based on average time between points
+    return (history.length * 30).toDouble(); // Assume 30 seconds per point
+  }
+
+  // void _startPlayback(List history) {
+  //   if (_isPlaying) return;
+  //   setState(() => _isPlaying = true);
+  //   _currentIndex = 0;
+  //
+  //   _playbackTimer?.cancel();
+  //
+  //   // Use a fixed fast interval and control speed by skipping frames
+  //   _playbackTimer = Timer.periodic(Duration(milliseconds: 50), (timer) {
+  //     if (_currentIndex >= history.length - 1) {
+  //       timer.cancel();
+  //       setState(() => _isPlaying = false);
+  //       return;
+  //     }
+  //
+  //     // Calculate how many frames to skip based on speed
+  //     final skipFrames = (_playbackSpeed * 2).round();
+  //
+  //     setState(() {
+  //       _currentIndex = math.min(
+  //         _currentIndex + skipFrames,
+  //         history.length - 1,
+  //       );
+  //     });
+  //
+  //     final current = history[_currentIndex];
+  //     _mapController.move(
+  //       LatLng(double.parse(current.lt), double.parse(current.lg)),
+  //       _mapController.camera.zoom,
+  //     );
+  //   });
+  // }
 
   void _pausePlayback() {
     _playbackTimer?.cancel();
@@ -193,38 +274,72 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   }
 
   void _resumePlayback(List history) {
-    if (_isPlaying) return;
-    setState(() => _isPlaying = true);
+    if (_isPlaying || history.isEmpty) return;
+
+    setState(() {
+      _isPlaying = true;
+      _playbackStartTime = DateTime.now();
+      _playbackStartIndex = _currentIndex;
+    });
 
     _playbackTimer?.cancel();
-
-    _playbackTimer = Timer.periodic(Duration(milliseconds: 50), (timer) {
-      if (_currentIndex >= history.length - 1) {
+    _playbackTimer = Timer.periodic(Duration(milliseconds: 16), (timer) {
+      if (!_isPlaying || _currentIndex >= history.length - 1) {
         timer.cancel();
         setState(() => _isPlaying = false);
         return;
       }
 
-      final skipFrames = (_playbackSpeed * 2).round();
-
-      setState(() {
-        _currentIndex = math.min(
-          _currentIndex + skipFrames,
-          history.length - 1,
-        );
-      });
-
-      final current = history[_currentIndex];
-      _mapController.move(
-        LatLng(double.parse(current.lt), double.parse(current.lg)),
-        _mapController.camera.zoom,
-      );
+      _updatePlaybackPosition(history);
     });
   }
 
+  // void _resumePlayback(List history) {
+  //   if (_isPlaying) return;
+  //   setState(() => _isPlaying = true);
+  //
+  //   _playbackTimer?.cancel();
+  //
+  //   _playbackTimer = Timer.periodic(Duration(milliseconds: 50), (timer) {
+  //     if (_currentIndex >= history.length - 1) {
+  //       timer.cancel();
+  //       setState(() => _isPlaying = false);
+  //       return;
+  //     }
+  //
+  //     final skipFrames = (_playbackSpeed * 2).round();
+  //
+  //     setState(() {
+  //       _currentIndex = math.min(
+  //         _currentIndex + skipFrames,
+  //         history.length - 1,
+  //       );
+  //     });
+  //
+  //     final current = history[_currentIndex];
+  //     _mapController.move(
+  //       LatLng(double.parse(current.lt), double.parse(current.lg)),
+  //       _mapController.camera.zoom,
+  //     );
+  //   });
+  // }
+
+  // void _updatePlaybackSpeed(double newSpeed) {
+  //   setState(() => _playbackSpeed = newSpeed);
+  //   // No need to restart - the timer will pick up the new speed on next tick
+  // }
+
   void _updatePlaybackSpeed(double newSpeed) {
-    setState(() => _playbackSpeed = newSpeed);
-    // No need to restart - the timer will pick up the new speed on next tick
+    // When speed changes, reset the playback timing
+    if (_isPlaying) {
+      setState(() {
+        _playbackSpeed = newSpeed;
+        _playbackStartTime = DateTime.now();
+        _playbackStartIndex = _currentIndex;
+      });
+    } else {
+      setState(() => _playbackSpeed = newSpeed);
+    }
   }
 
   void _stopPlayback() {
@@ -232,6 +347,8 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     setState(() {
       _isPlaying = false;
       _currentIndex = 0;
+      _playbackStartTime = null;
+      _playbackStartIndex = 0;
     });
   }
 
@@ -372,7 +489,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                       width: markerSize.width,
                       height: markerSize.height,
                       child: Transform.rotate(
-                        angle: bearing * math.pi / 180,
+                        angle: (bearing + 180) * math.pi / 180,
                         child: Image.asset(markerImage),
                       ),
                     ),

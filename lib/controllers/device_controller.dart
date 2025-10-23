@@ -12,7 +12,7 @@ class DeviceController extends GetxController {
     fetchDevices();
   }
 
-  void fetchDevices() async {
+  Future<void> fetchDevices() async {
     try {
       isLoading(true);
       var fetchedModel = await ApiService.fetchDevices();

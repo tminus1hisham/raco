@@ -55,7 +55,8 @@ class ImageUploaderService {
 
           var request = http.MultipartRequest(
             'POST',
-            Uri.parse('https://bucket.transfa.org/files/single_image.php'),
+            // Uri.parse('https://bucket.transfa.org/files/single_image.php'),
+            Uri.parse('https://bucket.ndai.africa/single_image.php'),
           );
           request.fields['image'] = base64Image;
 

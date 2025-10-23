@@ -32,6 +32,19 @@ class _AccountScreenState extends State<AccountScreen> {
     UpdateProfileController(),
   );
 
+  // Controllers for edit form
+  final TextEditingController fullNameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+
+  @override
+  void dispose() {
+    fullNameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    super.dispose();
+  }
+
   Future<void> _onImagePicked(XFile? image) async {
     if (image != null) {
       setState(() {
@@ -130,6 +143,185 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _showEditProfileModal(BuildContext context) {
+    final user = controller.user.value;
+    if (user == null) return;
+
+    fullNameController.text = user.fullName;
+    emailController.text = user.emailAddress;
+    phoneController.text = user.phoneNumber;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // important
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Padding(
+          // This moves the sheet up by the keyboard height
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 24,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Handle bar
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: kBlue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.edit,
+                              color: kBlue,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Edit Profile',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                            color: Colors.grey[600],
+                          ),
+                        ],
+                      ),
+
+                      const Divider(height: 24),
+
+                      _buildEditField(
+                        label: 'Full Name',
+                        controller: fullNameController,
+                        icon: Icons.person_outline,
+                        hint: 'Enter your full name',
+                      ),
+                      const SizedBox(height: 20),
+
+                      _buildEditField(
+                        label: 'Email Address',
+                        controller: emailController,
+                        icon: Icons.email_outlined,
+                        hint: 'Enter your email',
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 20),
+
+                      _buildEditField(
+                        label: 'Phone Number',
+                        controller: phoneController,
+                        icon: Icons.phone_outlined,
+                        hint: 'Enter your phone number',
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 32),
+
+                      CustomButton(
+                        callBackFunction: () {
+                          Navigator.pop(context);
+                          Get.snackbar(
+                            "Info",
+                            "Profile update functionality to be connected",
+                            backgroundColor: kBlue.withOpacity(0.1),
+                            colorText: kBlue,
+                          );
+                        },
+                        label: "Save Changes",
+                        backgroundColor: kBlue,
+                        txtColor: kWhite,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEditField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    required String hint,
+    TextInputType? keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            style: const TextStyle(fontSize: 16, color: Colors.black87),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 15),
+              prefixIcon: Icon(icon, color: kBlue, size: 22),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -286,7 +478,8 @@ class _AccountScreenState extends State<AccountScreen> {
                         const SizedBox(height: 32),
 
                         CustomButton(
-                          callBackFunction: () {},
+                          callBackFunction: () =>
+                              _showEditProfileModal(context),
                           label: "Edit Profile",
                           backgroundColor: kBlue,
                           txtColor: kWhite,

@@ -54,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initializeData() async {
     await _loadCustomIcons();
 
-    _controller.fetchDevices();
+    await _controller.fetchDevices();
 
     // Update filtered devices
     final devices = _controller.devicesModel.value?.devices ?? [];
@@ -357,36 +357,46 @@ class _HomeScreenState extends State<HomeScreen> {
           physics: const NeverScrollableScrollPhysics(),
           children: [
             // Tab 1: Map view
-            Obx(() {
-              if (!_isDataReady || _controller.isLoading.value) {
-                return Center(
-                  child: LoadingAnimationWidget.fourRotatingDots(
-                    color: kBlue,
-                    size: 50,
-                  ),
-                );
-              }
+            _isDataReady
+                ? Obx(() {
+                    if (_controller.isLoading.value) {
+                      return Center(
+                        child: LoadingAnimationWidget.fourRotatingDots(
+                          color: kBlue,
+                          size: 50,
+                        ),
+                      );
+                    }
 
-              final devices = _controller.devicesModel.value?.devices ?? [];
+                    final devices =
+                        _controller.devicesModel.value?.devices ?? [];
 
-              return Stack(
-                children: [
-                  // _buildFullScreenMap(devices),
-                  _buildFullScreenMap(_filteredDevices),
-                  Positioned(
-                    top: 10,
-                    left: 20,
-                    right: 20,
-                    child: IgnorePointer(
-                      ignoring: false,
-                      // set to true if you want the map to be touchable through it
-                      child: _buildSearchBar(),
+                    return Stack(
+                      children: [
+                        _buildFullScreenMap(_filteredDevices),
+                        Positioned(
+                          top: 10,
+                          left: 20,
+                          right: 20,
+                          child: IgnorePointer(
+                            ignoring: false,
+                            child: _buildSearchBar(),
+                          ),
+                        ),
+                        Positioned(
+                          right: 20,
+                          top: 70,
+                          child: _buildMapControls(),
+                        ),
+                      ],
+                    );
+                  })
+                : Center(
+                    child: LoadingAnimationWidget.fourRotatingDots(
+                      color: kBlue,
+                      size: 50,
                     ),
                   ),
-                  Positioned(right: 20, top: 70, child: _buildMapControls()),
-                ],
-              );
-            }),
 
             // Tab 2: CarsScreen
             CarsScreen(),
