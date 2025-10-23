@@ -3,10 +3,15 @@ import 'package:atom/controllers/reports_violations.dart';
 import 'package:atom/models/report_model.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
+import 'package:atom/widgets/modal/custom_alert.dart';
+import 'package:atom/widgets/modal/infomation_modal.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_file_downloader/flutter_file_downloader.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:open_file/open_file.dart';
 
 class ReportsScreen extends StatefulWidget {
   final String numberPlate;
@@ -20,6 +25,15 @@ class ReportsScreen extends StatefulWidget {
 class _ReportsScreenState extends State<ReportsScreen> {
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy – HH:mm');
   final ReportsController _reportsController = Get.put(ReportsController());
+  bool isDownloading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _reportsController.reports.clear();
+    _reportsController.reportUrl.value = null;
+    _selectedReportType = null;
+  }
 
   String? _selectedReportType;
   final List<String> _reportOptions = [
@@ -31,13 +45,97 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Future<void> _getReports() async {
     if (_selectedReportType == null) {
-      Get.snackbar("Error", "Please select a report type");
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => ActionDialog(
+          title: "Infomation",
+          message:
+              "Please select the report type in order to generate a report.",
+          confirmText: "Ok",
+          cancelText: "Close",
+          onConfirm: () async {},
+        ),
+      );
       return;
     }
     await _reportsController.fetchReports(
       widget.numberPlate,
       _selectedReportType!,
     );
+  }
+
+  Future<void> downloadReport(
+    String url,
+    String documentName,
+    BuildContext context,
+  ) async {
+    try {
+      setState(() {
+        isDownloading = true;
+      });
+
+      String safeName = documentName
+          .replaceAll(RegExp(r"[^\w\s]+"), '')
+          .replaceAll(' ', '_');
+
+      String fileName =
+          "$safeName-${DateTime.now().millisecondsSinceEpoch}.pdf";
+
+      // Start downloading
+      FileDownloader.downloadFile(
+        url: url,
+        name: fileName,
+        onProgress: (fileName, progress) {
+          debugPrint('Downloading $fileName: $progress%');
+        },
+        onDownloadCompleted: (String path) async {
+          setState(() {
+            isDownloading = false;
+          });
+
+          String decodedPath = Uri.decodeFull(path);
+          debugPrint("Downloaded path: $decodedPath");
+
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => ActionDialog(
+              title: "Success",
+              message: "Document saved to:\n$decodedPath",
+              confirmText: "Open",
+              cancelText: "Cancel",
+              onConfirm: () async {
+                final result = await OpenFile.open(decodedPath);
+              },
+            ),
+          );
+        },
+        onDownloadError: (String error) {
+          setState(() {
+            isDownloading = false;
+          });
+
+          CustomAlertDialog(
+            context: context,
+            title: "Error",
+            message: "Failed to download the report.",
+            icon: "assets/animations/Failed.json",
+            buttonColor: kRed,
+          );
+        },
+      );
+    } catch (e) {
+      setState(() {
+        isDownloading = false;
+      });
+
+      CustomAlertDialog(
+        context: context,
+        title: "Error",
+        message: "Failed to download the report.",
+        icon: "assets/animations/Failed.json",
+        buttonColor: kRed,
+      );
+    }
   }
 
   Widget _buildDropdownButton() {
@@ -162,37 +260,46 @@ class _ReportsScreenState extends State<ReportsScreen> {
             SizedBox(height: 10),
 
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: CustomButton(
-                      callBackFunction: _getReports,
-                      label: "Get Report",
-                      backgroundColor: kBlue,
-                      txtColor: kWhite,
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Obx(() {
+                final url = _reportsController.reportUrl.value;
+                return Row(
+                  children: [
+                    Expanded(
+                      child: CustomButton(
+                        callBackFunction: _getReports,
+                        label: "Get Report",
+                        backgroundColor: kBlue,
+                        txtColor: kWhite,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 5),
-                  Expanded(
-                    child: CustomButton(
-                      callBackFunction: () {
-                        final url = _reportsController.reportUrl.value;
-                        print(url);
-                      },
-                      label: "Download",
-                      backgroundColor: kBlue,
-                      txtColor: kWhite,
-                    ),
-                  ),
-                ],
-              ),
+                    if (url != null && url.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: CustomButton(
+                          callBackFunction: () async {
+                            bool isLoading = false;
+                            await downloadReport(
+                              url,
+                              _selectedReportType ?? "Report",
+                              context,
+                            );
+                          },
+                          label: "Download",
+                          backgroundColor: kBlue,
+                          txtColor: kWhite,
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              }),
             ),
             SizedBox(height: 10),
             // Reports list
             Expanded(
               child: Obx(() {
-                if (_reportsController.isLoading.value) {
+                if (_reportsController.isLoading.value || isDownloading) {
                   return Center(
                     child: LoadingAnimationWidget.fourRotatingDots(
                       color: kBlue,

@@ -36,6 +36,13 @@
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
    	<string>We need your location to provide continuous tracking.</string>
 
+   	<key>NSPhotoLibraryAddUsageDescription</key>
+    <string>We need access to save downloaded files to your photo library.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>We need access to your photo library to manage downloaded files.</string>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>We need access to store and open downloaded files.</string>
+
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
