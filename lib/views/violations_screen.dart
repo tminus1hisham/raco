@@ -124,9 +124,16 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
 
   Future<void> _getViolations() async {
     if (_startDate == null || _endDate == null || _selectedViolation == null) {
-      Get.snackbar(
-        "Error",
-        "Please select start date, end date, and report type",
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => ActionDialog(
+          title: "Error",
+          message:
+              "Please confirm you have selected the start date, end date & report type.",
+          confirmText: "Ok",
+          cancelText: "Cancel",
+          onConfirm: () async {},
+        ),
       );
       return;
     }
@@ -157,8 +164,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
   Future<void> _pickStartDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate:
-          _startDate ?? DateTime.now().subtract(const Duration(days: 30)),
+      initialDate: _startDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
       builder: (context, child) {
@@ -175,7 +181,23 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
         );
       },
     );
-    if (picked != null) setState(() => _startDate = picked);
+
+    if (picked != null) {
+      if (_endDate != null && picked.isAfter(_endDate!)) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => ActionDialog(
+            title: "Invalid Date",
+            message: "Start date cannot be after the end date.",
+            confirmText: "Ok",
+            cancelText: "Cancel",
+            onConfirm: () async {},
+          ),
+        );
+        return;
+      }
+      setState(() => _startDate = picked);
+    }
   }
 
   Future<void> _pickEndDate(BuildContext context) async {
@@ -198,7 +220,22 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
         );
       },
     );
-    if (picked != null) setState(() => _endDate = picked);
+    if (picked != null) {
+      if (_startDate != null && picked.isBefore(_startDate!)) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => ActionDialog(
+            title: "Invalid Date",
+            message: "End date cannot be before the start date.",
+            confirmText: "Ok",
+            cancelText: "Cancel",
+            onConfirm: () async {},
+          ),
+        );
+        return;
+      }
+      setState(() => _endDate = picked);
+    }
   }
 
   Widget _buildDropdownButton() {
@@ -455,6 +492,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                     ),
                     const SizedBox(width: 8),
 
+                    // Download Button (only show when URL is available)
                     if (url != null && url.isNotEmpty)
                       Expanded(
                         child: CustomButton(
