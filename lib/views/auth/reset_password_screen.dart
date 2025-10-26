@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
+import '../../widgets/modal/infomation_modal.dart';
+
 class ResetPasswordScreen extends StatefulWidget {
   ResetPasswordScreen({required this.code, required this.phoneNumber});
 
@@ -152,6 +154,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     resetPasswordService.resetToken.value = widget.code;
     resetPasswordService.newPassword.value = _newPasswordController.text;
     final success = await resetPasswordService.resetPassword(context);
+
+    await CustomAlertDialog(
+      context: context,
+      title: "Success",
+      message: "You have reset your password successfully.",
+      icon: "assets/animations/Success.json",
+      buttonColor: kSuccessGreen,
+    );
 
     if (success) Navigator.pushNamed(context, AppRoutes.login);
   }
