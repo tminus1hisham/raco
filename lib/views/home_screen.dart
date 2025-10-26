@@ -802,7 +802,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildVehicleBottomSheet(Device device) {
-    bool isVehicleActive = true;
+    bool isVehicleActive = device.engineStart;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.43,
@@ -836,7 +836,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(
                         builder: (context) => SelectedCarScreen(
                           devices: device,
-                          carModel: device.make,
+                          carModel: "${device.type} ${device.make}",
                           licensePlate: device.numberPlate,
                         ),
                       ),
@@ -918,7 +918,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           SizedBox(width: 10),
                           Text(
-                            device.make,
+                            "${device.type} ${device.make}",
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.grey[600],

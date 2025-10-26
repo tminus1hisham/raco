@@ -52,7 +52,7 @@ class _CarListScreenState extends State<CarListScreen> {
                         final device = devices[index];
 
                         return CarInfoCard(
-                          carModel: device.make,
+                          carModel: "${device.type} ${device.make}",
                           licensePlate: device.numberPlate,
                           status: device.isDeviceOnline ? "Online" : "Offline",
                           statusColor: device.isDeviceOnline

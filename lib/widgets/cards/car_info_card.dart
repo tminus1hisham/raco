@@ -58,7 +58,7 @@ class CarInfoCard extends StatelessWidget {
                             Text(
                               licensePlate,
                               style: TextStyle(
-                                fontSize: 20,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,
                               ),
@@ -67,7 +67,7 @@ class CarInfoCard extends StatelessWidget {
                             Text(
                               carModel,
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 15,
                                 color: Colors.grey[600],
                                 fontWeight: FontWeight.w500,
                               ),

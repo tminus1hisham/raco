@@ -33,7 +33,6 @@ class SelectedCarScreen extends StatefulWidget {
 }
 
 class _SelectedCarScreenState extends State<SelectedCarScreen> {
-  bool isVehicleActive = true;
   final _utils = Utils();
 
   final RenewCertificateController _controller = Get.put(
@@ -231,6 +230,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    bool isVehicleActive = widget.devices.engineStart;
     return Obx(
       () => Scaffold(
         backgroundColor: kBgGrey,
