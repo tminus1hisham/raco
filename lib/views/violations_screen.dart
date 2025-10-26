@@ -11,6 +11,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:open_file/open_file.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/modal/custom_alert.dart';
 
@@ -129,7 +130,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
         builder: (context) => ActionDialog(
           title: "Error",
           message:
-              "Please confirm you have selected the start date, end date & report type.",
+              "Please confirm you have selected the start date, end date & violation type.",
           confirmText: "Ok",
           cancelText: "Cancel",
           onConfirm: () async {},
@@ -393,7 +394,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Violation date + type
+          // Violation date + type + location
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -408,9 +409,40 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                "Type: $_selectedViolation",
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+
+              // ✅ Clickable Location
+              InkWell(
+                onTap: () async {
+                  final lat = v.lt;
+                  final lng = v.lg;
+                  final url = Uri.parse(
+                    'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+                  );
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  } else {
+                    debugPrint('Could not open Google Maps');
+                  }
+                },
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on,
+                      color: Colors.blueAccent,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      "Open Location",
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.blueAccent,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -424,7 +456,9 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                 fontWeight: FontWeight.bold,
                 color:
                     v.spd != null && double.tryParse(v.spd.toString()) != null
-                    ? (double.parse(v.spd.toString()) > 80 ? Colors.red : kBlue)
+                    ? (double.parse(v.spd.toString()) > 80
+                          ? Colors.red
+                          : Colors.blue)
                     : Colors.grey,
               ),
             ),
@@ -497,10 +531,21 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                       Expanded(
                         child: CustomButton(
                           callBackFunction: () async {
-                            await downloadReport(
-                              url,
-                              _selectedViolation ?? "Violations Report",
-                              context,
+                            showCupertinoDialog(
+                              context: context,
+                              builder: (context) => ActionDialog(
+                                title: "Download Violations",
+                                message: "Are you sure you want to download?",
+                                confirmText: "Download",
+                                cancelText: "Cancel",
+                                onConfirm: () async {
+                                  await downloadReport(
+                                    url,
+                                    _selectedViolation ?? "Violations Report",
+                                    context,
+                                  );
+                                },
+                              ),
                             );
                           },
                           label: "Download",
