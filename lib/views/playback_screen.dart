@@ -166,24 +166,27 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     });
 
     _playbackTimer?.cancel();
+    _playbackTimer = Timer.periodic(
+      Duration(milliseconds: (200 ~/ _playbackSpeed)),
+      // playbackSpeed affects rate
+      (timer) {
+        if (!_isPlaying || _currentIndex >= history.length - 1) {
+          timer.cancel();
+          setState(() => _isPlaying = false);
+          return;
+        }
 
-    _playbackTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
-      if (!_isPlaying || _currentIndex >= history.length - 1) {
-        timer.cancel();
-        setState(() => _isPlaying = false);
-        return;
-      }
+        setState(() {
+          _currentIndex++;
+        });
 
-      setState(() {
-        _currentIndex++;
-      });
-
-      final current = history[_currentIndex];
-      _mapController.move(
-        LatLng(double.parse(current.lt), double.parse(current.lg)),
-        _mapController.camera.zoom,
-      );
-    });
+        final current = history[_currentIndex];
+        _mapController.move(
+          LatLng(double.parse(current.lt), double.parse(current.lg)),
+          _mapController.camera.zoom,
+        );
+      },
+    );
   }
 
   void _updatePlaybackPosition(List history) {
@@ -276,22 +279,29 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   void _resumePlayback(List history) {
     if (_isPlaying || history.isEmpty) return;
 
-    setState(() {
-      _isPlaying = true;
-      _playbackStartTime = DateTime.now();
-      _playbackStartIndex = _currentIndex;
-    });
+    setState(() => _isPlaying = true);
 
     _playbackTimer?.cancel();
-    _playbackTimer = Timer.periodic(Duration(milliseconds: 16), (timer) {
-      if (!_isPlaying || _currentIndex >= history.length - 1) {
-        timer.cancel();
-        setState(() => _isPlaying = false);
-        return;
-      }
+    _playbackTimer = Timer.periodic(
+      Duration(milliseconds: (200 ~/ _playbackSpeed)),
+      (timer) {
+        if (!_isPlaying || _currentIndex >= history.length - 1) {
+          timer.cancel();
+          setState(() => _isPlaying = false);
+          return;
+        }
 
-      _updatePlaybackPosition(history);
-    });
+        setState(() {
+          _currentIndex++;
+        });
+
+        final current = history[_currentIndex];
+        _mapController.move(
+          LatLng(double.parse(current.lt), double.parse(current.lg)),
+          _mapController.camera.zoom,
+        );
+      },
+    );
   }
 
   // void _resumePlayback(List history) {

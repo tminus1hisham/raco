@@ -184,24 +184,23 @@ class _OnboardingState extends State<Onboarding> {
 
                   const SizedBox(height: 10),
 
-                  CustomBorderButton(
-                    callBackFunction: () {
-                      if (activeIndex == onboardingItems.length - 1) {
-                        _handleSignUp();
-                      } else {
-                        controller.animateToPage(
-                          onboardingItems.length - 1,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      }
-                    },
-                    label: activeIndex == onboardingItems.length - 1
-                        ? 'Sign up'
-                        : 'Skip',
-                    borderColor: Colors.grey.shade400,
-                    txtColor: Colors.grey.shade700,
-                  ),
+                  if (activeIndex != onboardingItems.length - 1)
+                    CustomBorderButton(
+                      callBackFunction: () {
+                        if (activeIndex == onboardingItems.length - 1) {
+                          _handleSignUp();
+                        } else {
+                          controller.animateToPage(
+                            onboardingItems.length - 1,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      },
+                      label: 'Skip',
+                      borderColor: Colors.grey.shade400,
+                      txtColor: Colors.grey.shade700,
+                    ),
                   SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,

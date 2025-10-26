@@ -199,7 +199,7 @@ class _VehicleDetailsState extends State<VehicleDetails> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start, // 👈 aligns text to top
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title text
           Text(

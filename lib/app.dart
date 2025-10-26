@@ -8,6 +8,7 @@ import 'package:atom/views/auth/onboarding_screen.dart';
 import 'package:atom/views/dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class MyApp extends StatefulWidget {
   @override
@@ -42,7 +43,12 @@ class _MyAppState extends State<MyApp> {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             home: Scaffold(
-              body: Center(child: CircularProgressIndicator(color: kBlue)),
+              body: Center(
+                child: LoadingAnimationWidget.fourRotatingDots(
+                  color: kBlue,
+                  size: 50,
+                ),
+              ),
             ),
           );
         }

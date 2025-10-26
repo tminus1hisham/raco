@@ -1,4 +1,4 @@
-package com.example.atom;
+package com.mobile.atom;
 
 import io.flutter.embedding.android.FlutterActivity;
 

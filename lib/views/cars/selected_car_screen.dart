@@ -12,9 +12,6 @@ import 'package:atom/views/playback_screen.dart';
 import 'package:atom/views/reports_screen.dart';
 import 'package:atom/views/violations_screen.dart';
 import 'package:atom/widgets/custom_header.dart';
-import 'package:atom/widgets/modal/custom_alert.dart';
-import 'package:atom/widgets/modal/infomation_modal.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -52,6 +49,184 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     } catch (e) {
       return true;
     }
+  }
+
+  void _showPlanBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        int? selectedIndex;
+
+        final plans = [
+          {
+            "title": "Basic Plan",
+            "price": "KES 1000 / month",
+            "desc": "Covers essential tracking.",
+          },
+          {
+            "title": "Standard Plan",
+            "price": "KES 2000 / month",
+            "desc": "Includes geofencing and reports.",
+          },
+          {
+            "title": "Premium Plan",
+            "price": "KES 3000 / month",
+            "desc": "Full access to all features.",
+          },
+        ];
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                top: 20,
+                left: 16,
+                right: 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    height: 5,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Select a Plan",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  ...List.generate(plans.length, (index) {
+                    final plan = plans[index];
+                    final isSelected = selectedIndex == index;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => selectedIndex = index);
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? kBlue.withOpacity(0.1)
+                              : Colors.white,
+                          border: Border.all(
+                            color: isSelected ? kBlue : Colors.grey[300]!,
+                            width: isSelected ? 2 : 1,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isSelected
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_off,
+                              color: isSelected ? kBlue : Colors.grey,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    plan["title"]!,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    plan["desc"]!,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              plan["price"]!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kBlue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    onPressed: selectedIndex != null
+                        ? () {
+                            Navigator.pop(context);
+                            _showPaymentConfirmation(plans[selectedIndex!]);
+                          }
+                        : null,
+                    child: const Text(
+                      "Renew",
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showPaymentConfirmation(Map<String, String> plan) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Confirm Payment"),
+        content: Text(
+          "Proceed to pay for ${plan['title']} (${plan['price']})?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Payment for ${plan['title']} successful!"),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: const Text("Pay"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -328,35 +503,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                       subtitle:
                                           'Expiry: ${_utils.formatDate(widget.devices.certificateExpirey)}',
                                       onTap: () {
-                                        showCupertinoDialog(
-                                          context: context,
-                                          builder: (context) => ActionDialog(
-                                            title: "Renew Certificate",
-                                            message:
-                                                "Are you sure you want to renew certificate?",
-                                            confirmText: "Renew",
-                                            cancelText: "Cancel",
-                                            onConfirm: () async {
-                                              final success = await _controller
-                                                  .renewCertificate(
-                                                    Get.context!,
-                                                    [widget.licensePlate],
-                                                  );
-
-                                              if (success) {
-                                                CustomAlertDialog(
-                                                  context: Get.context!,
-                                                  title: "Success",
-                                                  message:
-                                                      "You have renewed your certificate.",
-                                                  icon:
-                                                      "assets/animations/Success.json",
-                                                  buttonColor: kSuccessGreen,
-                                                );
-                                              }
-                                            },
-                                          ),
-                                        );
+                                        _showPlanBottomSheet(context);
                                       },
                                     ),
                                   ],

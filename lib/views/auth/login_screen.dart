@@ -2,7 +2,6 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/utils/utils.dart';
-import 'package:atom/views/auth/register_screen.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
@@ -84,7 +83,6 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     fetchIp();
     checkBiometrics();
   }
@@ -138,44 +136,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 40),
 
-                      // Tab bar
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: Colors.grey.shade300,
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                        child: TabBar(
-                          controller: _tabController,
-                          indicatorColor: kBlue,
-                          indicatorWeight: 3,
-                          indicatorSize: TabBarIndicatorSize.tab,
-                          labelColor: kGrey,
-                          unselectedLabelColor: Colors.grey.shade500,
-                          labelStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          tabs: const [
-                            Tab(text: 'Login'),
-                            Tab(text: 'Sign Up'),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      // Tab content
-                      SizedBox(
-                        height: 500,
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: [_buildLoginForm(), RegisterScreen()],
-                        ),
-                      ),
+                      _buildLoginForm(),
                     ],
                   ),
                 ),
@@ -247,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen>
               ),
               child: Text(
                 'Forgot Password?',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                style: TextStyle(color: kBlue, fontSize: 16),
               ),
             ),
           ),
@@ -276,21 +237,23 @@ class _LoginScreenState extends State<LoginScreen>
           Text.rich(
             TextSpan(
               text: 'By signing up, you agree to our ',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
               children: [
                 TextSpan(
                   text: 'Terms of service',
                   style: TextStyle(
-                    color: kGrey,
+                    color: kBlue,
                     decoration: TextDecoration.underline,
+                    decorationColor: kBlue,
                   ),
                 ),
                 const TextSpan(text: '\nand '),
                 TextSpan(
                   text: 'Privacy policy',
                   style: TextStyle(
-                    color: kGrey,
+                    color: kBlue,
                     decoration: TextDecoration.underline,
+                    decorationColor: kBlue,
                   ),
                 ),
               ],
