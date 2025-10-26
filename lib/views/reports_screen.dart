@@ -201,7 +201,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: (double.tryParse(record.spd ?? '0') ?? 0) > 80 || record.wr == 1
+            ? kRed.withOpacity(0.1)
+            : kWhite,
+
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -279,10 +282,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         child: CustomButton(
                           callBackFunction: () async {
                             bool isLoading = false;
-                            await downloadReport(
-                              url,
-                              _selectedReportType ?? "Report",
-                              context,
+                            showCupertinoDialog(
+                              context: context,
+                              builder: (context) => ActionDialog(
+                                title: "Download Report",
+                                message:
+                                    "Are you sure you want to download this report?",
+                                confirmText: "Download",
+                                cancelText: "Cancel",
+                                onConfirm: () async {
+                                  await downloadReport(
+                                    url,
+                                    _selectedReportType ?? "Report",
+                                    context,
+                                  );
+                                },
+                              ),
                             );
                           },
                           label: "Download",
