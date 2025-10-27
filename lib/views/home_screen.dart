@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' as ui;
 
@@ -44,11 +45,42 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Device> _filteredDevices = [];
 
   bool _isDataReady = false;
+  Timer? _pollingTimer;
+  int _countdown = 10;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
     _initializeData();
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _pollingTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_countdown > 0) {
+          _countdown--;
+        } else {
+          _refreshData();
+          _countdown = 10;
+        }
+      });
+    });
+  }
+
+  Future<void> _refreshData() async {
+    setState(() {
+      _isRefreshing = true;
+    });
+
+    await _controller.fetchDevices(silent: true);
+
+    final devices = _controller.devicesModel.value?.devices ?? [];
+    setState(() {
+      _filteredDevices = devices;
+      _isRefreshing = false;
+    });
   }
 
   Future<void> _initializeData() async {
@@ -305,11 +337,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String getMarkerImage(bool isOnline, int ignitionStatus) {
     if (isOnline && ignitionStatus == 1) {
-      return "assets/green_car.png"; // online and moving
+      return "assets/green_car.png";
     } else if (isOnline && ignitionStatus == 0) {
-      return "assets/blue_car.png"; // offline
+      return "assets/blue_car.png";
     } else {
-      return "assets/red_car.png"; // online but stopped/idle
+      return "assets/red_car.png";
     }
   }
 
@@ -320,6 +352,13 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => _buildVehicleBottomSheet(device),
     );
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -796,6 +835,44 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             onPressed: _showNextVehicle,
           ),
+        ),
+        SizedBox(height: 10),
+        Container(
+          width: 45,
+          height: 45,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: _isRefreshing
+              ? Padding(
+                  padding: EdgeInsets.all(12),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: kBlue,
+                  ),
+                )
+              : IconButton(
+                  icon: Text(
+                    '$_countdown',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: _countdown <= 3 ? Colors.red : kBlue,
+                    ),
+                  ),
+                  onPressed: () {
+                    _countdown = 10; // Reset counter
+                    _refreshData(); // Immediate refresh
+                  },
+                ),
         ),
       ],
     );

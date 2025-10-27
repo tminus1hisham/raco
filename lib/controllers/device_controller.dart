@@ -12,13 +12,17 @@ class DeviceController extends GetxController {
     fetchDevices();
   }
 
-  Future<void> fetchDevices() async {
+  Future<void> fetchDevices({bool silent = false}) async {
     try {
-      isLoading(true);
+      if (!silent) {
+        isLoading(true);
+      }
       var fetchedModel = await ApiService.fetchDevices();
       devicesModel.value = fetchedModel;
     } finally {
-      isLoading(false);
+      if (!silent) {
+        isLoading(false);
+      }
     }
   }
 }

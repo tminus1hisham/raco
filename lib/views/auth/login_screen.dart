@@ -19,7 +19,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   String userIp = '';
-  late TabController _tabController;
   final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _auth = LocalAuthentication();
@@ -267,7 +266,6 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   void dispose() {
-    _tabController.dispose();
     _phoneNumberController.dispose();
     _passwordController.dispose();
     super.dispose();
