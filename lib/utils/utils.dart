@@ -56,4 +56,17 @@ class Utils {
       return isoDate;
     }
   }
+
+  String formatTime(String isoDate) {
+    try {
+      DateTime parsedDate = DateTime.parse(isoDate).toLocal();
+
+      String formattedDate = DateFormat("hh:mm a").format(parsedDate);
+
+      return formattedDate;
+    } catch (e) {
+      print("Error formatting time: $e");
+      return isoDate;
+    }
+  }
 }

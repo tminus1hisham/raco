@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/device_controller.dart';
 import 'package:atom/models/vehicle_model.dart';
+import 'package:atom/utils/utils.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/views/playback_screen.dart';
 import 'package:atom/views/violations_screen.dart';
@@ -34,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final Widget mapWidget;
   MapType _currentMapType = MapType.normal;
 
+  final Utils _utils = Utils();
   final DeviceController _controller = Get.put(DeviceController());
   Map<String, BitmapDescriptor> customIcons = {};
 
@@ -1007,10 +1009,29 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(height: 10),
 
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Driver Behaviour: ",
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      Row(
+                        children: [
+                          Text(
+                            "Driver Behaviour: Safe",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            "Time: ${_utils.formatTime(device.updatedAt)} ",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -1040,7 +1061,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     children: [
                       Text(
-                        "Average Speed: ",
+                        "Average Speed:",
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
                       Spacer(),
