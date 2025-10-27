@@ -35,11 +35,111 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   Map<double, BitmapDescriptor> _bearingMarkerCache = {};
   Completer<void> _mapReadyCompleter = Completer<void>();
   bool _isMapReady = false;
+  Set<Marker> _conditionalMarkers = {};
 
   @override
   void initState() {
     super.initState();
     _loadCarMarker();
+  }
+
+  Future<BitmapDescriptor> _createConditionMarker({
+    required Color color,
+    required String label,
+  }) async {
+    const double size = 80;
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder);
+
+    // Draw colored circle
+    final Paint paint = Paint()..color = color;
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, paint);
+
+    // Add white border
+    final Paint borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5;
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2 - 2.5,
+      borderPaint,
+    );
+
+    // Draw label text
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 36,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
+    );
+
+    final ui.Image image = await recorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
+    final ByteData? byteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
+    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
+  }
+
+  Future<void> _generateConditionalMarkers(List history) async {
+    _conditionalMarkers.clear();
+
+    for (int i = 0; i < history.length; i++) {
+      final record = history[i];
+      final speed = double.tryParse(record.spd.toString()) ?? 0.0;
+      final lat = double.tryParse(record.lt.toString());
+      final lng = double.tryParse(record.lg.toString());
+
+      if (lat == null || lng == null) continue;
+
+      // Example conditions
+      if (speed > 80) {
+        // Speeding
+        final icon = await _createConditionMarker(
+          color: Colors.red,
+          label: 'S',
+        );
+        _conditionalMarkers.add(
+          Marker(
+            markerId: MarkerId('speeding_$i'),
+            position: LatLng(lat, lng),
+            icon: icon,
+            anchor: const Offset(0.5, 0.5),
+          ),
+        );
+      } else if (speed == 0) {
+        // Parked
+        final icon = await _createConditionMarker(
+          color: Colors.orange,
+          label: 'P',
+        );
+        _conditionalMarkers.add(
+          Marker(
+            markerId: MarkerId('parked_$i'),
+            position: LatLng(lat, lng),
+            icon: icon,
+            anchor: const Offset(0.5, 0.5),
+          ),
+        );
+      }
+      // add other conditions later:
+      // else if (something) { ... }
+    }
+
+    if (mounted) setState(() {});
   }
 
   // Load marker once and cache it
@@ -319,7 +419,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     if (picked != null) {
       setState(() {
         _pickedDate = picked;
-        _cachedPolylines = {}; // Clear cache on new data
+        _cachedPolylines = {};
       });
 
       final String formattedDate = picked
@@ -328,7 +428,10 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           .toIso8601String();
 
       await controller.fetchHistory(widget.numberPlate, formattedDate);
-      if (controller.history.isNotEmpty) _stopPlayback();
+      if (controller.history.isNotEmpty) {
+        await _generateConditionalMarkers(controller.history.reversed.toList());
+        _stopPlayback();
+      }
     }
   }
 
@@ -435,6 +538,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                         anchor: Offset(0.5, 0.5),
                         flat: true, // Better performance for ground markers
                       ),
+                      ..._conditionalMarkers,
                     }
                   : {},
               onTap: (LatLng position) {
