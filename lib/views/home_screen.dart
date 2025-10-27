@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/device_controller.dart';
 import 'package:atom/models/vehicle_model.dart';
-import 'package:atom/services/mqtt_client.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/views/playback_screen.dart';
 import 'package:atom/views/violations_screen.dart';
@@ -15,7 +13,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:mqtt_client/mqtt_client.dart';
 
 import 'cars/cars_screen.dart';
 
@@ -38,7 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
   MapType _currentMapType = MapType.normal;
 
   final DeviceController _controller = Get.put(DeviceController());
-  final MqttService _mqttService = MqttService();
   Map<String, BitmapDescriptor> customIcons = {};
 
   final TextEditingController _searchController = TextEditingController();
@@ -98,8 +94,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _isDataReady = true;
     });
 
-    // Subscribe to MQTT and get user location
-    _subscribeToVehicleTopics();
     _getUserLocation();
   }
 
@@ -259,49 +253,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mapController != null) {
       currentZoom -= 1;
       mapController!.animateCamera(CameraUpdate.zoomTo(currentZoom));
-    }
-  }
-
-  void _subscribeToVehicleTopics() {
-    if (!_mqttService.isConnected) {
-      print("MQTT not connected yet");
-      return;
-    }
-
-    print("SUBSCRIBBING!!!");
-
-    // Example topics
-    _mqttService.subscribeToTopic("KDS123B");
-    // _mqttService.subscribeToTopic("vehicles/CAR456/location");
-
-    _mqttService.client.updates!.listen((messages) {
-      final recMess = messages[0].payload as MqttPublishMessage;
-      final payload = MqttPublishPayload.bytesToStringAsString(
-        recMess.payload.message,
-      );
-
-      final topic = messages[0].topic;
-      print("📩 $topic => $payload");
-
-      // Parse topic (vehicles/<carId>/location)
-      final parts = topic.split('/');
-      if (parts.length >= 3 && parts[0] == 'vehicles') {
-        final carId = parts[1];
-        _handleCarLocation(carId, payload);
-      }
-    });
-  }
-
-  void _handleCarLocation(String carId, String message) {
-    print(" Car $carId sent -> $message");
-
-    try {
-      final data = jsonDecode(message);
-      print(data);
-      // print("Parsed: lat=${data['lat']}, lng=${data['lng']}, speed=${data['speed']}");
-      // here you can update your map markers with setState
-    } catch (e) {
-      print("Raw message: $message");
     }
   }
 

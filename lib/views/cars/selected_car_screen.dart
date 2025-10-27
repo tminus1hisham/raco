@@ -461,6 +461,8 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                           MaterialPageRoute(
                                             builder: (context) =>
                                                 VehicleLocationScreen(
+                                                  deviceId:
+                                                      widget.devices.deviceId,
                                                   latitude:
                                                       double.tryParse(
                                                         widget.devices.latitude,

@@ -61,6 +61,7 @@ class DevicesModel {
 
 class Device {
   final int id;
+  final String deviceId;
   final String userId;
   final String name;
   final String ownerId;
@@ -105,6 +106,7 @@ class Device {
 
   Device({
     required this.id,
+    required this.deviceId,
     required this.userId,
     required this.name,
     required this.ownerId,
@@ -151,6 +153,7 @@ class Device {
   factory Device.fromJson(Map<String, dynamic> json) {
     return Device(
       id: json['id'] ?? 0,
+      deviceId: json['deviceId'] ?? "",
       userId: json['userId'] ?? "",
       name: json['name'] ?? "",
       ownerId: json['ownerId'] ?? "",
@@ -198,6 +201,7 @@ class Device {
   Map<String, dynamic> toJson() {
     return {
       "id": id,
+      "deviceId": deviceId,
       "userId": userId,
       "name": name,
       "ownerId": ownerId,
