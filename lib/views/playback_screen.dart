@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/playback_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class PlaybackScreen extends StatefulWidget {
@@ -19,26 +20,137 @@ class PlaybackScreen extends StatefulWidget {
 }
 
 class _PlaybackScreenState extends State<PlaybackScreen> {
-  final MapController _mapController = MapController();
+  GoogleMapController? _mapController;
   final PlaybackController controller = Get.put(PlaybackController());
 
   DateTime? _pickedDate;
   Timer? _playbackTimer;
   int _currentIndex = 0;
   bool _isPlaying = false;
-  double _playbackSpeed = 0.5; // 0.5x to 3x speed
+  double _playbackSpeed = 0.5;
 
-  DateTime? _playbackStartTime;
-  int _playbackStartIndex = 0;
+  // CACHE MARKERS AND POLYLINES
+  BitmapDescriptor? _carMarkerIcon;
+  Set<Polyline> _cachedPolylines = {};
+  Map<double, BitmapDescriptor> _bearingMarkerCache = {};
+  Completer<void> _mapReadyCompleter = Completer<void>();
+  bool _isMapReady = false;
 
-  Size getMarkerSize(bool isOnline, int ignitionStatus) {
-    if (isOnline && ignitionStatus == 1) {
-      return const Size(40, 40);
-    } else if (!isOnline) {
-      return const Size(50, 50);
-    } else {
-      return const Size(57, 57);
+  @override
+  void initState() {
+    super.initState();
+    _loadCarMarker();
+  }
+
+  // Load marker once and cache it
+  Future<void> _loadCarMarker() async {
+    _carMarkerIcon = await _createRotatedMarker('assets/blue_car.png', 0);
+    // Pre-cache common bearings
+    await _precacheCommonBearings();
+    setState(() {});
+  }
+
+  Future<void> _precacheCommonBearings() async {
+    final bearings = [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0];
+    for (final bearing in bearings) {
+      _bearingMarkerCache[bearing] = await _createRotatedMarker(
+        'assets/blue_car.png',
+        bearing,
+      );
     }
+  }
+
+  Future<BitmapDescriptor> _createRotatedMarker(
+    String assetPath,
+    double rotation,
+  ) async {
+    final ByteData data = await rootBundle.load(assetPath);
+
+    // Decode the original image
+    final ui.Codec codec = await ui.instantiateImageCodec(
+      data.buffer.asUint8List(),
+      targetWidth: 80,
+    );
+    final ui.FrameInfo fi = await codec.getNextFrame();
+    final originalImage = fi.image;
+
+    // Create a canvas with 40% padding to prevent clipping during rotation
+    final padding = (originalImage.width * 0.4).round();
+    final canvasSize = originalImage.width + padding * 2;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(
+      recorder,
+      Rect.fromPoints(
+        Offset.zero,
+        Offset(canvasSize.toDouble(), canvasSize.toDouble()),
+      ),
+    );
+
+    canvas.translate(canvasSize / 2, canvasSize / 2);
+    canvas.rotate((rotation + 180) * math.pi / 180);
+
+    canvas.drawImage(
+      originalImage,
+      Offset(-originalImage.width / 2, -originalImage.height / 2),
+      Paint(),
+    );
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(canvasSize, canvasSize);
+    final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
+
+    return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
+  }
+
+  Future<BitmapDescriptor> _getCachedMarker(double bearing) async {
+    // Round bearing to nearest 45 degrees for better caching
+    final roundedBearing = (bearing / 45).round() * 45.0;
+
+    if (_bearingMarkerCache.containsKey(roundedBearing)) {
+      return _bearingMarkerCache[roundedBearing]!;
+    }
+
+    // Create and cache if not exists
+    final marker = await _createRotatedMarker(
+      'assets/blue_car.png',
+      roundedBearing,
+    );
+    _bearingMarkerCache[roundedBearing] = marker;
+    return marker;
+  }
+
+  // Cache polylines and reuse them
+  Set<Polyline> _buildGooglePolylines(List history) {
+    if (_cachedPolylines.isNotEmpty &&
+        history.length == _cachedPolylines.length + 1) {
+      return _cachedPolylines;
+    }
+
+    final polylines = <Polyline>{};
+    final points = <LatLng>[];
+
+    // Build single polyline with multiple segments instead of individual polylines
+    for (int i = 0; i < history.length; i++) {
+      points.add(
+        LatLng(double.parse(history[i].lt), double.parse(history[i].lg)),
+      );
+    }
+
+    if (points.length > 1) {
+      polylines.add(
+        Polyline(
+          polylineId: PolylineId('route'),
+          points: points,
+          width: 6,
+          color: Colors.blue,
+          geodesic: true,
+        ),
+      );
+    }
+
+    _cachedPolylines = polylines;
+    return polylines;
   }
 
   double _calculateBearing(LatLng from, LatLng to) {
@@ -104,57 +216,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     return 0.0;
   }
 
-  String getMarkerImage(String speed) {
-    final spd = double.tryParse(speed) ?? 0.0;
-    return "assets/blue_car.png";
-  }
-
-  bool _isVehicleOnline(List history, int currentIndex) {
-    final currentRecord = history[currentIndex];
-    final currentTime = currentRecord.createdAt is String
-        ? DateTime.parse(currentRecord.createdAt)
-        : currentRecord.createdAt;
-    final now = DateTime.now().toUtc();
-    final difference = now.difference(currentTime);
-    return difference.inMinutes < 15;
-  }
-
   int _getIgnitionStatus(dynamic record) {
     final speed = double.tryParse(record.spd.toString()) ?? 0.0;
     return speed > 0 ? 1 : 0;
-  }
-
-  List<Polyline> _buildColoredPolylines(List history) {
-    final polylines = <Polyline>[];
-
-    for (int i = 0; i < history.length - 1; i++) {
-      final current = history[i];
-      final next = history[i + 1];
-
-      final currentPoint = LatLng(
-        double.parse(current.lt),
-        double.parse(current.lg),
-      );
-      final nextPoint = LatLng(double.parse(next.lt), double.parse(next.lg));
-
-      final speed = double.tryParse(current.spd.toString()) ?? 0.0;
-
-      final color = speed == 0
-          ? Colors.orange
-          : speed > 80
-          ? Colors.red
-          : Colors.blue;
-
-      polylines.add(
-        Polyline(
-          points: [currentPoint, nextPoint],
-          strokeWidth: 6.0,
-          color: color,
-        ),
-      );
-    }
-
-    return polylines;
   }
 
   void _startPlayback(List history) {
@@ -165,111 +229,47 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       _currentIndex = 0;
     });
 
+    _playPlaybackFrame(history);
+  }
+
+  void _playPlaybackFrame(List history) {
     _playbackTimer?.cancel();
+
     _playbackTimer = Timer.periodic(
-      Duration(milliseconds: (200 ~/ _playbackSpeed)),
-      // playbackSpeed affects rate
-      (timer) {
+      Duration(milliseconds: (100 ~/ _playbackSpeed).clamp(16, 500)),
+      // Cap at 60fps max
+      (timer) async {
         if (!_isPlaying || _currentIndex >= history.length - 1) {
           timer.cancel();
           setState(() => _isPlaying = false);
           return;
         }
 
+        final newIndex = _currentIndex + 1;
+        final current = history[newIndex];
+        final newPosition = LatLng(
+          double.parse(current.lt),
+          double.parse(current.lg),
+        );
+
+        // Update marker bearing less frequently for performance
+        if (newIndex % 2 == 0) {
+          // Update bearing every 2 frames
+          final bearing = _getCurrentBearing(history, newIndex);
+          _carMarkerIcon = await _getCachedMarker(bearing);
+        }
+
         setState(() {
-          _currentIndex++;
+          _currentIndex = newIndex;
         });
 
-        final current = history[_currentIndex];
-        _mapController.move(
-          LatLng(double.parse(current.lt), double.parse(current.lg)),
-          _mapController.camera.zoom,
-        );
+        // Use more efficient camera update
+        if (_mapController != null && _isMapReady) {
+          _mapController!.moveCamera(CameraUpdate.newLatLng(newPosition));
+        }
       },
     );
   }
-
-  void _updatePlaybackPosition(List history) {
-    if (_playbackStartTime == null) return;
-
-    final elapsedSeconds =
-        DateTime.now().difference(_playbackStartTime!).inMilliseconds / 1000.0;
-    final totalPlaybackTime = _calculateTotalPlaybackTime(history);
-    final progress = (elapsedSeconds * _playbackSpeed) / totalPlaybackTime;
-
-    final newIndex =
-        (_playbackStartIndex +
-                (progress * (history.length - 1 - _playbackStartIndex)))
-            .toInt();
-
-    if (newIndex != _currentIndex && newIndex < history.length) {
-      setState(() {
-        _currentIndex = newIndex.clamp(0, history.length - 1);
-      });
-
-      // Smooth map movement
-      final current = history[_currentIndex];
-      _mapController.move(
-        LatLng(double.parse(current.lt), double.parse(current.lg)),
-        _mapController.camera.zoom,
-      );
-    }
-  }
-
-  double _calculateTotalPlaybackTime(List history) {
-    if (history.length < 2) return 1.0;
-
-    // Calculate total time based on actual timestamps if available
-    final first = history.first;
-    final last = history.last;
-
-    if (first.createdAt != null && last.createdAt != null) {
-      final startTime = first.createdAt is String
-          ? DateTime.parse(first.createdAt)
-          : first.createdAt;
-      final endTime = last.createdAt is String
-          ? DateTime.parse(last.createdAt)
-          : last.createdAt;
-
-      return endTime.difference(startTime).inSeconds.toDouble();
-    }
-
-    // Fallback: estimate based on average time between points
-    return (history.length * 30).toDouble(); // Assume 30 seconds per point
-  }
-
-  // void _startPlayback(List history) {
-  //   if (_isPlaying) return;
-  //   setState(() => _isPlaying = true);
-  //   _currentIndex = 0;
-  //
-  //   _playbackTimer?.cancel();
-  //
-  //   // Use a fixed fast interval and control speed by skipping frames
-  //   _playbackTimer = Timer.periodic(Duration(milliseconds: 50), (timer) {
-  //     if (_currentIndex >= history.length - 1) {
-  //       timer.cancel();
-  //       setState(() => _isPlaying = false);
-  //       return;
-  //     }
-  //
-  //     // Calculate how many frames to skip based on speed
-  //     final skipFrames = (_playbackSpeed * 2).round();
-  //
-  //     setState(() {
-  //       _currentIndex = math.min(
-  //         _currentIndex + skipFrames,
-  //         history.length - 1,
-  //       );
-  //     });
-  //
-  //     final current = history[_currentIndex];
-  //     _mapController.move(
-  //       LatLng(double.parse(current.lt), double.parse(current.lg)),
-  //       _mapController.camera.zoom,
-  //     );
-  //   });
-  // }
 
   void _pausePlayback() {
     _playbackTimer?.cancel();
@@ -280,75 +280,16 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     if (_isPlaying || history.isEmpty) return;
 
     setState(() => _isPlaying = true);
-
-    _playbackTimer?.cancel();
-    _playbackTimer = Timer.periodic(
-      Duration(milliseconds: (200 ~/ _playbackSpeed)),
-      (timer) {
-        if (!_isPlaying || _currentIndex >= history.length - 1) {
-          timer.cancel();
-          setState(() => _isPlaying = false);
-          return;
-        }
-
-        setState(() {
-          _currentIndex++;
-        });
-
-        final current = history[_currentIndex];
-        _mapController.move(
-          LatLng(double.parse(current.lt), double.parse(current.lg)),
-          _mapController.camera.zoom,
-        );
-      },
-    );
+    _playPlaybackFrame(history);
   }
 
-  // void _resumePlayback(List history) {
-  //   if (_isPlaying) return;
-  //   setState(() => _isPlaying = true);
-  //
-  //   _playbackTimer?.cancel();
-  //
-  //   _playbackTimer = Timer.periodic(Duration(milliseconds: 50), (timer) {
-  //     if (_currentIndex >= history.length - 1) {
-  //       timer.cancel();
-  //       setState(() => _isPlaying = false);
-  //       return;
-  //     }
-  //
-  //     final skipFrames = (_playbackSpeed * 2).round();
-  //
-  //     setState(() {
-  //       _currentIndex = math.min(
-  //         _currentIndex + skipFrames,
-  //         history.length - 1,
-  //       );
-  //     });
-  //
-  //     final current = history[_currentIndex];
-  //     _mapController.move(
-  //       LatLng(double.parse(current.lt), double.parse(current.lg)),
-  //       _mapController.camera.zoom,
-  //     );
-  //   });
-  // }
-
-  // void _updatePlaybackSpeed(double newSpeed) {
-  //   setState(() => _playbackSpeed = newSpeed);
-  //   // No need to restart - the timer will pick up the new speed on next tick
-  // }
-
   void _updatePlaybackSpeed(double newSpeed) {
-    // When speed changes, reset the playback timing
+    setState(() => _playbackSpeed = newSpeed);
+
+    // Restart playback with new speed if currently playing
     if (_isPlaying) {
-      setState(() {
-        _playbackSpeed = newSpeed;
-        _playbackStartTime = DateTime.now();
-        _playbackStartIndex = _currentIndex;
-      });
-    } else {
-      setState(() => _playbackSpeed = newSpeed);
+      final history = controller.history.reversed.toList();
+      _playPlaybackFrame(history);
     }
   }
 
@@ -357,8 +298,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     setState(() {
       _isPlaying = false;
       _currentIndex = 0;
-      _playbackStartTime = null;
-      _playbackStartIndex = 0;
     });
   }
 
@@ -378,7 +317,11 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       },
     );
     if (picked != null) {
-      setState(() => _pickedDate = picked);
+      setState(() {
+        _pickedDate = picked;
+        _cachedPolylines = {}; // Clear cache on new data
+      });
+
       final String formattedDate = picked
           .add(const Duration(days: 1))
           .toUtc()
@@ -389,17 +332,10 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     }
   }
 
-  String _formatDateTime(DateTime dateTime) {
-    final hour = dateTime.hour % 12 == 0 ? 12 : dateTime.hour % 12;
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    final second = dateTime.second.toString().padLeft(2, '0');
-    final amPm = dateTime.hour < 12 ? 'AM' : 'PM';
-    return '${dateTime.month}/${dateTime.day}/${dateTime.year} $hour:$minute:$second $amPm';
-  }
-
   @override
   void dispose() {
     _playbackTimer?.cancel();
+    _mapController?.dispose();
     super.dispose();
   }
 
@@ -472,43 +408,41 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           double.parse(currentRecord.lt),
           double.parse(currentRecord.lg),
         );
-        final markerImage = getMarkerImage(currentRecord.spd);
-        final bearing = _getCurrentBearing(history, _currentIndex);
-        final isOnline = _isVehicleOnline(history, _currentIndex);
         final ignitionStatus = _getIgnitionStatus(currentRecord);
-        final markerSize = getMarkerSize(isOnline, ignitionStatus);
 
         return Stack(
           children: [
-            FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: currentPoint,
-                initialZoom: 15.0,
+            GoogleMap(
+              onMapCreated: (GoogleMapController controller) {
+                _mapController = controller;
+                _isMapReady = true;
+                _mapReadyCompleter.complete();
+              },
+              initialCameraPosition: CameraPosition(
+                target: currentPoint,
+                zoom: 15.0,
               ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.atom',
-                ),
-                PolylineLayer(polylines: _buildColoredPolylines(history)),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: currentPoint,
-                      width: markerSize.width,
-                      height: markerSize.height,
-                      child: Transform.rotate(
-                        angle: (bearing + 180) * math.pi / 180,
-                        child: Image.asset(markerImage),
+              mapType: MapType.normal,
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              polylines: _buildGooglePolylines(history),
+              markers: _carMarkerIcon != null
+                  ? {
+                      Marker(
+                        markerId: MarkerId('vehicle'),
+                        position: currentPoint,
+                        icon: _carMarkerIcon!,
+                        anchor: Offset(0.5, 0.5),
+                        flat: true, // Better performance for ground markers
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    }
+                  : {},
+              onTap: (LatLng position) {
+                // Prevent unnecessary rebuilds on map taps
+              },
             ),
 
-            // Info Card
+            // Rest of your UI code remains the same...
             Positioned(
               top: 16,
               left: 16,
@@ -569,17 +503,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                               value: "${currentRecord.spd} km/h",
                             ),
                           ),
-                          // Expanded(
-                          //   child: _InfoItem(
-                          //     icon: Icons.access_time,
-                          //     label: "Time",
-                          //     value: _formatDateTime(
-                          //       DateTime.fromMillisecondsSinceEpoch(
-                          //         currentRecord.dt * 1000,
-                          //       ),
-                          //     ),
-                          //   ),
-                          // ),
                         ],
                       ),
                     ],
@@ -588,7 +511,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
               ),
             ),
 
-            // Control Panel
+            // Control Panel (same as before)
             Positioned(
               bottom: 20,
               left: 16,
@@ -605,7 +528,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Speed Control Slider
                       Row(
                         children: [
                           Icon(
@@ -660,7 +582,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                         ],
                       ),
                       SizedBox(height: 12),
-                      // Playback Controls
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
