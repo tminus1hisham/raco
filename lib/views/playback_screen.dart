@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/playback_controller.dart';
+import 'package:atom/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -27,7 +28,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   Timer? _playbackTimer;
   int _currentIndex = 0;
   bool _isPlaying = false;
-  double _playbackSpeed = 0.5;
+  double _playbackSpeed = 1.0;
+
+  final Utils _utils = Utils();
 
   // CACHE MARKERS AND POLYLINES
   BitmapDescriptor? _carMarkerIcon;
@@ -329,7 +332,55 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       _currentIndex = 0;
     });
 
-    _playPlaybackFrame(history);
+    _scheduleNextTick(history);
+  }
+
+  void _scheduleNextTick(List history) {
+    _playbackTimer?.cancel();
+    _playbackTimer = Timer(
+      Duration(milliseconds: (200 ~/ _playbackSpeed).clamp(16, 200)),
+      () {
+        if (!_isPlaying || _currentIndex >= history.length - 1) {
+          setState(() => _isPlaying = false);
+          return;
+        }
+
+        _playbackTick(history);
+      },
+    );
+  }
+
+  void _playbackTick(List history) async {
+    final newIndex = _currentIndex + 1;
+    final current = history[newIndex];
+    final newPosition = LatLng(
+      double.parse(current.lt),
+      double.parse(current.lg),
+    );
+
+    // Update bearing occasionally without awaiting inside timer callback directly
+    if (newIndex % 2 == 0) {
+      final bearing = _getCurrentBearing(history, newIndex);
+      _getCachedMarker(bearing).then((marker) {
+        if (mounted) {
+          setState(() {
+            _carMarkerIcon = marker;
+          });
+        }
+      });
+    }
+
+    setState(() {
+      _currentIndex = newIndex;
+    });
+
+    if (_mapController != null && _isMapReady) {
+      // _mapController!.moveCamera(CameraUpdate.newLatLng(newPosition));
+      _mapController!.animateCamera(CameraUpdate.newLatLng(newPosition));
+    }
+
+    // Schedule next tick
+    _scheduleNextTick(history);
   }
 
   void _playPlaybackFrame(List history) {
@@ -365,7 +416,8 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
         // Use more efficient camera update
         if (_mapController != null && _isMapReady) {
-          _mapController!.moveCamera(CameraUpdate.newLatLng(newPosition));
+          // _mapController!.moveCamera(CameraUpdate.newLatLng(newPosition));
+          _mapController!.animateCamera(CameraUpdate.newLatLng(newPosition));
         }
       },
     );
@@ -373,6 +425,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
   void _pausePlayback() {
     _playbackTimer?.cancel();
+    _playbackTimer = null;
     setState(() => _isPlaying = false);
   }
 
@@ -380,21 +433,23 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     if (_isPlaying || history.isEmpty) return;
 
     setState(() => _isPlaying = true);
-    _playPlaybackFrame(history);
+    _scheduleNextTick(history);
   }
 
   void _updatePlaybackSpeed(double newSpeed) {
     setState(() => _playbackSpeed = newSpeed);
 
-    // Restart playback with new speed if currently playing
     if (_isPlaying) {
-      final history = controller.history.reversed.toList();
-      _playPlaybackFrame(history);
+      _playbackTimer?.cancel();
+      _playbackTimer = null;
+      // Immediately trigger next frame at new speed
+      _playbackTick(controller.history.toList());
     }
   }
 
   void _stopPlayback() {
     _playbackTimer?.cancel();
+    _playbackTimer = null;
     setState(() {
       _isPlaying = false;
       _currentIndex = 0;
@@ -429,7 +484,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
       await controller.fetchHistory(widget.numberPlate, formattedDate);
       if (controller.history.isNotEmpty) {
-        await _generateConditionalMarkers(controller.history.reversed.toList());
+        await _generateConditionalMarkers(controller.history.toList());
         _stopPlayback();
       }
     }
@@ -505,7 +560,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           );
         }
 
-        final history = controller.history.reversed.toList();
+        final history = controller.history.toList();
         final currentRecord = history[_currentIndex];
         final currentPoint = LatLng(
           double.parse(currentRecord.lt),
@@ -546,7 +601,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
               },
             ),
 
-            // Rest of your UI code remains the same...
             Positioned(
               top: 16,
               left: 16,
@@ -607,6 +661,13 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                               value: "${currentRecord.spd} km/h",
                             ),
                           ),
+                          _InfoItem(
+                            icon: Icons.access_alarms_sharp,
+                            label: "Time",
+                            value: _utils.formatTime(
+                              currentRecord.createdAt.toString(),
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -615,7 +676,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
               ),
             ),
 
-            // Control Panel (same as before)
             Positioned(
               bottom: 20,
               left: 16,
@@ -650,9 +710,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                               ),
                               child: Slider(
                                 value: _playbackSpeed,
-                                min: 0.5,
-                                max: 3.0,
-                                divisions: 5,
+                                min: 1.0,
+                                max: 10.0,
+                                divisions: 18,
                                 label: '${_playbackSpeed.toStringAsFixed(1)}x',
                                 onChanged: (value) =>
                                     _updatePlaybackSpeed(value),
