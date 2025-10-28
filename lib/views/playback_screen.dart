@@ -1773,6 +1773,37 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                             onPressed: _stopPlayback,
                             color: Colors.red[400]!,
                           ),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.redAccent.withOpacity(
+                                0.1,
+                              ), // light background
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _startDate = null;
+                                _endDate = null;
+                              });
+                            },
+                            icon: const Icon(
+                              Icons.clear,
+                              color: Colors.redAccent,
+                            ),
+                            label: const Text(
+                              "Clear Dates",
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ],
