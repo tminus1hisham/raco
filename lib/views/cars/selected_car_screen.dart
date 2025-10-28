@@ -52,6 +52,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
 
   void _showPlanBottomSheet(BuildContext context) {
     showModalBottomSheet(
+      backgroundColor: kWhite,
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -60,140 +61,165 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
       builder: (context) {
         int? selectedIndex;
 
-        final plans = [
-          {
-            "title": "Basic Plan",
-            "price": "KES 1000 / month",
-            "desc": "Covers essential tracking.",
-          },
-          {
-            "title": "Standard Plan",
-            "price": "KES 2000 / month",
-            "desc": "Includes geofencing and reports.",
-          },
-          {
-            "title": "Premium Plan",
-            "price": "KES 3000 / month",
-            "desc": "Full access to all features.",
-          },
-        ];
+        return Obx(() {
+          if (_controller.isLoading.value) {
+            return const Padding(
+              padding: EdgeInsets.all(40.0),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                top: 20,
-                left: 16,
-                right: 16,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    height: 5,
-                    width: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(20),
+          final plans = _controller.plans;
+
+          if (plans.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.all(40.0),
+              child: Center(child: Text("No plans available.")),
+            );
+          }
+
+          // 👇 Use DraggableScrollableSheet for min height = half screen
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.5,
+            // starts at half screen
+            minChildSize: 0.5,
+            // cannot shrink below half
+            maxChildSize: 0.9,
+            // can expand up to 90%
+            builder: (context, scrollController) {
+              return StatefulBuilder(
+                builder: (context, setState) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 20,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Select a Plan",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  ...List.generate(plans.length, (index) {
-                    final plan = plans[index];
-                    final isSelected = selectedIndex == index;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() => selectedIndex = index);
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? kBlue.withOpacity(0.1)
-                              : Colors.white,
-                          border: Border.all(
-                            color: isSelected ? kBlue : Colors.grey[300]!,
-                            width: isSelected ? 2 : 1,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              isSelected
-                                  ? Icons.radio_button_checked
-                                  : Icons.radio_button_off,
-                              color: isSelected ? kBlue : Colors.grey,
+                    child: ListView(
+                      controller: scrollController,
+                      children: [
+                        Center(
+                          child: Container(
+                            height: 5,
+                            width: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[400],
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          "Select a Plan",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        ...List.generate(plans.length, (index) {
+                          final plan = plans[index];
+                          final isSelected = selectedIndex == index;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() => selectedIndex = index);
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? kBlue.withOpacity(0.1)
+                                    : Colors.white,
+                                border: Border.all(
+                                  color: isSelected ? kBlue : Colors.grey[300]!,
+                                  width: isSelected ? 2 : 1,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    plan["title"]!,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black87,
+                                  Icon(
+                                    isSelected
+                                        ? Icons.radio_button_checked
+                                        : Icons.radio_button_off,
+                                    color: isSelected ? kBlue : Colors.grey,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          plan.planName.isNotEmpty
+                                              ? plan.planName
+                                              : "Unnamed Plan",
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "${plan.durationInDays} ${plan.durationInDays > 1 ? 'Years' : 'Year'}",
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
                                   Text(
-                                    plan["desc"]!,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.grey[600],
+                                    "KES ${plan.price}",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            Text(
-                              plan["price"]!,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
+                          );
+                        }),
+
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kBlue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                          ],
+                            minimumSize: const Size(double.infinity, 50),
+                          ),
+                          onPressed: selectedIndex != null
+                              ? () {
+                                  Navigator.pop(context);
+                                  _showPaymentConfirmation({
+                                    "title": plans[selectedIndex!].planName,
+                                    "price":
+                                        "KES ${plans[selectedIndex!].price}",
+                                  });
+                                }
+                              : null,
+                          child: const Text(
+                            "Renew",
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
                         ),
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kBlue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      minimumSize: const Size(double.infinity, 50),
+                        const SizedBox(height: 20),
+                      ],
                     ),
-                    onPressed: selectedIndex != null
-                        ? () {
-                            Navigator.pop(context);
-                            _showPaymentConfirmation(plans[selectedIndex!]);
-                          }
-                        : null,
-                    child: const Text(
-                      "Renew",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            );
-          },
-        );
+                  );
+                },
+              );
+            },
+          );
+        });
       },
     );
   }

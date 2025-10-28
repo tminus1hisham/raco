@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:atom/config/constants.dart';
 import 'package:atom/models/geofence_model.dart';
 import 'package:atom/models/location_model.dart';
+import 'package:atom/models/plans_model.dart';
 import 'package:atom/models/playback_model.dart';
 import 'package:atom/models/profile_picture_model.dart';
 import 'package:atom/models/report_model.dart';
@@ -352,6 +353,31 @@ class ApiService {
       throw Exception('Network error, please check your connection');
     } catch (e) {
       throw Exception('An error occurred during account deletion: $e');
+    }
+  }
+
+  static Future<List<PlanModel>> fetchPlans() async {
+    String token = await StorageService.getData('access_token');
+
+    final response = await http.get(
+      Uri.parse('$base_url/devices/get/all/pricing/plans'),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data is List) {
+        return data.map((json) => PlanModel.fromJson(json)).toList();
+      } else {
+        throw Exception('Unexpected data format: expected a list');
+      }
+    } else {
+      _handleAuthError(response.statusCode);
+      throw Exception('Failed to load plans');
     }
   }
 }
