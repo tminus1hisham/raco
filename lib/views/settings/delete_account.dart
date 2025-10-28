@@ -1,10 +1,19 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/utils/utils.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:lottie/lottie.dart';
+
+import '../../controllers/delete_account_controller.dart';
+import '../../services/local_storage_service.dart';
+import '../../widgets/modal/custom_alert.dart';
+import '../../widgets/modal/infomation_modal.dart';
 
 class DeleteAccount extends StatefulWidget {
   @override
@@ -14,6 +23,12 @@ class DeleteAccount extends StatefulWidget {
 class _DeleteAccountState extends State<DeleteAccount> {
   final TextEditingController reasonController = TextEditingController();
   String selectedReason = '';
+
+  final Utils utils = Utils();
+
+  final DeleteAccountController deleteAccountController = Get.put(
+    DeleteAccountController(),
+  );
 
   final List<String> reasons = [
     'No longer need the service',
@@ -25,28 +40,75 @@ class _DeleteAccountState extends State<DeleteAccount> {
     'Other',
   ];
 
+  Future<void> _requestAccountDeletion() async {
+    String userName = await StorageService.getData('userName');
+    String phoneNumber = await StorageService.getData('phone');
+
+    deleteAccountController.phoneNumber.value = utils.normalizePhoneNumber(
+      phoneNumber,
+    );
+    deleteAccountController.reason.value = selectedReason;
+    deleteAccountController.fullname.value = userName;
+
+    bool success = await deleteAccountController.requestDeleteAccount(context);
+
+    if (success) {
+      await CustomAlertDialog(
+        context: context,
+        title: "Success",
+        message: "You have requested for account deletion.",
+        icon: "assets/animations/Success.json",
+        buttonColor: kSuccessGreen,
+      );
+    } else {
+      await CustomAlertDialog(
+        context: context,
+        title: "Error",
+        message: "Failed to request account deletion",
+        icon: "assets/animations/Failed.json",
+        buttonColor: kRed,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBgGrey,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(height: 10),
-            customHeader(
-              label: "Delete Account",
-              icon: Icons.delete_outline_outlined,
-            ),
-            SizedBox(height: 10),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: _buildDeleteForm(),
+    return Obx(
+      () => Stack(
+        children: [
+          Scaffold(
+            backgroundColor: kBgGrey,
+            body: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(height: 10),
+                  customHeader(
+                    label: "Delete Account",
+                    icon: Icons.delete_outline_outlined,
+                  ),
+                  SizedBox(height: 10),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: _buildDeleteForm(),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          if (deleteAccountController.isLoading.value)
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: Center(
+                child: LoadingAnimationWidget.fourRotatingDots(
+                  color: kBlue,
+                  size: 50,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -131,7 +193,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
             InputField(
               hintText: 'Please specify your reason',
               controller: reasonController,
-              prefixIcon: Icons.edit_outlined,
+              maxLines: 5,
             ),
           SizedBox(height: 10),
           Container(
@@ -170,7 +232,33 @@ class _DeleteAccountState extends State<DeleteAccount> {
           SizedBox(height: 10),
 
           CustomButton(
-            callBackFunction: () {},
+            callBackFunction: () {
+              if (selectedReason == '' || selectedReason.isEmpty) {
+                showCupertinoDialog(
+                  context: context,
+                  builder: (context) => ActionDialog(
+                    title: "Infomation",
+                    message:
+                        "Please select a reason for deleting your account. Your feedback will help us make things better in the future.",
+                    confirmText: "Ok",
+                    cancelText: "Cancel",
+                    onConfirm: () {},
+                  ),
+                );
+              } else {
+                showCupertinoDialog(
+                  context: context,
+                  builder: (context) => ActionDialog(
+                    title: "Delete Account",
+                    message: "Are you sure you want to delete your account?",
+                    confirmText: "Delete",
+                    cancelText: "Cancel",
+                    onConfirm: () => _requestAccountDeletion(),
+                  ),
+                );
+              }
+              ;
+            },
             label: "Delete Account",
             backgroundColor: kRed,
             txtColor: kWhite,

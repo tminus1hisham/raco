@@ -67,7 +67,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen> {
       );
       final topic = messages[0].topic;
 
-      if (topic == "vehicles/${widget.deviceId}") {
+      if (topic == "orca/payload/${widget.deviceId}") {
         _handleCarLocation(payload);
       }
     });

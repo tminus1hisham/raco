@@ -12,6 +12,7 @@ import 'package:atom/views/auth/login_screen.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
+import '../models/delete_account_model.dart';
 import 'local_storage_service.dart';
 
 class ApiService {
@@ -100,10 +101,6 @@ class ApiService {
     String endDate,
   ) async {
     String token = await StorageService.getData('access_token');
-
-    print("HAPA");
-    print(startDate);
-    print(endDate);
 
     final response = await http.get(
       Uri.parse(
@@ -231,9 +228,6 @@ class ApiService {
       },
     );
 
-    print("HAPA");
-    print(response.body);
-
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
@@ -329,6 +323,35 @@ class ApiService {
       throw Exception('Network error, please check your connection');
     } catch (e) {
       throw Exception('An error occurred: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> requestDeleteAccount(
+    DeleteAccountModel request,
+  ) async {
+    String token = await StorageService.getData('access_token');
+
+    try {
+      final response = await http.post(
+        Uri.parse('${BASE_URL}/auth/request/delete/account'),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data;
+      } else {
+        _handleAuthError(response.statusCode);
+        throw Exception('Failed to request delete account');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred during account deletion: $e');
     }
   }
 }

@@ -19,6 +19,7 @@ class AuthService {
         'refreshToken': data['refreshToken'],
         'phone': data['phone'],
         'userId': data['userId'],
+        'userName': data['userName'],
         'isLoggedin': true,
       });
     } catch (e) {
