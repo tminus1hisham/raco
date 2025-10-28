@@ -96,13 +96,18 @@ class ApiService {
 
   static Future<List<DeviceRecord>> fetchDeviceHistory(
     String numberPlate,
-    String date,
+    String startDate,
+    String endDate,
   ) async {
     String token = await StorageService.getData('access_token');
 
+    print("HAPA");
+    print(startDate);
+    print(endDate);
+
     final response = await http.get(
       Uri.parse(
-        '$base_url/devices/get/tracking/history?numberPlate=$numberPlate&date=$date',
+        '$base_url/devices/get/tracking/history?numberPlate=$numberPlate&startDate=$startDate&endDate=$endDate',
       ),
       headers: {
         "Authorization": "Bearer $token",

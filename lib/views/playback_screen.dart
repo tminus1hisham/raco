@@ -772,11 +772,15 @@ import 'dart:ui' as ui;
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/playback_controller.dart';
 import 'package:atom/utils/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+
+import '../widgets/modal/custom_alert.dart';
 
 class PlaybackScreen extends StatefulWidget {
   final String numberPlate;
@@ -791,7 +795,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   GoogleMapController? _mapController;
   final PlaybackController controller = Get.put(PlaybackController());
 
-  DateTime? _pickedDate;
   Timer? _playbackTimer;
   bool _isAnimatingCamera = false;
   int _currentIndex = 0;
@@ -799,6 +802,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   double _playbackSpeed = 1.0;
 
   final Utils _utils = Utils();
+  DateTime? _startDate;
+  DateTime? _endDate;
+  final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
 
   // CACHE MARKERS AND POLYLINES
   BitmapDescriptor? _carMarkerIcon;
@@ -812,6 +818,43 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   void initState() {
     super.initState();
     _loadCarMarker();
+
+    // Start without any selected dates
+    _startDate = null;
+    _endDate = null;
+  }
+
+  Future<void> _fetchHistoryData() async {
+    if (_startDate == null || _endDate == null) return;
+
+    setState(() {
+      _cachedPolylines = {};
+      _conditionalMarkers = {};
+      _currentIndex = 0;
+      _isPlaying = false;
+      _playbackTimer?.cancel();
+    });
+
+    final String startFormatted = _startDate!
+        .add(const Duration(days: 1))
+        .toUtc()
+        .toIso8601String();
+
+    final String endFormatted = _endDate!
+        .add(const Duration(days: 1))
+        .toUtc()
+        .toIso8601String();
+
+    await controller.fetchHistory(
+      widget.numberPlate,
+      startFormatted,
+      endFormatted,
+    );
+
+    if (controller.history.isNotEmpty) {
+      await _generateConditionalMarkers(controller.history.toList());
+      _stopPlayback();
+    }
   }
 
   Future<BitmapDescriptor> _createConditionMarker({
@@ -847,7 +890,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           fontWeight: FontWeight.bold,
         ),
       ),
-      textDirection: TextDirection.ltr,
+      textDirection: ui.TextDirection.ltr,
     );
     textPainter.layout();
     textPainter.paint(
@@ -863,6 +906,175 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       format: ui.ImageByteFormat.png,
     );
     return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
+  }
+
+  Future<void> _pickStartDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: kBlue,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      if (_endDate != null && picked.isAfter(_endDate!)) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => ActionDialog(
+            title: "Invalid Date",
+            message: "Start date cannot be after the end date.",
+            confirmText: "Ok",
+            cancelText: "Cancel",
+            onConfirm: () async {},
+          ),
+        );
+        return;
+      }
+
+      setState(() => _startDate = picked);
+
+      // Fetch only when both dates are selected
+      if (_startDate != null && _endDate != null) {
+        _fetchHistoryData();
+      }
+    }
+  }
+
+  Future<void> _pickEndDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate ?? DateTime.now(),
+      firstDate: _startDate ?? DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: kBlue,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      if (_startDate != null && picked.isBefore(_startDate!)) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => ActionDialog(
+            title: "Invalid Date",
+            message: "End date cannot be before the start date.",
+            confirmText: "Ok",
+            cancelText: "Cancel",
+            onConfirm: () async {},
+          ),
+        );
+        return;
+      }
+
+      setState(() => _endDate = picked);
+
+      // Fetch only when both dates are selected
+      if (_startDate != null && _endDate != null) {
+        _fetchHistoryData();
+      }
+    }
+  }
+
+  Widget _buildDatePickerButton({
+    required String label,
+    required DateTime? selectedDate,
+    required VoidCallback onTap,
+    required IconData icon,
+  }) {
+    return Expanded(
+      child: Container(
+        height: 80,
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          elevation: 2,
+          shadowColor: Colors.black.withOpacity(0.1),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: selectedDate != null
+                      ? kBlue.withOpacity(0.3)
+                      : Colors.grey.withOpacity(0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    icon,
+                    color: selectedDate != null ? kBlue : Colors.grey[600],
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          selectedDate != null
+                              ? _dateFormat.format(selectedDate)
+                              : 'Select date',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: selectedDate != null
+                                ? Colors.black87
+                                : Colors.grey[500],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.grey[400],
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _generateConditionalMarkers(List history) async {
@@ -906,8 +1118,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           ),
         );
       }
-      // add other conditions later:
-      // else if (something) { ... }
     }
 
     if (mounted) setState(() {});
@@ -915,7 +1125,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
   Future<void> _loadCarMarker() async {
     _carMarkerIcon = await _createRotatedMarker('assets/blue_car.png', 0);
-    // Pre-cache common bearings
     await _precacheCommonBearings();
     setState(() {});
   }
@@ -936,7 +1145,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   ) async {
     final ByteData data = await rootBundle.load(assetPath);
 
-    // Decode the original image
     final ui.Codec codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
       targetWidth: 80,
@@ -944,7 +1152,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     final ui.FrameInfo fi = await codec.getNextFrame();
     final originalImage = fi.image;
 
-    // Create a canvas with 40% padding to prevent clipping during rotation
     final padding = (originalImage.width * 0.4).round();
     final canvasSize = originalImage.width + padding * 2;
 
@@ -974,14 +1181,12 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   }
 
   Future<BitmapDescriptor> _getCachedMarker(double bearing) async {
-    // Round bearing to nearest 45 degrees for better caching
     final roundedBearing = (bearing / 45).round() * 45.0;
 
     if (_bearingMarkerCache.containsKey(roundedBearing)) {
       return _bearingMarkerCache[roundedBearing]!;
     }
 
-    // Create and cache if not exists
     final marker = await _createRotatedMarker(
       'assets/blue_car.png',
       roundedBearing,
@@ -990,7 +1195,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     return marker;
   }
 
-  // Cache polylines and reuse them
   Set<Polyline> _buildGooglePolylines(List history) {
     if (_cachedPolylines.isNotEmpty &&
         history.length == _cachedPolylines.length + 1) {
@@ -1000,7 +1204,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     final polylines = <Polyline>{};
     final points = <LatLng>[];
 
-    // Build single polyline with multiple segments instead of individual polylines
     for (int i = 0; i < history.length; i++) {
       points.add(
         LatLng(double.parse(history[i].lt), double.parse(history[i].lg)),
@@ -1110,7 +1313,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           return;
         }
 
-        if (_isAnimatingCamera) return; // wait for animation to complete
+        if (_isAnimatingCamera) return;
 
         _currentIndex++;
 
@@ -1134,54 +1337,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
         setState(() {});
       },
     );
-  }
-
-  void _scheduleNextTick(List history) {
-    _playbackTimer?.cancel();
-    _playbackTimer = Timer(
-      Duration(milliseconds: (200 ~/ _playbackSpeed).clamp(16, 200)),
-      () {
-        if (!_isPlaying || _currentIndex >= history.length - 1) {
-          setState(() => _isPlaying = false);
-          return;
-        }
-
-        _playbackTick(history);
-      },
-    );
-  }
-
-  void _playbackTick(List history) async {
-    final newIndex = _currentIndex + 1;
-    final current = history[newIndex];
-    final newPosition = LatLng(
-      double.parse(current.lt),
-      double.parse(current.lg),
-    );
-
-    // Update bearing occasionally without awaiting inside timer callback directly
-    if (newIndex % 2 == 0) {
-      final bearing = _getCurrentBearing(history, newIndex);
-      _getCachedMarker(bearing).then((marker) {
-        if (mounted) {
-          setState(() {
-            _carMarkerIcon = marker;
-          });
-        }
-      });
-    }
-
-    setState(() {
-      _currentIndex = newIndex;
-    });
-
-    if (_mapController != null && _isMapReady) {
-      // _mapController!.moveCamera(CameraUpdate.newLatLng(newPosition));
-      _mapController!.animateCamera(CameraUpdate.newLatLng(newPosition));
-    }
-
-    // Schedule next tick
-    _scheduleNextTick(history);
   }
 
   void _pausePlayback() {
@@ -1241,6 +1396,34 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     }
   }
 
+  void _playbackTick(List history) async {
+    final newIndex = _currentIndex + 1;
+    final current = history[newIndex];
+    final newPosition = LatLng(
+      double.parse(current.lt),
+      double.parse(current.lg),
+    );
+
+    if (newIndex % 2 == 0) {
+      final bearing = _getCurrentBearing(history, newIndex);
+      _getCachedMarker(bearing).then((marker) {
+        if (mounted) {
+          setState(() {
+            _carMarkerIcon = marker;
+          });
+        }
+      });
+    }
+
+    setState(() {
+      _currentIndex = newIndex;
+    });
+
+    if (_mapController != null && _isMapReady) {
+      _mapController!.animateCamera(CameraUpdate.newLatLng(newPosition));
+    }
+  }
+
   void _stopPlayback() {
     _playbackTimer?.cancel();
     _playbackTimer = null;
@@ -1248,40 +1431,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       _isPlaying = false;
       _currentIndex = 0;
     });
-  }
-
-  Future<void> _pickDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _pickedDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: kBlue, onPrimary: kWhite),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() {
-        _pickedDate = picked;
-        _cachedPolylines = {};
-      });
-
-      final String formattedDate = picked
-          .add(const Duration(days: 1))
-          .toUtc()
-          .toIso8601String();
-
-      await controller.fetchHistory(widget.numberPlate, formattedDate);
-      if (controller.history.isNotEmpty) {
-        await _generateConditionalMarkers(controller.history.toList());
-        _stopPlayback();
-      }
-    }
   }
 
   @override
@@ -1317,7 +1466,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           );
         }
 
-        if (controller.history.isEmpty) {
+        final history = controller.history.toList();
+
+        if (history.isEmpty && _startDate != null && _endDate != null) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -1330,23 +1481,28 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 ),
                 SizedBox(height: 10),
                 Text(
-                  "Select a date to view vehicle history",
+                  "Select a date range to view vehicle history",
                   style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                 ),
                 SizedBox(height: 30),
-                ElevatedButton.icon(
-                  onPressed: () => _pickDate(context),
-                  icon: Icon(Icons.calendar_today, size: 20),
-                  label: Text(
-                    _pickedDate == null ? "Select Date" : "Change Date",
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kBlue,
-                    foregroundColor: kWhite,
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      _buildDatePickerButton(
+                        label: 'Start Date',
+                        selectedDate: _startDate,
+                        onTap: () => _pickStartDate(context),
+                        icon: Icons.calendar_today,
+                      ),
+                      SizedBox(width: 12),
+                      _buildDatePickerButton(
+                        label: 'End Date',
+                        selectedDate: _endDate,
+                        onTap: () => _pickEndDate(context),
+                        icon: Icons.event,
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -1354,7 +1510,43 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           );
         }
 
-        final history = controller.history.toList();
+        if (history.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.map_outlined, size: 80, color: Colors.grey[400]),
+                SizedBox(height: 20),
+                Text(
+                  "Select date range to view playback",
+                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                ),
+                SizedBox(height: 30),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      _buildDatePickerButton(
+                        label: 'Start Date',
+                        selectedDate: _startDate,
+                        onTap: () => _pickStartDate(context),
+                        icon: Icons.calendar_today,
+                      ),
+                      SizedBox(width: 12),
+                      _buildDatePickerButton(
+                        label: 'End Date',
+                        selectedDate: _endDate,
+                        onTap: () => _pickEndDate(context),
+                        icon: Icons.event,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
         final currentRecord = history[_currentIndex];
         final currentPoint = LatLng(
           double.parse(currentRecord.lt),
@@ -1387,14 +1579,12 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                         anchor: Offset(0.5, 0.5),
                         flat: true,
                         rotation:
-                            _getCurrentBearing(history, _currentIndex) + 180,
+                            _getCurrentBearing(history, _currentIndex) - 90,
                       ),
                       ..._conditionalMarkers,
                     }
                   : {},
-              onTap: (LatLng position) {
-                // Prevent unnecessary rebuilds on map taps
-              },
+              onTap: (LatLng position) {},
             ),
 
             Positioned(
@@ -1488,6 +1678,28 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Date Range Pickers
+                      Row(
+                        children: [
+                          _buildDatePickerButton(
+                            label: 'Start Date',
+                            selectedDate: _startDate,
+                            onTap: () => _pickStartDate(context),
+                            icon: Icons.calendar_today,
+                          ),
+                          SizedBox(width: 12),
+                          _buildDatePickerButton(
+                            label: 'End Date',
+                            selectedDate: _endDate,
+                            onTap: () => _pickEndDate(context),
+                            icon: Icons.event,
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 16),
+
+                      // Speed Control Slider
                       Row(
                         children: [
                           Icon(
@@ -1542,14 +1754,11 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                         ],
                       ),
                       SizedBox(height: 12),
+
+                      // Playback Controls
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _ControlButton(
-                            icon: Icons.calendar_today,
-                            onPressed: () => _pickDate(context),
-                            color: kBlue,
-                          ),
                           _ControlButton(
                             icon: _isPlaying ? Icons.pause : Icons.play_arrow,
                             onPressed: () => _isPlaying
@@ -1558,7 +1767,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                                       ? _startPlayback(history)
                                       : _resumePlayback(history)),
                             color: kBlue,
-                            isLarge: true,
                           ),
                           _ControlButton(
                             icon: Icons.stop,

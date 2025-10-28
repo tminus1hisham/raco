@@ -6,12 +6,17 @@ class PlaybackController extends GetxController {
   var isLoading = false.obs;
   var history = <DeviceRecord>[].obs;
 
-  Future<void> fetchHistory(String numberPlate, String date) async {
+  Future<void> fetchHistory(
+    String numberPlate,
+    String startDate,
+    String endDate,
+  ) async {
     try {
       isLoading(true);
       var fetchedHistory = await ApiService.fetchDeviceHistory(
         numberPlate,
-        date,
+        startDate,
+        endDate,
       );
       history.assignAll(fetchedHistory);
     } finally {
