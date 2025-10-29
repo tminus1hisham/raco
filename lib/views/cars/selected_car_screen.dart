@@ -78,7 +78,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
             );
           }
 
-          // 👇 Use DraggableScrollableSheet for min height = half screen
+          //  Use DraggableScrollableSheet for min height = half screen
           return DraggableScrollableSheet(
             expand: false,
             initialChildSize: 0.5,

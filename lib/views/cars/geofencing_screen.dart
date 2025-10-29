@@ -110,7 +110,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
         Circle(
           circleId: CircleId('new_circle'),
           center: selectedPoint!,
-          radius: radiusKm / 1000,
+          radius: radiusKm * 1000,
           fillColor: Colors.orange.withOpacity(0.3),
           strokeColor: Colors.orange,
           strokeWidth: 2,
