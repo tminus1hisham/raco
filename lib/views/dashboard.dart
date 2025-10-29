@@ -1,6 +1,7 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/views/notification_screen.dart';
 import 'package:atom/views/settings_screen.dart';
+import 'package:atom/views/technician/create_device.dart';
 import 'package:flutter/material.dart';
 
 import 'home_screen.dart';
@@ -15,11 +16,19 @@ class Dashboard extends StatefulWidget {
 class _DashboardState extends State<Dashboard> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = [
-    HomeScreen(),
-    NotificationScreen(),
-    SettingsScreen(),
-  ];
+  // String role = "Admin";
+  String role = "Technician";
+  late List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      role == 'Admin' ? HomeScreen() : TechnicianScreen(),
+      NotificationScreen(),
+      SettingsScreen(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -37,8 +46,13 @@ class _DashboardState extends State<Dashboard> {
         iconSize: 25,
         selectedFontSize: 16,
         unselectedFontSize: 14,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        items: <BottomNavigationBarItem>[
+          role == "Admin"
+              ? BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home')
+              : BottomNavigationBarItem(
+                  icon: Icon(Icons.directions_car),
+                  label: 'Add Device',
+                ),
           // BottomNavigationBarItem(
           //   icon: Icon(Icons.directions_car_rounded),
           //   label: 'Vehicles',
