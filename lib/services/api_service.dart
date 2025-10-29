@@ -380,4 +380,42 @@ class ApiService {
       throw Exception('Failed to load plans');
     }
   }
+
+  static Future<bool> updateProfile(
+    String userId,
+    String email,
+    String fullName,
+  ) async {
+    String token = await StorageService.getData('access_token');
+
+    try {
+      final uri = Uri.parse('${BASE_URL}/auth/user/mobile/update').replace(
+        queryParameters: {
+          'userId': userId,
+          'emailAddress': email,
+          'fullName': fullName,
+        },
+      );
+
+      final response = await http.put(
+        uri,
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return true;
+      } else {
+        _handleAuthError(response.statusCode);
+        throw Exception('Failed to update profile');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred during update: $e');
+    }
+  }
 }

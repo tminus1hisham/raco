@@ -1,5 +1,6 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/update_profile_controller.dart';
+import 'package:atom/controllers/update_user_data.dart';
 import 'package:atom/controllers/user_data_controller.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/services/upload_image_service.dart';
@@ -7,6 +8,7 @@ import 'package:atom/views/camera_screen.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
+import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +32,10 @@ class _AccountScreenState extends State<AccountScreen> {
   final ImageUploaderService uploadPictureService = ImageUploaderService();
   final UpdateProfileController updateController = Get.put(
     UpdateProfileController(),
+  );
+
+  final UpdateUserDataController updateUserDataController = Get.put(
+    UpdateUserDataController(),
   );
 
   // Controllers for edit form
@@ -229,43 +235,84 @@ class _AccountScreenState extends State<AccountScreen> {
 
                       const Divider(height: 24),
 
-                      _buildEditField(
-                        label: 'Full Name',
+                      InputField(
+                        hintText: 'Full Name',
                         controller: fullNameController,
-                        icon: Icons.person_outline,
-                        hint: 'Enter your full name',
+                        prefixIcon: Icons.person_outline,
                       ),
+
                       const SizedBox(height: 20),
 
-                      _buildEditField(
-                        label: 'Email Address',
+                      InputField(
+                        hintText: 'Email Address',
                         controller: emailController,
-                        icon: Icons.email_outlined,
-                        hint: 'Enter your email',
-                        keyboardType: TextInputType.emailAddress,
+                        prefixIcon: Icons.email_outlined,
                       ),
+
                       const SizedBox(height: 20),
 
-                      _buildEditField(
-                        label: 'Phone Number',
+                      InputField(
+                        hintText: 'Phone Number',
                         controller: phoneController,
-                        icon: Icons.phone_outlined,
-                        hint: 'Enter your phone number',
-                        keyboardType: TextInputType.phone,
+                        prefixIcon: Icons.phone_outlined,
+                        readOnly: true,
                       ),
                       const SizedBox(height: 32),
 
                       CustomButton(
-                        callBackFunction: () {
-                          Navigator.pop(context);
-                          Get.snackbar(
-                            "Info",
-                            "Profile update functionality to be connected",
-                            backgroundColor: kBlue.withOpacity(0.1),
-                            colorText: kBlue,
-                          );
+                        callBackFunction: () async {
+                          FocusScope.of(context).unfocus();
+
+                          final user = controller.user.value;
+                          if (user == null) return;
+
+                          if (fullNameController.text.trim().isEmpty ||
+                              emailController.text.trim().isEmpty) {
+                            Get.snackbar(
+                              "Validation Error",
+                              "Full name and email cannot be empty.",
+                              backgroundColor: kRed.withOpacity(0.1),
+                              colorText: kRed,
+                            );
+                            return;
+                          }
+
+                          try {
+                            updateUserDataController.isLoading(true);
+
+                            await updateUserDataController.updateProfile(
+                              user.userId.toString(),
+                              emailController.text.trim(),
+                              fullNameController.text.trim(),
+                            );
+
+                            await controller.fetchUserProfile();
+
+                            Navigator.pop(context);
+
+                            await CustomAlertDialog(
+                              context: context,
+                              title: "Success",
+                              message:
+                                  "Your profile details have been updated successfully.",
+                              icon: "assets/animations/Success.json",
+                              buttonColor: kSuccessGreen,
+                            );
+                          } catch (e) {
+                            await CustomAlertDialog(
+                              context: context,
+                              title: "Error",
+                              message: "Failed to update profile: $e",
+                              icon: "assets/animations/Failed.json",
+                              buttonColor: kRed,
+                            );
+                          } finally {
+                            updateUserDataController.isLoading(false);
+                          }
                         },
-                        label: "Save Changes",
+                        label: updateUserDataController.isLoading.value
+                            ? "Updating ..."
+                            : "Save Changes",
                         backgroundColor: kBlue,
                         txtColor: kWhite,
                       ),
@@ -277,51 +324,6 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildEditField({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    required String hint,
-    TextInputType? keyboardType,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[800],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
-          ),
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            style: const TextStyle(fontSize: 16, color: Colors.black87),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 15),
-              prefixIcon: Icon(icon, color: kBlue, size: 22),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
