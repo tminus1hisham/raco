@@ -1,6 +1,7 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/violations_controller.dart';
 import 'package:atom/models/playback_model.dart';
+import 'package:atom/services/violations_pdf_service.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
@@ -531,22 +532,41 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                       Expanded(
                         child: CustomButton(
                           callBackFunction: () async {
-                            showCupertinoDialog(
-                              context: context,
-                              builder: (context) => ActionDialog(
-                                title: "Download Violations",
-                                message: "Are you sure you want to download?",
-                                confirmText: "Download",
-                                cancelText: "Cancel",
-                                onConfirm: () async {
-                                  await downloadReport(
-                                    url,
-                                    _selectedViolation ?? "Violations Report",
-                                    context,
+                            setState(() => isDownloading = true);
+                            try {
+                              final path =
+                                  await ViolationsPdfService.generateAndSaveReportPdf(
+                                    _violationsController.violations,
+                                    widget.numberPlate,
+                                    _selectedViolation!,
                                   );
-                                },
-                              ),
-                            );
+
+                              if (!mounted) return;
+                              setState(() => isDownloading = false);
+
+                              showCupertinoDialog(
+                                context: context,
+                                builder: (context) => ActionDialog(
+                                  title: "Success",
+                                  message: "PDF saved successfully at:\n$path",
+                                  confirmText: "Open",
+                                  cancelText: "Close",
+                                  onConfirm: () async {
+                                    await OpenFile.open(path);
+                                  },
+                                ),
+                              );
+                            } catch (e) {
+                              if (!mounted) return;
+                              setState(() => isDownloading = false);
+                              CustomAlertDialog(
+                                context: context,
+                                title: "Error",
+                                message: "Failed to generate the PDF file.",
+                                icon: "assets/animations/Failed.json",
+                                buttonColor: kRed,
+                              );
+                            }
                           },
                           label: "Download",
                           backgroundColor: kBlue,
