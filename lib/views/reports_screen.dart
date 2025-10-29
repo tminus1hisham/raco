@@ -1,6 +1,7 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/reports_violations.dart';
 import 'package:atom/models/report_model.dart';
+import 'package:atom/services/pdf_service.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/modal/custom_alert.dart';
@@ -281,30 +282,126 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       Expanded(
                         child: CustomButton(
                           callBackFunction: () async {
-                            bool isLoading = false;
-                            showCupertinoDialog(
-                              context: context,
-                              builder: (context) => ActionDialog(
-                                title: "Download Report",
-                                message:
-                                    "Are you sure you want to download this report?",
-                                confirmText: "Download",
-                                cancelText: "Cancel",
-                                onConfirm: () async {
-                                  await downloadReport(
-                                    url,
-                                    _selectedReportType ?? "Report",
-                                    context,
+                            setState(() => isDownloading = true);
+                            try {
+                              final path =
+                                  await PdfService.generateAndSaveReportPdf(
+                                    _reportsController.reports,
+                                    widget.numberPlate,
+                                    _selectedReportType!,
                                   );
-                                },
-                              ),
-                            );
+
+                              if (!mounted) return;
+                              setState(() => isDownloading = false);
+
+                              showCupertinoDialog(
+                                context: context,
+                                builder: (context) => ActionDialog(
+                                  title: "Success",
+                                  message: "PDF saved successfully at:\n$path",
+                                  confirmText: "Open",
+                                  cancelText: "Close",
+                                  onConfirm: () async {
+                                    await OpenFile.open(path);
+                                  },
+                                ),
+                              );
+                            } catch (e) {
+                              if (!mounted) return;
+                              setState(() => isDownloading = false);
+                              CustomAlertDialog(
+                                context: context,
+                                title: "Error",
+                                message: "Failed to generate the PDF file.",
+                                icon: "assets/animations/Failed.json",
+                                buttonColor: kRed,
+                              );
+                            }
+
+                            // showCupertinoDialog(
+                            //   context: context,
+                            //   builder: (context) => ActionDialog(
+                            //     title: "Generate PDF",
+                            //     message:
+                            //         "Do you want to generate and save this report as a PDF file?",
+                            //     confirmText: "Generate",
+                            //     cancelText: "Cancel",
+                            //     onConfirm: () async {
+                            //       setState(() => isDownloading = true);
+                            //       try {
+                            //         final path =
+                            //             await PdfService.generateAndSaveReportPdf(
+                            //               _reportsController.reports,
+                            //               widget.numberPlate,
+                            //               _selectedReportType!,
+                            //             );
+                            //
+                            //         if (!mounted) return;
+                            //         setState(() => isDownloading = false);
+                            //
+                            //         showCupertinoDialog(
+                            //           context: context,
+                            //           builder: (context) => ActionDialog(
+                            //             title: "Success",
+                            //             message:
+                            //                 "PDF saved successfully at:\n$path",
+                            //             confirmText: "Open",
+                            //             cancelText: "Close",
+                            //             onConfirm: () async {
+                            //               await OpenFile.open(path);
+                            //             },
+                            //           ),
+                            //         );
+                            //       } catch (e) {
+                            //         if (!mounted)
+                            //           return; // ✅ prevent using disposed context
+                            //         setState(() => isDownloading = false);
+                            //         CustomAlertDialog(
+                            //           context: context,
+                            //           title: "Error",
+                            //           message:
+                            //               "Failed to generate the PDF file.",
+                            //           icon: "assets/animations/Failed.json",
+                            //           buttonColor: kRed,
+                            //         );
+                            //       }
+                            //     },
+                            //   ),
+                            // );
                           },
-                          label: "Download",
+                          label: "Donwload PDF",
                           backgroundColor: kBlue,
                           txtColor: kWhite,
                         ),
                       ),
+
+                      // Expanded(
+                      //   child: CustomButton(
+                      //     callBackFunction: () async {
+                      //       bool isLoading = false;
+                      //       showCupertinoDialog(
+                      //         context: context,
+                      //         builder: (context) => ActionDialog(
+                      //           title: "Download Report",
+                      //           message:
+                      //               "Are you sure you want to download this report?",
+                      //           confirmText: "Download",
+                      //           cancelText: "Cancel",
+                      //           onConfirm: () async {
+                      //             await downloadReport(
+                      //               url,
+                      //               _selectedReportType ?? "Report",
+                      //               context,
+                      //             );
+                      //           },
+                      //         ),
+                      //       );
+                      //     },
+                      //     label: "Download",
+                      //     backgroundColor: kBlue,
+                      //     txtColor: kWhite,
+                      //   ),
+                      // ),
                     ],
                   ],
                 );
