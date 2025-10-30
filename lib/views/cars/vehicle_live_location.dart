@@ -33,6 +33,9 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen> {
   BitmapDescriptor? carIcon;
   bool isLoading = true;
   final MqttService _mqttService = MqttService();
+  double _bearing = 0.0;
+  String speed = '';
+  String numberPlate = '';
 
   StreamSubscription? _mqttSubscription;
 
@@ -56,7 +59,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen> {
       return;
     }
 
-    final topic = "${widget.deviceId}";
+    final topic = "orca/payload/${widget.deviceId}";
     _mqttService.subscribeToTopic(topic);
     print("✅ Subscribed to $topic");
 
@@ -67,9 +70,14 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen> {
       );
       final topic = messages[0].topic;
 
+      print("📦 Raw Payload: $payload");
+
       if (topic == "orca/payload/${widget.deviceId}") {
         _handleCarLocation(payload);
       }
+
+      print("HAPA");
+      print("orca/payload/${widget.deviceId}");
     });
   }
 
@@ -82,27 +90,56 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen> {
     }
   }
 
-  /// Handle incoming location data
   void _handleCarLocation(String message) {
     try {
       final data = jsonDecode(message);
-      final double lat = data['lat'] ?? 0.0;
-      final double lng = data['lng'] ?? 0.0;
 
-      print("📍 New location: $lat, $lng");
+      final String rawLat = data['Lt'] ?? "";
+      final String ns = data['NS'] ?? "N";
+      final String rawLng = data['Lg'] ?? "";
+      final String ew = data['EW'] ?? "E";
+      numberPlate = data['Rg'] ?? "";
+      speed = data['Spd'] ?? "0";
+      final String course = data['course']?.toString() ?? "0";
+
+      final double lat = _convertToDecimalDegrees(rawLat, ns);
+      final double lng = _convertToDecimalDegrees(rawLng, ew);
+
+      print("📍 Location: $lat, $lng, 🧭 Course: $course");
 
       setState(() {
         position = LatLng(lat, lng);
+        _bearing = double.tryParse(course) ?? 0.0;
       });
 
-      // Optionally animate map camera to new position
-      mapController?.animateCamera(CameraUpdate.newLatLng(position));
+      mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: position, zoom: 15),
+        ),
+      );
+
+      _showMarkerInfoWindow();
     } catch (e) {
       print("❌ Error parsing message: $e");
     }
   }
 
-  /// Load custom car icon
+  void _showMarkerInfoWindow() {
+    if (mapController != null) {
+      mapController!.showMarkerInfoWindow(const MarkerId("vehicle_marker"));
+    }
+  }
+
+  double _convertToDecimalDegrees(String coord, String direction) {
+    if (coord.isEmpty) return 0.0;
+    final double value = double.tryParse(coord) ?? 0.0;
+    final double degrees = (value ~/ 100).toDouble();
+    final double minutes = value - (degrees * 100);
+    double decimalDegrees = degrees + (minutes / 60);
+    if (direction == 'S' || direction == 'W') decimalDegrees *= -1;
+    return decimalDegrees;
+  }
+
   Future<void> _loadCarIcon() async {
     carIcon = await _resizeAndLoadIcon('assets/green_car.png', 140);
     setState(() {
@@ -149,7 +186,14 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen> {
                         markerId: const MarkerId("vehicle_marker"),
                         position: position,
                         icon: carIcon ?? BitmapDescriptor.defaultMarker,
-                        infoWindow: const InfoWindow(title: "Vehicle"),
+                        rotation: _bearing,
+                        anchor: const Offset(0.5, 0.5),
+                        infoWindow: InfoWindow(
+                          title: numberPlate.toUpperCase(),
+                          snippet:
+                              "Speed: ${speed}"
+                              "",
+                        ),
                       ),
                     },
                     onMapCreated: (controller) => mapController = controller,

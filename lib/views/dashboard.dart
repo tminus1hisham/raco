@@ -16,8 +16,9 @@ class Dashboard extends StatefulWidget {
 class _DashboardState extends State<Dashboard> {
   int _selectedIndex = 0;
 
-  // String role = "Admin";
-  String role = "Technician";
+  String role = "Admin";
+
+  // String role = "Technician";
   late List<Widget> _screens;
 
   @override
