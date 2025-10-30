@@ -1,4 +1,4 @@
-class Certificate {
+class RegisterDeviceModel {
   final String company;
   final String name;
   final String id;
@@ -18,7 +18,7 @@ class Certificate {
   final String businessReg;
   final String group;
 
-  Certificate({
+  RegisterDeviceModel({
     required this.company,
     required this.name,
     required this.id,
@@ -40,8 +40,8 @@ class Certificate {
   });
 
   /// Factory constructor to create a Certificate from JSON
-  factory Certificate.fromJson(Map<String, dynamic> json) {
-    return Certificate(
+  factory RegisterDeviceModel.fromJson(Map<String, dynamic> json) {
+    return RegisterDeviceModel(
       company: json['company'] ?? '',
       name: json['Name'] ?? '',
       id: json['ID'] ?? '',

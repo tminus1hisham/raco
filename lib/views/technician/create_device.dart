@@ -1,9 +1,12 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/create_device_controller.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
+import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class TechnicianScreen extends StatefulWidget {
   const TechnicianScreen({super.key});
@@ -36,31 +39,79 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
   final GlobalKey<FormState> _createDeviceKey = GlobalKey<FormState>();
   final Utils utils = Utils();
 
+  final RegisterDeviceController registerDeviceController = Get.put(
+    RegisterDeviceController(),
+  );
+
   Future<void> _register() async {
     if (!_createDeviceKey.currentState!.validate()) {
       return;
     }
 
-    // authController.phoneNumber.value = utils.normalizePhoneNumber(
-    //   _phoneNumberController.text,
-    // );
-    // authController.password.value = _passwordController.text;
-    // authController.deviceModel.value = androidInfo.brand;
-    // authController.userAgent.value = androidInfo.model;
-    // authController.ipAddress.value = userIp;
-    // authController.location.value = 'Nairobi';
-    //
-    // bool success = await authController.login(context);
-    //
-    // if (!success) {
-    //   await CustomAlertDialog(
-    //     context: context,
-    //     title: "Error",
-    //     message: "Failed to register device ",
-    //     icon: "assets/animations/Failed.json",
-    //     buttonColor: kRed,
-    //   );
-    // }
+    // Assign all form values to controller fields
+    registerDeviceController.company.value = _companyController.text.trim();
+    registerDeviceController.name.value = _nameController.text.trim();
+    registerDeviceController.id.value = _idController.text.trim();
+    registerDeviceController.phone.value = utils.normalizePhoneNumber(
+      _phoneNumberController.text,
+    );
+    registerDeviceController.reg.value = _regController.text.trim();
+    registerDeviceController.chassis.value = _chassisController.text.trim();
+    registerDeviceController.make.value = _makeController.text.trim();
+    registerDeviceController.certNo.value = _certNoController.text.trim();
+    registerDeviceController.type.value = _typeController.text.trim();
+    registerDeviceController.serial.value = _serialController.text.trim();
+    registerDeviceController.date.value = _dateController.text.trim();
+    registerDeviceController.agent.value = _agentController.text.trim();
+    registerDeviceController.agentID.value = _agentIDController.text.trim();
+    registerDeviceController.location.value = _locationController.text.trim();
+    registerDeviceController.email.value = _emailController.text.trim();
+    registerDeviceController.agentPhone.value = utils.normalizePhoneNumber(
+      _agentPhoneNumberController.text,
+    );
+    registerDeviceController.businessReg.value = _businessRegController.text
+        .trim();
+    registerDeviceController.group.value = _groupController.text.trim();
+
+    bool success = await registerDeviceController.registration(context);
+
+    if (success) {
+      await CustomAlertDialog(
+        context: context,
+        title: "Success",
+        message: "Device registered successfully!",
+        icon: "assets/animations/success.json",
+        buttonColor: kSuccessGreen,
+      );
+
+      _createDeviceKey.currentState!.reset();
+      _companyController.clear();
+      _nameController.clear();
+      _idController.clear();
+      _phoneNumberController.clear();
+      _regController.clear();
+      _chassisController.clear();
+      _makeController.clear();
+      _certNoController.clear();
+      _typeController.clear();
+      _serialController.clear();
+      _dateController.clear();
+      _agentController.clear();
+      _agentIDController.clear();
+      _locationController.clear();
+      _emailController.clear();
+      _agentPhoneNumberController.clear();
+      _businessRegController.clear();
+      _groupController.clear();
+    } else {
+      await CustomAlertDialog(
+        context: context,
+        title: "Error",
+        message: "Failed to register device. Please try again.",
+        icon: "assets/animations/failed.json",
+        buttonColor: kRed,
+      );
+    }
   }
 
   @override
@@ -108,19 +159,6 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         hintText: 'ID',
                         prefixIcon: Icons.numbers_sharp,
                         controller: _idController,
-                        isRequired: true,
-                        integerOnly: true,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
-                          }
-                          return null;
-                        },
-                      ),
-                      InputField(
-                        hintText: 'Phone number',
-                        prefixIcon: Icons.phone,
-                        controller: _phoneNumberController,
                         isRequired: true,
                         integerOnly: true,
                         validator: (value) {

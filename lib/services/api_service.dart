@@ -7,6 +7,7 @@ import 'package:atom/models/location_model.dart';
 import 'package:atom/models/plans_model.dart';
 import 'package:atom/models/playback_model.dart';
 import 'package:atom/models/profile_picture_model.dart';
+import 'package:atom/models/register_device_model.dart';
 import 'package:atom/models/report_model.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/views/auth/login_screen.dart';
@@ -416,6 +417,34 @@ class ApiService {
       throw Exception('Network error, please check your connection');
     } catch (e) {
       throw Exception('An error occurred during update: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> registerDevice(
+    RegisterDeviceModel request,
+  ) async {
+    String token = await StorageService.getData('access_token');
+
+    try {
+      final response = await http.post(
+        Uri.parse('${BASE_URL}/devices/register'),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data;
+      } else {
+        throw Exception('Failed to register device');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred during creation: $e');
     }
   }
 }
