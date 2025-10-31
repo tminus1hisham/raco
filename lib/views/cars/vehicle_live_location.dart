@@ -191,7 +191,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen> {
                         infoWindow: InfoWindow(
                           title: numberPlate.toUpperCase(),
                           snippet:
-                              "Speed: ${speed}"
+                              "Speed: ${speed} km/h"
                               "",
                         ),
                       ),

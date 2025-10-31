@@ -85,6 +85,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     );
 
     if (controller.history.isNotEmpty) {
+      await _mapReadyCompleter.future;
       await _generateConditionalMarkers(controller.history.toList());
       _stopPlayback();
     }
@@ -313,17 +314,55 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   Future<void> _generateConditionalMarkers(List history) async {
     _conditionalMarkers.clear();
 
+    // Add START marker for first point
+    if (history.isNotEmpty) {
+      final firstRecord = history.first;
+      final startLat = double.tryParse(firstRecord.lt.toString());
+      final startLng = double.tryParse(firstRecord.lg.toString());
+
+      if (startLat != null && startLng != null) {
+        final startIcon = await _createStartMarker();
+        _conditionalMarkers.add(
+          Marker(
+            markerId: MarkerId('start_point'),
+            position: LatLng(startLat, startLng),
+            icon: startIcon,
+            anchor: const Offset(0.5, 0.5),
+          ),
+        );
+      }
+    }
+
+    // Add STOP marker for last point
+    if (history.length > 1) {
+      final lastRecord = history.last;
+      final stopLat = double.tryParse(lastRecord.lt.toString());
+      final stopLng = double.tryParse(lastRecord.lg.toString());
+
+      if (stopLat != null && stopLng != null) {
+        final stopIcon = await _createStopMarker();
+        _conditionalMarkers.add(
+          Marker(
+            markerId: MarkerId('stop_point'),
+            position: LatLng(stopLat, stopLng),
+            icon: stopIcon,
+            anchor: const Offset(0.5, 0.5),
+          ),
+        );
+      }
+    }
+
     for (int i = 0; i < history.length; i++) {
       final record = history[i];
       final speed = double.tryParse(record.spd.toString()) ?? 0.0;
       final lat = double.tryParse(record.lt.toString());
       final lng = double.tryParse(record.lg.toString());
+      final ignition = _getIgnitionStatus(record);
 
       if (lat == null || lng == null) continue;
 
-      // Example conditions
+      // SPEEDING
       if (speed > 80) {
-        // Speeding
         final icon = await _createConditionMarker(
           color: Colors.red,
           label: 'S',
@@ -336,15 +375,16 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             anchor: const Offset(0.5, 0.5),
           ),
         );
-      } else if (speed == 0) {
-        // Parked
+      }
+      // PARKED + IGNITION OFF
+      else if (speed == 0 && ignition == 0) {
         final icon = await _createConditionMarker(
           color: Colors.orange,
-          label: 'P',
+          label: 'P', // Parked
         );
         _conditionalMarkers.add(
           Marker(
-            markerId: MarkerId('parked_$i'),
+            markerId: MarkerId('parked_off_$i'),
             position: LatLng(lat, lng),
             icon: icon,
             anchor: const Offset(0.5, 0.5),
@@ -380,7 +420,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
     final ui.Codec codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
-      targetWidth: 80,
+      targetWidth: 70,
     );
     final ui.FrameInfo fi = await codec.getNextFrame();
     final originalImage = fi.image;
@@ -538,7 +578,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     _playbackTimer?.cancel();
 
     _playbackTimer = Timer.periodic(
-      Duration(milliseconds: (200 ~/ _playbackSpeed)),
+      Duration(milliseconds: (100 ~/ _playbackSpeed)),
       (timer) async {
         if (!_isPlaying || _currentIndex >= history.length - 1) {
           timer.cancel();
@@ -584,7 +624,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     _playbackTimer?.cancel();
 
     _playbackTimer = Timer.periodic(
-      Duration(milliseconds: (200 ~/ _playbackSpeed)),
+      Duration(milliseconds: (100 ~/ _playbackSpeed)),
       (timer) async {
         if (!_isPlaying || _currentIndex >= history.length - 1) {
           timer.cancel();
@@ -618,42 +658,142 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     );
   }
 
+  Future<BitmapDescriptor> _createStartMarker() async {
+    const double size = 100;
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder);
+
+    // Draw green circle
+    final Paint paint = Paint()..color = Colors.green;
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, paint);
+
+    // Add white border
+    final Paint borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6;
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2 - 3,
+      borderPaint,
+    );
+
+    // Draw "START" text
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: 'START',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
+    );
+
+    final ui.Image image = await recorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
+    final ByteData? byteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
+    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
+  }
+
+  Future<BitmapDescriptor> _createStopMarker() async {
+    const double size = 100;
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder);
+
+    // Draw red circle
+    final Paint paint = Paint()..color = Colors.red;
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, paint);
+
+    // Add white border
+    final Paint borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6;
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2 - 3,
+      borderPaint,
+    );
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: 'STOP',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
+    );
+
+    final ui.Image image = await recorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
+    final ByteData? byteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
+    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
+  }
+
   void _updatePlaybackSpeed(double newSpeed) {
     setState(() => _playbackSpeed = newSpeed);
 
     if (_isPlaying) {
+      final history = controller.history.toList();
       _playbackTimer?.cancel();
-      _playbackTimer = null;
-      // Immediately trigger next frame at new speed
-      _playbackTick(controller.history.toList());
-    }
-  }
 
-  void _playbackTick(List history) async {
-    final newIndex = _currentIndex + 1;
-    final current = history[newIndex];
-    final newPosition = LatLng(
-      double.parse(current.lt),
-      double.parse(current.lg),
-    );
+      // Restart the timer with the new speed
+      _playbackTimer = Timer.periodic(
+        Duration(milliseconds: (200 ~/ _playbackSpeed)),
+        (timer) async {
+          if (!_isPlaying || _currentIndex >= history.length - 1) {
+            timer.cancel();
+            setState(() => _isPlaying = false);
+            return;
+          }
 
-    if (newIndex % 2 == 0) {
-      final bearing = _getCurrentBearing(history, newIndex);
-      _getCachedMarker(bearing).then((marker) {
-        if (mounted) {
-          setState(() {
-            _carMarkerIcon = marker;
-          });
-        }
-      });
-    }
+          if (_isAnimatingCamera) return;
 
-    setState(() {
-      _currentIndex = newIndex;
-    });
+          _currentIndex++;
 
-    if (_mapController != null && _isMapReady) {
-      _mapController!.animateCamera(CameraUpdate.newLatLng(newPosition));
+          final current = history[_currentIndex];
+          final nextPoint = LatLng(
+            double.parse(current.lt),
+            double.parse(current.lg),
+          );
+
+          _isAnimatingCamera = true;
+          try {
+            await _mapController?.animateCamera(
+              CameraUpdate.newLatLng(nextPoint),
+            );
+          } catch (e) {
+            debugPrint("Camera animation error: $e");
+          } finally {
+            _isAnimatingCamera = false;
+          }
+
+          setState(() {});
+        },
+      );
     }
   }
 
@@ -790,11 +930,20 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
         return Stack(
           children: [
             GoogleMap(
-              onMapCreated: (GoogleMapController controller) {
+              onMapCreated: (GoogleMapController controller) async {
                 _mapController = controller;
                 _isMapReady = true;
                 _mapReadyCompleter.complete();
+                if (!_mapReadyCompleter.isCompleted) {
+                  _mapReadyCompleter.complete();
+                }
+                if (this.controller.history.isNotEmpty) {
+                  await _generateConditionalMarkers(
+                    this.controller.history.toList(),
+                  );
+                }
               },
+
               initialCameraPosition: CameraPosition(
                 target: currentPoint,
                 zoom: 15.0,
@@ -803,6 +952,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
               polylines: _buildGooglePolylines(history),
+
               markers: _carMarkerIcon != null
                   ? {
                       Marker(
@@ -812,7 +962,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                         anchor: Offset(0.5, 0.5),
                         flat: true,
                         rotation:
-                            _getCurrentBearing(history, _currentIndex) - 90,
+                            _getCurrentBearing(history, _currentIndex) + 180,
                       ),
                       ..._conditionalMarkers,
                     }
@@ -951,9 +1101,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                               ),
                               child: Slider(
                                 value: _playbackSpeed,
-                                min: 1.0,
-                                max: 10.0,
-                                divisions: 18,
+                                min: 0.5,
+                                max: 5.0,
+                                divisions: 9,
                                 label: '${_playbackSpeed.toStringAsFixed(1)}x',
                                 onChanged: (value) =>
                                     _updatePlaybackSpeed(value),

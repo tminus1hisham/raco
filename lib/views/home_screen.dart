@@ -492,6 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return Marker(
         markerId: MarkerId(device.numberPlate),
         position: LatLng(latitude, longitude),
+        rotation: double.tryParse(device.course) ?? 0.0,
         icon: markerIcon,
         onTap: () => _selectVehicle(index),
         infoWindow: InfoWindow(

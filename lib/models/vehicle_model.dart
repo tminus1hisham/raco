@@ -103,6 +103,7 @@ class Device {
   final bool vehicleBatteryVoltage;
   final String createdAt;
   final String updatedAt;
+  final String course;
 
   Device({
     required this.id,
@@ -148,6 +149,7 @@ class Device {
     required this.vehicleBatteryVoltage,
     required this.createdAt,
     required this.updatedAt,
+    required this.course,
   });
 
   factory Device.fromJson(Map<String, dynamic> json) {
@@ -195,6 +197,7 @@ class Device {
       vehicleBatteryVoltage: json['vehiclebatteryvoltage'] ?? false,
       createdAt: json['createdAt'] ?? "",
       updatedAt: json['updatedAt'] ?? "",
+      course: json['course'] ?? '',
     );
   }
 
@@ -243,6 +246,7 @@ class Device {
       "vehiclebatteryvoltage": vehicleBatteryVoltage,
       "createdAt": createdAt,
       "updatedAt": updatedAt,
+      "course": course,
     };
   }
 }
