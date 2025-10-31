@@ -32,7 +32,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   bool _isAnimatingCamera = false;
   int _currentIndex = 0;
   bool _isPlaying = false;
-  double _playbackSpeed = 1.0;
+  double _playbackSpeed = 0.5;
 
   final Utils _utils = Utils();
   DateTime? _startDate;
@@ -1101,7 +1101,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                               ),
                               child: Slider(
                                 value: _playbackSpeed,
-                                min: 0.5,
+                                min: 0.1,
                                 max: 5.0,
                                 divisions: 9,
                                 label: '${_playbackSpeed.toStringAsFixed(1)}x',
