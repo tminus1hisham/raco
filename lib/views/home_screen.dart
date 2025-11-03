@@ -164,10 +164,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadCustomIcons() async {
     customIcons['green'] = await _resizeAndLoadIcon(
       'assets/green_car.png',
-      180,
+      140,
     );
-    customIcons['blue'] = await _resizeAndLoadIcon('assets/blue_car.png', 100);
-    customIcons['red'] = await _resizeAndLoadIcon('assets/red_car.png', 100);
+    customIcons['blue'] = await _resizeAndLoadIcon('assets/blue_car.png', 70);
+    customIcons['red'] = await _resizeAndLoadIcon('assets/red_car.png', 70);
     setState(() {});
   }
 

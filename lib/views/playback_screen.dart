@@ -1081,14 +1081,43 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                       ),
 
                       SizedBox(height: 16),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: kBlue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${_playbackSpeed.toStringAsFixed(1)}x',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: kBlue,
+                          ),
+                        ),
+                      ),
 
                       // Speed Control Slider
                       Row(
                         children: [
-                          Icon(
-                            Icons.slow_motion_video,
-                            size: 20,
-                            color: Colors.grey[600],
+                          IconButton(
+                            icon: Icon(
+                              Icons.fast_rewind_sharp,
+                              color: kBlue,
+                              size: 30,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _playbackSpeed = (_playbackSpeed - 1).clamp(
+                                  0.5,
+                                  5.0,
+                                );
+                                _updatePlaybackSpeed(_playbackSpeed);
+                              });
+                            },
                           ),
                           Expanded(
                             child: SliderTheme(
@@ -1110,29 +1139,21 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                               ),
                             ),
                           ),
-                          Icon(
-                            Icons.fast_forward,
-                            size: 20,
-                            color: Colors.grey[600],
-                          ),
-                          SizedBox(width: 8),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+                          IconButton(
+                            icon: Icon(
+                              Icons.fast_forward,
+                              color: kBlue,
+                              size: 30,
                             ),
-                            decoration: BoxDecoration(
-                              color: kBlue.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '${_playbackSpeed.toStringAsFixed(1)}x',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: kBlue,
-                              ),
-                            ),
+                            onPressed: () {
+                              setState(() {
+                                _playbackSpeed = (_playbackSpeed + 1).clamp(
+                                  0.5,
+                                  5.0,
+                                );
+                                _updatePlaybackSpeed(_playbackSpeed);
+                              });
+                            },
                           ),
                         ],
                       ),
