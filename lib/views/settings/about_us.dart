@@ -76,12 +76,12 @@ class AboutUs extends StatelessWidget {
                             const SizedBox(height: 12),
                             _buildContactItem(
                               Icons.email,
-                              'support@speedgov.com',
+                              'info@atomiot.co.ke',
                             ),
                             const SizedBox(height: 8),
-                            _buildContactItem(Icons.phone, '+1 (555) 123-4567'),
+                            _buildContactItem(Icons.phone, '+254 798 032 158'),
                             const SizedBox(height: 8),
-                            _buildContactItem(Icons.web, 'www.atom.com'),
+                            _buildContactItem(Icons.pin_drop, 'Nairobi, Kenya'),
                           ],
                         ),
                       ),
@@ -90,7 +90,7 @@ class AboutUs extends StatelessWidget {
                       // Copyright
                       Center(
                         child: Text(
-                          '© 2024 Atom. All rights reserved.',
+                          '© ${DateTime.now().year} Atom. All rights reserved.',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600,

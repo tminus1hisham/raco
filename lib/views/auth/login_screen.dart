@@ -2,10 +2,12 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/utils/utils.dart';
+import 'package:atom/views/settings/privacy_policy.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -245,15 +247,28 @@ class _LoginScreenState extends State<LoginScreen>
                     decoration: TextDecoration.underline,
                     decorationColor: kBlue,
                   ),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () {
+                      // TODO: navigate to Terms of Service screen
+                    },
                 ),
                 const TextSpan(text: '\nand '),
                 TextSpan(
-                  text: 'Privacy policy',
+                  text: 'Privacy Policy',
                   style: TextStyle(
                     color: kBlue,
                     decoration: TextDecoration.underline,
                     decorationColor: kBlue,
                   ),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PrivacyPolicy(),
+                        ),
+                      );
+                    },
                 ),
               ],
             ),
