@@ -13,69 +13,148 @@ class PrivacyPolicy extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             customHeader(label: "Privacy Policy", icon: Icons.security),
 
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 16),
+
+                      const Text(
+                        "Our Privacy Policy",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Effective Date: 30/10/2025\nLast Updated: 10/11/2025",
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 20),
+
+                      const Text(
+                        "ATOMIOT (“we,” “our,” or “us”) operates the Eagles Eye mobile and web application (“the App”) to help fleet managers monitor vehicle speed, performance, and driver behavior. This Privacy Policy explains how we collect, use, protect, and share your information when you use our app and services.",
+                        style: TextStyle(fontSize: 14, height: 1.5),
+                      ),
+
                       const SizedBox(height: 24),
+
                       _buildSection(
                         icon: Icons.data_usage,
-                        title: 'Information We Collect',
+                        title: "1. Information We Collect",
                         content: [
-                          '• Phone number for account login',
-                          '• Encrypted password for security',
-                          '• Speed governor settings',
-                          '• Vehicle identification data',
-                          '• Usage statistics and preferences',
+                          "• Personal Information: Name, phone number, email address, and account login details when you register or contact us.",
+                          "• Device & Vehicle Data: GPS location, speed, diagnostic data (OBD-II), and driving behavior collected through the Eagles Eye device.",
+                          "• Usage Data: Log data, device identifiers, IP addresses, and app performance analytics.",
+                          "• Communication Data: Messages, support requests, or feedback sent through the app.",
                         ],
                       ),
+
                       const SizedBox(height: 20),
 
                       _buildSection(
-                        icon: Icons.how_to_reg,
-                        title: 'How We Use Your Information',
+                        icon: Icons.settings,
+                        title: "2. How We Use Your Information",
                         content: [
-                          '• Authenticate your account access',
-                          '• Manage speed governor configurations',
-                          '• Improve app functionality',
-                          '• Provide customer support',
-                          '• Ensure system security',
+                          "• Provide and improve our fleet management services.",
+                          "• Display real-time tracking and driver analytics.",
+                          "• Send alerts, notifications, or reports to authorized users.",
+                          "• Ensure safety, compliance, and accurate performance monitoring.",
+                          "• Communicate updates, support, or service-related information.",
                         ],
                       ),
+
                       const SizedBox(height: 20),
 
-                      // Data Security
+                      _buildSection(
+                        icon: Icons.share,
+                        title: "3. Data Sharing & Disclosure",
+                        content: [
+                          "• We do not sell or rent your personal data.",
+                          "• We may share limited information only when necessary:",
+                          "   - With your authorized organization or fleet manager.",
+                          "   - With service providers who help us operate and maintain the app.",
+                          "   - To comply with legal obligations or NTSA regulatory requirements.",
+                          "   - In case of security threats or fraud prevention.",
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
                       _buildSection(
                         icon: Icons.lock,
-                        title: 'Data Security',
+                        title: "4. Data Security",
                         content: [
-                          '• All data is encrypted in transit',
-                          '• Secure storage of personal information',
-                          '• Regular security audits',
-                          '• No sharing with third parties',
-                          '• Access controls and authentication',
+                          "• We use advanced security protocols, encryption (TLS 1.2+), and access controls to protect your data.",
+                          "• However, no online platform is 100% secure — we encourage users to safeguard their login credentials and devices.",
                         ],
                       ),
+
                       const SizedBox(height: 20),
 
-                      // Your Rights
                       _buildSection(
-                        icon: Icons.account_circle,
-                        title: 'Your Rights',
+                        icon: Icons.history,
+                        title: "5. Data Retention",
                         content: [
-                          '• Access your personal data',
-                          '• Update or correct information',
-                          '• Delete your account',
-                          '• Export your data',
-                          '• Contact support for questions',
+                          "• We retain your information only as long as necessary to provide our services, comply with legal obligations, or resolve disputes.",
+                          "• You may request data deletion by contacting us directly.",
                         ],
                       ),
-                      const SizedBox(height: 24),
+
+                      const SizedBox(height: 20),
+
+                      _buildSection(
+                        icon: Icons.verified_user,
+                        title: "6. Your Rights",
+                        content: [
+                          "• Access and review your personal data.",
+                          "• Request correction or deletion of inaccurate data.",
+                          "• Withdraw consent for certain processing activities.",
+                          "• Contact us for assistance or clarification regarding your data.",
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      _buildSection(
+                        icon: Icons.cookie,
+                        title: "7. Cookies & Tracking",
+                        content: [
+                          "• The app may use cookies or analytics tools to improve performance and user experience.",
+                          "• You can disable these in your browser or device settings, but some features may not function properly.",
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      _buildSection(
+                        icon: Icons.integration_instructions,
+                        title: "8. Third-Party Services",
+                        content: [
+                          "• Eagles Eye may integrate third-party APIs (e.g., Google Maps, Firebase) for enhanced functionality.",
+                          "• These services have their own privacy policies governing data use.",
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      _buildSection(
+                        icon: Icons.update,
+                        title: "9. Changes to This Policy",
+                        content: [
+                          "• We may update this Privacy Policy periodically.",
+                          "• Any changes will be posted within the app and on our website with the updated effective date.",
+                        ],
+                      ),
+
+                      const SizedBox(height: 30),
 
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -85,39 +164,45 @@ class PrivacyPolicy extends StatelessWidget {
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Contact Us',
+                          children: const [
+                            Text(
+                              "Contact Us",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'For privacy concerns or questions, contact us at:',
-                              style: TextStyle(fontSize: 14),
+                            SizedBox(height: 8),
+                            Text(
+                              "For privacy concerns or questions, contact us at:",
+                              style: TextStyle(fontSize: 16),
                             ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Email: privacy@speedgov.com',
+                            SizedBox(height: 8),
+                            Text(
+                              "Email: info@atomiot.co.ke",
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 16,
                                 color: Colors.blue,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 8),
                             Text(
-                              'Last updated: ${DateTime.now().toString().split(' ')[0]}',
+                              "Phone: +254 798 032 158",
                               style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
+                                fontSize: 16,
+                                color: Colors.blue,
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            SizedBox(height: 8),
+                            Text(
+                              "Nairobi, Kenya",
+                              style: TextStyle(fontSize: 16),
+                            ),
                           ],
                         ),
                       ),
+
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
@@ -129,7 +214,7 @@ class PrivacyPolicy extends StatelessWidget {
     );
   }
 
-  Widget _buildSection({
+  static Widget _buildSection({
     required IconData icon,
     required String title,
     required List<String> content,
@@ -150,7 +235,7 @@ class PrivacyPolicy extends StatelessWidget {
         const SizedBox(height: 12),
         ...content.map(
           (item) => Padding(
-            padding: const EdgeInsets.only(left: 28, bottom: 4),
+            padding: const EdgeInsets.only(left: 28, bottom: 6),
             child: Text(
               item,
               style: const TextStyle(fontSize: 14, height: 1.4),
