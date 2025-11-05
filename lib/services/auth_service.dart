@@ -21,6 +21,7 @@ class AuthService {
         'userId': data['userId'],
         'userName': data['userName'],
         'isLoggedin': true,
+        'userRole': data['user']['userRole'],
       });
     } catch (e) {
       print('Error storing tokens: $e');

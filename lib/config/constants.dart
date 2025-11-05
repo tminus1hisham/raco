@@ -10,7 +10,10 @@ const kRed = Color(0xFFE62727);
 const kSuccessGreen = Color(0xFF2dda94);
 const kLightGrey = Color(0xFFBDBDBD);
 
-const String BASE_URL = 'https://tracking-api.greenthumb.co.ke/v1/api';
-const String base_url = 'https://tracking-api.greenthumb.co.ke/api';
+// const String BASE_URL = 'https://tracking-api.greenthumb.co.ke/v1/api';
+// const String base_url = 'https://tracking-api.greenthumb.co.ke/api';
+
+const String BASE_URL = 'https://staging-api.ndai.africa/v1/api';
+const String base_url = 'https://staging-api.ndai.africa/api';
 
 const GOOGLE_API_KEY = "AIzaSyDRRo79vnVAKfnJtGXtCwftcTBpmal4upQ";

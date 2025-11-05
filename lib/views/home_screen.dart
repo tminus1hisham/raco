@@ -167,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
       140,
     );
     customIcons['blue'] = await _resizeAndLoadIcon('assets/blue_car.png', 70);
-    customIcons['red'] = await _resizeAndLoadIcon('assets/red_car.png', 70);
+    customIcons['red'] = await _resizeAndLoadIcon('assets/red_car.png', 90);
     setState(() {});
   }
 
@@ -937,7 +937,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
+                      Column(
                         children: [
                           Text(
                             device.numberPlate,

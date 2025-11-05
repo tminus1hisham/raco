@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/routes/routes.dart';
@@ -57,14 +59,32 @@ class _LoginScreenState extends State<LoginScreen>
     }
 
     final deviceInfoPlugin = DeviceInfoPlugin();
-    final androidInfo = await deviceInfoPlugin.androidInfo;
+
+    String brand = "Unknown";
+    String model = "Unknown";
+
+    try {
+      if (Platform.isAndroid) {
+        // Android device
+        final androidInfo = await deviceInfoPlugin.androidInfo;
+        brand = androidInfo.brand ?? "Android";
+        model = androidInfo.model ?? "Unknown Android Device";
+      } else if (Platform.isIOS) {
+        // iPhone or iPad
+        final iosInfo = await deviceInfoPlugin.iosInfo;
+        brand = "Apple";
+        model = iosInfo.utsname.machine ?? "iPhone";
+      }
+    } catch (e) {
+      print("Error getting device info: $e");
+    }
 
     authController.phoneNumber.value = utils.normalizePhoneNumber(
       _phoneNumberController.text,
     );
     authController.password.value = _passwordController.text;
-    authController.deviceModel.value = androidInfo.brand;
-    authController.userAgent.value = androidInfo.model;
+    authController.deviceModel.value = brand;
+    authController.userAgent.value = model;
     authController.ipAddress.value = userIp;
     authController.location.value = 'Nairobi';
 
@@ -80,6 +100,49 @@ class _LoginScreenState extends State<LoginScreen>
       );
     }
   }
+
+  // Future<void> _login() async {
+  //   if (!_loginKey.currentState!.validate()) {
+  //     return;
+  //   }
+  //
+  //   String? brand;
+  //   String? model;
+  //
+  //   final deviceInfoPlugin = DeviceInfoPlugin();
+  //
+  //   try {
+  //     final androidInfo = await deviceInfoPlugin.androidInfo;
+  //     brand = androidInfo.brand ?? "Unknown";
+  //     model = androidInfo.model ?? "Unknown";
+  //   } catch (e) {
+  //     brand = "Iphone";
+  //     model = "Iphone";
+  //   }
+  //
+  //   final androidInfo = await deviceInfoPlugin.androidInfo;
+  //
+  //   authController.phoneNumber.value = utils.normalizePhoneNumber(
+  //     _phoneNumberController.text,
+  //   );
+  //   authController.password.value = _passwordController.text;
+  //   authController.deviceModel.value = brand;
+  //   authController.userAgent.value = model;
+  //   authController.ipAddress.value = userIp;
+  //   authController.location.value = 'Nairobi';
+  //
+  //   bool success = await authController.login(context);
+  //
+  //   if (!success) {
+  //     await CustomAlertDialog(
+  //       context: context,
+  //       title: "Error",
+  //       message: "Failed to login, please check your credentials",
+  //       icon: "assets/animations/Failed.json",
+  //       buttonColor: kRed,
+  //     );
+  //   }
+  // }
 
   @override
   void initState() {

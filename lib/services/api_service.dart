@@ -447,4 +447,24 @@ class ApiService {
       throw Exception('An error occurred during creation: $e');
     }
   }
+
+  static Future<DevicesModel> fetchTechnicianDevices() async {
+    String token = await StorageService.getData('access_token');
+
+    final response = await http.get(
+      Uri.parse('$base_url/devices/get/technician/devices'),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return DevicesModel.fromJson(data);
+    } else {
+      _handleAuthError(response.statusCode);
+      throw Exception('Failed to load devices');
+    }
+  }
 }
