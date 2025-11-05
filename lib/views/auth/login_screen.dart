@@ -5,6 +5,7 @@ import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/settings/privacy_policy.dart';
+import 'package:atom/views/settings/terms_and_conditions.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
@@ -312,7 +313,12 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                   recognizer: TapGestureRecognizer()
                     ..onTap = () {
-                      // TODO: navigate to Terms of Service screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TermsAndConditions(),
+                        ),
+                      );
                     },
                 ),
                 const TextSpan(text: '\nand '),
