@@ -363,7 +363,14 @@ class _AccountScreenState extends State<AccountScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 10),
-                  customHeader(label: "Profile", icon: Icons.person),
+                  customHeader(
+                    label: "Profile",
+                    icon: Icons.person,
+                    showBackButton: true,
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
                   const SizedBox(height: 10),
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 20),

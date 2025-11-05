@@ -13,7 +13,14 @@ class AboutUs extends StatelessWidget {
         child: Column(
           children: [
             SizedBox(height: 10),
-            customHeader(label: "About Us", icon: Icons.info_outline),
+            customHeader(
+              label: "About Us",
+              icon: Icons.info_outline,
+              showBackButton: true,
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
             SizedBox(height: 10),
             Expanded(
               child: SingleChildScrollView(

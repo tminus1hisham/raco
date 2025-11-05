@@ -84,7 +84,14 @@ class _ChangePasswordState extends State<ChangePassword> {
               child: Column(
                 children: [
                   SizedBox(height: 10),
-                  customHeader(label: "Change Password", icon: Icons.security),
+                  customHeader(
+                    label: "Change Password",
+                    icon: Icons.security,
+                    showBackButton: true,
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
                   SizedBox(height: 10),
                   Expanded(
                     child: SingleChildScrollView(

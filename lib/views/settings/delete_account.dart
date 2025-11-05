@@ -86,6 +86,10 @@ class _DeleteAccountState extends State<DeleteAccount> {
                   customHeader(
                     label: "Delete Account",
                     icon: Icons.delete_outline_outlined,
+                    showBackButton: true,
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
                   ),
                   SizedBox(height: 10),
                   Expanded(

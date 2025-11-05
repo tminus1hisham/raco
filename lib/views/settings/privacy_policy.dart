@@ -14,7 +14,14 @@ class PrivacyPolicy extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 10),
-            customHeader(label: "Privacy Policy", icon: Icons.security),
+            customHeader(
+              label: "Privacy Policy",
+              icon: Icons.security,
+              showBackButton: true,
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
 
             Expanded(
               child: SingleChildScrollView(
