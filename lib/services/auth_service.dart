@@ -22,6 +22,7 @@ class AuthService {
         'userName': data['userName'],
         'isLoggedin': true,
         'userRole': data['user']['userRole'],
+        'userDbId': data['user']['id'],
       });
     } catch (e) {
       print('Error storing tokens: $e');
@@ -148,6 +149,10 @@ class AuthService {
   Future<bool> logoutUser() async {
     try {
       await StorageService.storeData({'isLoggedin': false});
+      await StorageService.removeData("userId");
+      await StorageService.removeData("userName");
+      await StorageService.removeData("userRole");
+      await StorageService.removeData("userDbId");
 
       return true;
     } catch (e) {

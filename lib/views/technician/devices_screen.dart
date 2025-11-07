@@ -1,7 +1,6 @@
 import 'package:atom/config/constants.dart';
-import 'package:atom/controllers/device_controller.dart';
+import 'package:atom/controllers/technician_device_controller.dart';
 import 'package:atom/views/cars/car_list_screen.dart';
-import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/widgets/cards/car_info_card.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +14,9 @@ class DevicesScreen extends StatefulWidget {
 }
 
 class _DevicesScreenState extends State<DevicesScreen> {
-  final DeviceController _controller = Get.put(DeviceController());
+  final TechnicianDeviceController _controller = Get.put(
+    TechnicianDeviceController(),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +70,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => CarListScreen(
+                                      isTechnician: true,
                                       label: "Online",
                                       devices: onlineDevices,
                                     ),
@@ -126,16 +128,16 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       currentSpeed: "${device.speed} km/h",
                       topSpeed: "",
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SelectedCarScreen(
-                              devices: device,
-                              carModel: device.make,
-                              licensePlate: device.numberPlate,
-                            ),
-                          ),
-                        );
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => SelectedCarScreen(
+                        //       devices: device.toDevice(),
+                        //       carModel: device.make,
+                        //       licensePlate: device.numberPlate,
+                        //     ),
+                        //   ),
+                        // );
                       },
                     );
                   },

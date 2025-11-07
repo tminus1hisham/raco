@@ -7,8 +7,14 @@ import 'package:flutter/material.dart';
 class CarListScreen extends StatefulWidget {
   final String label;
   final List devices;
+  final bool isTechnician;
 
-  const CarListScreen({super.key, required this.label, required this.devices});
+  const CarListScreen({
+    super.key,
+    required this.label,
+    required this.devices,
+    this.isTechnician = false,
+  });
 
   @override
   State<CarListScreen> createState() => _CarListScreenState();
@@ -64,16 +70,17 @@ class _CarListScreenState extends State<CarListScreen> {
                           currentSpeed: "${device.speed} km/h",
                           topSpeed: "",
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SelectedCarScreen(
-                                  devices: device,
-                                  carModel: device.make,
-                                  licensePlate: device.numberPlate,
+                            if (!widget.isTechnician)
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SelectedCarScreen(
+                                    devices: device,
+                                    carModel: device.make,
+                                    licensePlate: device.numberPlate,
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
                           },
                         );
                       },

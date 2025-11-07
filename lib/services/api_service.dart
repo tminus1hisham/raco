@@ -9,6 +9,7 @@ import 'package:atom/models/playback_model.dart';
 import 'package:atom/models/profile_picture_model.dart';
 import 'package:atom/models/register_device_model.dart';
 import 'package:atom/models/report_model.dart';
+import 'package:atom/models/technician_device_model.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/views/auth/login_screen.dart';
 import 'package:get/get.dart';
@@ -448,11 +449,12 @@ class ApiService {
     }
   }
 
-  static Future<DevicesModel> fetchTechnicianDevices() async {
+  static Future<TechnicianDevicesModel> fetchTechnicianDevices() async {
     String token = await StorageService.getData('access_token');
+    int userId = await StorageService.getData('userDbId');
 
     final response = await http.get(
-      Uri.parse('$base_url/devices/get/technician/devices'),
+      Uri.parse('$base_url/devices/get/technician/devices?id=$userId'),
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",
@@ -460,11 +462,33 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return DevicesModel.fromJson(data);
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is List) {
+        final devices = decoded
+            .map((e) => TechnicianDevice.fromJson(e as Map<String, dynamic>))
+            .toList();
+
+        return TechnicianDevicesModel(
+          devices: devices,
+          totalDevices: devices.length,
+          onlineDevices: devices.where((d) => d.isDeviceOnline).length,
+          offlineDevices: devices.where((d) => !d.isDeviceOnline).length,
+          activeCertificates: devices
+              .where((d) => d.certificateActiveStatus)
+              .length,
+          expiredCertificates: devices
+              .where((d) => !d.certificateActiveStatus)
+              .length,
+          idle: 0,
+          stopped: 0,
+          inMotion: 0,
+        );
+      }
+
+      return TechnicianDevicesModel.fromJson(decoded);
     } else {
-      _handleAuthError(response.statusCode);
-      throw Exception('Failed to load devices');
+      throw Exception('Failed to fetch devices: ${response.statusCode}');
     }
   }
 }
