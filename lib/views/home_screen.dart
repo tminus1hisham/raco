@@ -46,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _pollingTimer;
   int _countdown = 10;
   bool _isRefreshing = false;
+  bool _hasFitAllCars = false;
 
   @override
   void initState() {
@@ -77,8 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _filteredDevices = devices;
       _isRefreshing = false;
     });
-
-    _fitAllCarsOnMap(devices);
   }
 
   // Future<void> _refreshData() async {
@@ -97,21 +96,42 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initializeData() async {
     await _loadCustomIcons();
-
     await _controller.fetchDevices();
 
-    // Update filtered devices
     final devices = _controller.devicesModel.value?.devices ?? [];
-    setState(() {
-      _filteredDevices = devices;
-    });
 
     setState(() {
+      _filteredDevices = devices;
       _isDataReady = true;
     });
 
     _getUserLocation();
+
+    if (!_hasFitAllCars && devices.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fitAllCarsOnMap(devices);
+        _hasFitAllCars = true;
+      });
+    }
   }
+
+  // Future<void> _initializeData() async {
+  //   await _loadCustomIcons();
+  //
+  //   await _controller.fetchDevices();
+  //
+  //   // Update filtered devices
+  //   final devices = _controller.devicesModel.value?.devices ?? [];
+  //   setState(() {
+  //     _filteredDevices = devices;
+  //   });
+  //
+  //   setState(() {
+  //     _isDataReady = true;
+  //   });
+  //
+  //   _getUserLocation();
+  // }
 
   Future<BitmapDescriptor> _resizeAndLoadIcon(
     String assetPath,
@@ -845,6 +865,26 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Colors.grey[700],
             ),
             onPressed: _showNextVehicle,
+          ),
+        ),
+        SizedBox(height: 10),
+        Container(
+          width: 45,
+          height: 45,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: IconButton(
+            icon: Icon(Icons.center_focus_strong, color: Colors.grey[700]),
+            onPressed: () => _fitAllCarsOnMap(_filteredDevices),
           ),
         ),
         SizedBox(height: 10),
