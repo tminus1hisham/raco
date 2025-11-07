@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/routes/routes.dart';
+import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/settings/privacy_policy.dart';
 import 'package:atom/views/settings/terms_and_conditions.dart';
@@ -30,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   final utils = Utils();
   bool isAvailable = false;
+  String phoneNumber = '';
 
   final AuthController authController = Get.put(AuthController());
   final GlobalKey<FormState> _loginKey = GlobalKey<FormState>();
@@ -46,12 +48,17 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void fetchIp() async {
+    final savedPhone = await StorageService.getData('phone');
     final ip = await utils.getLocalIpAddress();
-    if (ip != null) {
-      setState(() {
+
+    setState(() {
+      if (savedPhone != null && savedPhone.isNotEmpty) {
+        _phoneNumberController.text = savedPhone;
+      }
+      if (ip != null) {
         userIp = ip;
-      });
-    }
+      }
+    });
   }
 
   Future<void> _login() async {
@@ -101,49 +108,6 @@ class _LoginScreenState extends State<LoginScreen>
       );
     }
   }
-
-  // Future<void> _login() async {
-  //   if (!_loginKey.currentState!.validate()) {
-  //     return;
-  //   }
-  //
-  //   String? brand;
-  //   String? model;
-  //
-  //   final deviceInfoPlugin = DeviceInfoPlugin();
-  //
-  //   try {
-  //     final androidInfo = await deviceInfoPlugin.androidInfo;
-  //     brand = androidInfo.brand ?? "Unknown";
-  //     model = androidInfo.model ?? "Unknown";
-  //   } catch (e) {
-  //     brand = "Iphone";
-  //     model = "Iphone";
-  //   }
-  //
-  //   final androidInfo = await deviceInfoPlugin.androidInfo;
-  //
-  //   authController.phoneNumber.value = utils.normalizePhoneNumber(
-  //     _phoneNumberController.text,
-  //   );
-  //   authController.password.value = _passwordController.text;
-  //   authController.deviceModel.value = brand;
-  //   authController.userAgent.value = model;
-  //   authController.ipAddress.value = userIp;
-  //   authController.location.value = 'Nairobi';
-  //
-  //   bool success = await authController.login(context);
-  //
-  //   if (!success) {
-  //     await CustomAlertDialog(
-  //       context: context,
-  //       title: "Error",
-  //       message: "Failed to login, please check your credentials",
-  //       icon: "assets/animations/Failed.json",
-  //       buttonColor: kRed,
-  //     );
-  //   }
-  // }
 
   @override
   void initState() {
