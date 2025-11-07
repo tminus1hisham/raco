@@ -68,9 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshData() async {
-    setState(() {
-      _isRefreshing = true;
-    });
+    setState(() => _isRefreshing = true);
 
     await _controller.fetchDevices(silent: true);
 
@@ -79,7 +77,23 @@ class _HomeScreenState extends State<HomeScreen> {
       _filteredDevices = devices;
       _isRefreshing = false;
     });
+
+    _fitAllCarsOnMap(devices);
   }
+
+  // Future<void> _refreshData() async {
+  //   setState(() {
+  //     _isRefreshing = true;
+  //   });
+  //
+  //   await _controller.fetchDevices(silent: true);
+  //
+  //   final devices = _controller.devicesModel.value?.devices ?? [];
+  //   setState(() {
+  //     _filteredDevices = devices;
+  //     _isRefreshing = false;
+  //   });
+  // }
 
   Future<void> _initializeData() async {
     await _loadCustomIcons();
@@ -159,6 +173,43 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mapController != null) {
       mapController!.showMarkerInfoWindow(MarkerId(device.numberPlate));
     }
+  }
+
+  void _fitAllCarsOnMap(List<Device> devices) {
+    if (mapController == null || devices.isEmpty) return;
+
+    double? minLat, maxLat, minLng, maxLng;
+
+    for (var device in devices) {
+      final lat = double.tryParse(device.latitude);
+      final lng = double.tryParse(device.longitude);
+
+      if (lat == null || lng == null) continue;
+
+      if (minLat == null) {
+        minLat = maxLat = lat;
+        minLng = maxLng = lng;
+      } else {
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat!) maxLat = lat;
+        if (lng < minLng!) minLng = lng;
+        if (lng > maxLng!) maxLng = lng;
+      }
+    }
+
+    if (minLat == null || minLng == null || maxLat == null || maxLng == null) {
+      return;
+    }
+
+    final bounds = LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+
+    // Animate camera to show all markers with some padding
+    mapController!.animateCamera(
+      CameraUpdate.newLatLngBounds(bounds, 100), // 100 = padding in pixels
+    );
   }
 
   Future<void> _loadCustomIcons() async {
@@ -516,8 +567,14 @@ class _HomeScreenState extends State<HomeScreen> {
       tiltGesturesEnabled: true,
       rotateGesturesEnabled: true,
       markers: deviceMarkers.union(markers),
+
       onMapCreated: (GoogleMapController controller) {
         mapController = controller;
+        if (devices.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _fitAllCarsOnMap(devices.cast<Device>());
+          });
+        }
       },
     );
   }
