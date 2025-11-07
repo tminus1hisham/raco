@@ -47,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _countdown = 10;
   bool _isRefreshing = false;
   bool _hasFitAllCars = false;
+  String? _trackedCarPlate;
 
   @override
   void initState() {
@@ -70,7 +71,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _refreshData() async {
     setState(() => _isRefreshing = true);
-
     await _controller.fetchDevices(silent: true);
 
     final devices = _controller.devicesModel.value?.devices ?? [];
@@ -78,21 +78,20 @@ class _HomeScreenState extends State<HomeScreen> {
       _filteredDevices = devices;
       _isRefreshing = false;
     });
-  }
 
-  // Future<void> _refreshData() async {
-  //   setState(() {
-  //     _isRefreshing = true;
-  //   });
-  //
-  //   await _controller.fetchDevices(silent: true);
-  //
-  //   final devices = _controller.devicesModel.value?.devices ?? [];
-  //   setState(() {
-  //     _filteredDevices = devices;
-  //     _isRefreshing = false;
-  //   });
-  // }
+    // 🔁 Keep following tracked car
+    if (_trackedCarPlate != null) {
+      final trackedDevice = devices.firstWhereOrNull(
+        (d) => d.numberPlate == _trackedCarPlate,
+      );
+
+      if (trackedDevice != null && mapController != null) {
+        final lat = double.tryParse(trackedDevice.latitude) ?? -1.2842;
+        final lng = double.tryParse(trackedDevice.longitude) ?? 36.8163;
+        mapController!.animateCamera(CameraUpdate.newLatLng(LatLng(lat, lng)));
+      }
+    }
+  }
 
   Future<void> _initializeData() async {
     await _loadCustomIcons();
@@ -604,10 +603,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final lat = double.tryParse(device.latitude) ?? -1.2842;
     final lng = double.tryParse(device.longitude) ?? 36.8163;
+
     mapController!.animateCamera(
       CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16.0),
     );
+
+    // Start tracking this car
+    setState(() {
+      _trackedCarPlate = device.numberPlate;
+    });
   }
+
+  // void _focusOnSearchedCar(Device device) {
+  //   if (mapController == null) return;
+  //
+  //   final lat = double.tryParse(device.latitude) ?? -1.2842;
+  //   final lng = double.tryParse(device.longitude) ?? 36.8163;
+  //   mapController!.animateCamera(
+  //     CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16.0),
+  //   );
+  // }
 
   Widget _buildSearchBar() {
     return Container(
@@ -671,6 +686,7 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() {
                 _filteredDevices =
                     _controller.devicesModel.value?.devices ?? [];
+                _trackedCarPlate = null;
               });
             },
           ),
