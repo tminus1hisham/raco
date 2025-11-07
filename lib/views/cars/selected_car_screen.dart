@@ -256,7 +256,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool isVehicleActive = widget.devices.engineStart;
+    bool isVehicleActive = widget.devices.ignitionStatus == 0;
     return Obx(
       () => Scaffold(
         backgroundColor: kBgGrey,
@@ -523,17 +523,17 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                       },
                                     ),
                                     _buildDivider(),
-                                    _buildCommandItem(
-                                      showBanner: _isCertificateExpired(
-                                        widget.devices.certificateExpirey,
-                                      ),
-                                      title: 'Certificate',
-                                      subtitle:
-                                          'Expiry: ${_utils.formatDate(widget.devices.certificateExpirey)}',
-                                      onTap: () {
-                                        _showPlanBottomSheet(context);
-                                      },
-                                    ),
+                                    // _buildCommandItem(
+                                    //   showBanner: _isCertificateExpired(
+                                    //     widget.devices.certificateExpirey,
+                                    //   ),
+                                    //   title: 'Certificate',
+                                    //   subtitle:
+                                    //       'Expiry: ${_utils.formatDate(widget.devices.certificateExpirey)}',
+                                    //   onTap: () {
+                                    //     _showPlanBottomSheet(context);
+                                    //   },
+                                    // ),
                                   ],
                                 ),
                               ),

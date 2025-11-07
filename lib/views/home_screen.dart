@@ -833,7 +833,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildVehicleBottomSheet(Device device) {
-    bool isVehicleActive = device.engineStart;
+    bool isVehicleActive = device.ignitionStatus == 0;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.43,
@@ -1046,7 +1046,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
                       Text(
-                        "${device.ignitionStatus == 1 ? "ON" : "OFF"}",
+                        "${device.ignitionStatus == 0 ? "ON" : "OFF"}",
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.black87,
