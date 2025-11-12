@@ -488,6 +488,7 @@ class ApiService {
 
       return TechnicianDevicesModel.fromJson(decoded);
     } else {
+      _handleAuthError(response.statusCode);
       throw Exception('Failed to fetch devices: ${response.statusCode}');
     }
   }
