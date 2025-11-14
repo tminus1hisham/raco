@@ -43,7 +43,13 @@ class PdfService {
 
           /// Report Table
           pw.Table.fromTextArray(
-            headers: ['Date', 'Time', 'Speed (km/h)', 'Wire Cut', 'Battery'],
+            headers: [
+              'Date',
+              'Time',
+              'Speed (km/h)',
+              'Speed Signal',
+              'Battery',
+            ],
             data: reports.map((r) {
               final date = DateFormat(
                 'yyyy-MM-dd',

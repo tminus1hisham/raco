@@ -230,7 +230,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
           const SizedBox(height: 4),
           Text("Speed: ${record.spd ?? "--"} km/h"),
-          Text("Wire Cut: ${record.wr == 1 ? "Yes" : "No"}"),
+          Text("Speed Signal: ${record.wr == 1 ? "Yes" : "No"}"),
           Text("Battery: ${record.bt == 1 ? "Disconnected" : "Connected"}"),
           Text("IMEI: ${record.imei ?? "--"}"),
         ],
