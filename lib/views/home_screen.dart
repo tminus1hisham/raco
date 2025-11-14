@@ -1148,37 +1148,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   SizedBox(height: 10),
 
-                  Row(
-                    children: [
-                      Text(
-                        "Engine: ",
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                      ),
-                      Text(
-                        "${device.ignitionStatus == 0 ? "ON" : "OFF"}",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Spacer(),
-                    ],
-                  ),
-
                   SizedBox(height: 10),
 
                   Row(
                     children: [
                       Text(
-                        "Average Speed:",
+                        "Speed: ${device.speed} Km/h",
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
                       Spacer(),
-                      Text(
-                        "Top Speed: ${device.speed}",
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                      ),
                     ],
                   ),
 
