@@ -60,6 +60,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
         icon: "assets/animations/Success.json",
         buttonColor: kSuccessGreen,
       );
+      Navigator.pop(context);
     } else {
       await CustomAlertDialog(
         context: context,

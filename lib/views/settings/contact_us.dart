@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class ContactUs extends StatefulWidget {
   const ContactUs({super.key});
@@ -14,13 +15,20 @@ class ContactUs extends StatefulWidget {
 
 class _ContactUsState extends State<ContactUs> {
   void _launchEmail() async {
-    final Uri emailUri = Uri(
-      scheme: 'mailto',
-      path: 'info@atomiot.co.ke',
-      query: 'subject=Inquiry from AtomIoT App',
+    final email = 'info@atomiot.live';
+    final subject = 'Inquiry';
+
+    final url = "mailto:$email?subject=${Uri.encodeComponent(subject)}";
+
+    final bool launched = await launchUrlString(
+      url,
+      mode: LaunchMode.externalApplication,
     );
-    if (await canLaunchUrl(emailUri)) {
-      await launchUrl(emailUri);
+
+    if (!launched) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No email app found on this device')),
+      );
     }
   }
 
@@ -89,10 +97,8 @@ class _ContactUsState extends State<ContactUs> {
                   _buildContactCard(
                     icon: Icons.email_rounded,
                     title: 'Email',
-                    content: 'info@atomiot.co.ke',
+                    content: 'info@atomiot.live',
                     onTap: _launchEmail,
-                    onLongPress: () =>
-                        _copyToClipboard('info@atomiot.co.ke', 'Email'),
                   ),
                   SizedBox(height: 16),
                   _buildContactCard(
@@ -100,8 +106,6 @@ class _ContactUsState extends State<ContactUs> {
                     title: 'Phone',
                     content: '+254798 032 158',
                     onTap: _launchPhone,
-                    onLongPress: () =>
-                        _copyToClipboard('+254 798 032 158', 'Phone number'),
                   ),
                 ],
               ),
@@ -117,13 +121,11 @@ class _ContactUsState extends State<ContactUs> {
     required String title,
     required String content,
     required VoidCallback onTap,
-    required VoidCallback onLongPress,
   }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: EdgeInsets.all(16),

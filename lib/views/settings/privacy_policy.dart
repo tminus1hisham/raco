@@ -186,7 +186,7 @@ class PrivacyPolicy extends StatelessWidget {
                             ),
                             SizedBox(height: 8),
                             Text(
-                              "Email: info@atomiot.co.ke",
+                              "Email: info@atomiot.live",
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.blue,
