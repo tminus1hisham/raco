@@ -1,12 +1,12 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
-import 'package:atom/views/manager_screen.dart';
 import 'package:atom/views/settings/about_us.dart';
 import 'package:atom/views/settings/account_screen.dart';
 import 'package:atom/views/settings/change_password.dart';
 import 'package:atom/views/settings/contact_us.dart';
 import 'package:atom/views/settings/delete_account.dart';
 import 'package:atom/views/settings/privacy_policy.dart';
+import 'package:atom/views/transport%20%20managers/manager_screen.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/modal/custom_alert.dart';
 import 'package:flutter/cupertino.dart';

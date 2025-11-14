@@ -1,8 +1,10 @@
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/device_controller.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/cards/manager_car_card.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class ManagerCarListScreen extends StatefulWidget {
   @override
@@ -18,54 +20,29 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
   bool _selectAllMode = false;
   String _filter = 'all';
 
+  final DeviceController _controller = Get.find<DeviceController>();
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _initializeCars();
-  }
 
-  void _initializeCars() {
-    _allCars = [
-      Car(
-        id: '1',
-        licensePlate: 'KDF 001A',
-        carName: 'BMW X6',
-        isAssigned: true,
-      ),
-      Car(
-        id: '2',
-        licensePlate: 'KBB 002B',
-        carName: 'Isuzu NQR',
-        isAssigned: false,
-      ),
-      Car(
-        id: '3',
-        licensePlate: 'KCC 003C',
-        carName: 'Toyota Prado',
-        isAssigned: true,
-      ),
-      Car(
-        id: '4',
-        licensePlate: 'KDD 004D',
-        carName: 'Mercedes Benz',
-        isAssigned: false,
-      ),
-      Car(
-        id: '5',
-        licensePlate: 'KEE 005E',
-        carName: 'Ford Ranger',
-        isAssigned: true,
-      ),
-      Car(
-        id: '6',
-        licensePlate: 'KFF 006F',
-        carName: 'Nissan Navara',
-        isAssigned: false,
-      ),
-    ];
+    Future.delayed(Duration.zero, () {
+      final devices = _controller.devicesModel.value?.devices ?? [];
 
-    _assignedCars = _allCars.where((car) => car.isAssigned).toList();
+      setState(() {
+        _allCars = devices.map((d) {
+          return Car(
+            id: d.id.toString(),
+            licensePlate: d.numberPlate,
+            carName: d.name,
+            isAssigned: d.isDeviceOnline,
+          );
+        }).toList();
+
+        _assignedCars = _allCars.where((car) => car.isAssigned).toList();
+      });
+    });
   }
 
   List<Car> get _currentCars {

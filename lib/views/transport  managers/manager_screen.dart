@@ -4,7 +4,7 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/utils/utils.dart';
-import 'package:atom/views/cars/manager_car_list.dart';
+import 'package:atom/views/transport%20%20managers/manager_car_list.dart';
 import 'package:atom/widgets/cards/manager_info_card.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
