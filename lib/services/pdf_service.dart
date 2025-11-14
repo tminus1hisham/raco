@@ -54,7 +54,7 @@ class PdfService {
                 time,
                 r.spd,
                 r.wr == 1 ? 'Yes' : 'No',
-                r.bt == 0 ? 'Cut' : 'Connected',
+                r.bt == 1 ? 'Disconnected' : 'Connected',
               ];
             }).toList(),
             headerStyle: pw.TextStyle(
