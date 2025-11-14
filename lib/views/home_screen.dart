@@ -1101,11 +1101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               SizedBox(width: 10),
                               Switch(
                                 value: isVehicleActive,
-                                onChanged: (bool value) {
-                                  setModalState(() {
-                                    isVehicleActive = value;
-                                  });
-                                },
+                                onChanged: (bool value) {},
                                 activeColor: Colors.green,
                                 activeTrackColor: Colors.green.withOpacity(0.3),
                                 inactiveThumbColor: Colors.grey,
