@@ -36,6 +36,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen> {
   double _bearing = 0.0;
   String speed = '';
   String numberPlate = '';
+  double _currentZoom = 15.0;
 
   StreamSubscription? _mqttSubscription;
 
@@ -114,7 +115,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen> {
 
       mapController?.animateCamera(
         CameraUpdate.newCameraPosition(
-          CameraPosition(target: position, zoom: 15),
+          CameraPosition(target: position, zoom: _currentZoom),
         ),
       );
 
@@ -179,8 +180,11 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen> {
                   child: GoogleMap(
                     initialCameraPosition: CameraPosition(
                       target: position,
-                      zoom: 15,
+                      zoom: _currentZoom,
                     ),
+                    onCameraMove: (CameraPosition position) {
+                      _currentZoom = position.zoom;
+                    },
                     markers: {
                       Marker(
                         markerId: const MarkerId("vehicle_marker"),

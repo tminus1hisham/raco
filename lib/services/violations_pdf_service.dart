@@ -63,7 +63,6 @@ class ViolationsPdfService {
 
           pw.SizedBox(height: 30),
 
-          /// Footer with generated date and time
           pw.Align(
             alignment: pw.Alignment.centerRight,
             child: pw.Column(
