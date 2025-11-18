@@ -58,6 +58,8 @@ class _CarListScreenState extends State<CarListScreen> {
                         final device = devices[index];
 
                         return CarInfoCard(
+                          expiryDate: device.certificateExpirey,
+                          isAdmin: true,
                           carModel: "${device.type} ${device.make}",
                           licensePlate: device.numberPlate,
                           status: device.isDeviceOnline ? "Online" : "Offline",

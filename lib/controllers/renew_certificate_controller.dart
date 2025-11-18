@@ -18,6 +18,7 @@ class RenewCertificateController extends GetxController {
     String numberPlate,
     String phoneNumber,
     int amount,
+    int planId,
   ) async {
     isLoading.value = true;
 
@@ -26,6 +27,7 @@ class RenewCertificateController extends GetxController {
         numberPlate,
         phoneNumber,
         amount,
+        planId,
       );
 
       if (result != null && result['ResponseCode'] == '0') {

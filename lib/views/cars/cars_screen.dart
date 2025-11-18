@@ -1,5 +1,6 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/device_controller.dart';
+import 'package:atom/controllers/renew_certificate_controller.dart';
 import 'package:atom/views/cars/car_list_screen.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/widgets/cards/car_info_card.dart';
@@ -16,6 +17,9 @@ class CarsScreen extends StatefulWidget {
 
 class _CarsScreenState extends State<CarsScreen> {
   final DeviceController _controller = Get.put(DeviceController());
+  final RenewCertificateController _renewCertificateController = Get.put(
+    RenewCertificateController(),
+  );
 
   @override
   void initState() {
@@ -128,6 +132,8 @@ class _CarsScreenState extends State<CarsScreen> {
                       itemBuilder: (context, index) {
                         final device = devices[index];
                         return CarInfoCard(
+                          expiryDate: device.certificateExpirey,
+                          isAdmin: true,
                           carModel: "${device.type} ${device.make}",
                           licensePlate: device.numberPlate,
                           status: device.isDeviceOnline ? "Online" : "Offline",
@@ -159,7 +165,8 @@ class _CarsScreenState extends State<CarsScreen> {
               ),
             ),
           ),
-          if (_controller.isLoading.value) ...[
+          if (_controller.isLoading.value ||
+              _renewCertificateController.isLoading.value) ...[
             Container(
               color: Colors.black.withOpacity(0.3),
               child: Center(

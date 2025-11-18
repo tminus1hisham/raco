@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:atom/config/constants.dart';
 import 'package:atom/models/geofence_model.dart';
@@ -23,6 +24,15 @@ class ApiService {
     if (statusCode == 403 || statusCode == 401) {
       Get.offAll(() => LoginScreen());
     }
+  }
+
+  static String generateBookingId({int length = 12}) {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => chars[random.nextInt(chars.length)],
+    ).join();
   }
 
   Future<Map<String, dynamic>?> fetchUserData() async {
@@ -497,20 +507,24 @@ class ApiService {
     String numberPlate,
     String phoneNumber,
     int amount,
+    int planId,
   ) async {
+    String bookingId = generateBookingId();
+
     final response = await http.get(
       Uri.parse(
         'http://payments.atomiot.live/atomiot-express/initiate_stk_push.php'
-        '?stk_amount=$amount'
+        '?stk_amount=${1}'
         '&stk_phone_number=$phoneNumber'
-        '&stk_account_reference=$numberPlate',
+        '&stk_account_reference=$numberPlate'
+        '&bookingId=$bookingId'
+        '&planId=$planId',
       ),
       headers: {"Content-Type": "application/json"},
     );
 
     if (response.statusCode == 200) {
       final body = response.body.trim();
-
       try {
         return jsonDecode(body) as Map<String, dynamic>;
       } catch (_) {
@@ -542,24 +556,4 @@ class ApiService {
     }
     return result;
   }
-
-  // static Map<String, dynamic> _parsePhpArray(String raw) {
-  //   raw = raw
-  //       .replaceAll('Array', '')
-  //       .replaceAll('(', '')
-  //       .replaceAll(')', '')
-  //       .trim();
-  //
-  //   final Map<String, dynamic> result = {};
-  //   for (var line in raw.split('\n')) {
-  //     line = line.trim();
-  //     if (line.contains('=>')) {
-  //       final parts = line.split('=>');
-  //       if (parts.length >= 2) {
-  //         result[parts[0].trim()] = parts[1].trim();
-  //       }
-  //     }
-  //   }
-  //   return result;
-  // }
 }
