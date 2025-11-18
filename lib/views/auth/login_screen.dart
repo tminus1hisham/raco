@@ -42,6 +42,8 @@ class _LoginScreenState extends State<LoginScreen>
     List<BiometricType> availableBiometrics = await _auth
         .getAvailableBiometrics();
 
+    if (!mounted) return;
+
     setState(() {
       isAvailable = canCheck && isSupported && availableBiometrics.isNotEmpty;
     });

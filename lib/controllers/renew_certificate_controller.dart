@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 
 class RenewCertificateController extends GetxController {
   var isLoading = false.obs;
-  final ApiService _apiService = ApiService();
   var plans = <PlanModel>[].obs;
 
   @override
@@ -16,16 +15,20 @@ class RenewCertificateController extends GetxController {
 
   Future<bool> renewCertificate(
     BuildContext context,
-    List<String> plateNumbers,
+    String numberPlate,
+    String phoneNumber,
+    int amount,
   ) async {
     isLoading.value = true;
+
     try {
-      final result = await _apiService.renewCertificate(plateNumbers);
-      if (result != null) {
-        return true;
-      } else {
-        return false;
-      }
+      final result = await ApiService.makePayment(
+        numberPlate,
+        phoneNumber,
+        amount,
+      );
+
+      return result != null;
     } catch (e) {
       Get.snackbar("Error", e.toString());
       return false;
@@ -36,14 +39,14 @@ class RenewCertificateController extends GetxController {
 
   Future<void> fetchPlans() async {
     try {
-      isLoading(true);
+      isLoading.value = true;
 
       final fetchedPlans = await ApiService.fetchPlans();
       plans.assignAll(fetchedPlans);
     } catch (e) {
       print("Error fetching plans: $e");
     } finally {
-      isLoading(false);
+      isLoading.value = false;
     }
   }
 }

@@ -2,6 +2,7 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/renew_certificate_controller.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/routes/routes.dart';
+import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/cars/commands.dart';
 import 'package:atom/views/cars/driver_behaviour.dart';
@@ -12,6 +13,9 @@ import 'package:atom/views/playback_screen.dart';
 import 'package:atom/views/reports_screen.dart';
 import 'package:atom/views/violations_screen.dart';
 import 'package:atom/widgets/custom_header.dart';
+import 'package:atom/widgets/inputs/custom_input.dart';
+import 'package:atom/widgets/modal/custom_alert.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -34,10 +38,27 @@ class SelectedCarScreen extends StatefulWidget {
 
 class _SelectedCarScreenState extends State<SelectedCarScreen> {
   final _utils = Utils();
+  final TextEditingController _phoneNumberController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPhoneNumber();
+  }
 
   final RenewCertificateController _controller = Get.put(
     RenewCertificateController(),
   );
+
+  void fetchPhoneNumber() async {
+    final savedPhone = await StorageService.getData('phone');
+
+    setState(() {
+      if (savedPhone != null && savedPhone.isNotEmpty) {
+        _phoneNumberController.text = savedPhone;
+      }
+    });
+  }
 
   bool _isCertificateExpired(String expiryDate) {
     try {
@@ -91,9 +112,11 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
               return StatefulBuilder(
                 builder: (context, setState) {
                   return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 20,
+                    padding: EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      top: 20,
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
                     ),
                     child: ListView(
                       controller: scrollController,
@@ -118,6 +141,20 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
+                        InputField(
+                          hintText: 'Phone number',
+                          prefixIcon: Icons.phone,
+                          controller: _phoneNumberController,
+                          isRequired: true,
+                          integerOnly: true,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return "This filed is required";
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 10),
 
                         ...List.generate(plans.length, (index) {
                           final plan = plans[index];
@@ -199,11 +236,24 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                           onPressed: selectedIndex != null
                               ? () {
                                   Navigator.pop(context);
-                                  _showPaymentConfirmation({
-                                    "title": plans[selectedIndex!].planName,
-                                    "price":
-                                        "KES ${plans[selectedIndex!].price}",
-                                  });
+
+                                  showCupertinoDialog(
+                                    context: context,
+                                    builder: (context) => ActionDialog(
+                                      title: "Renew Certificate",
+                                      message:
+                                          "Are you sure you want to renew certificate with ${plans[selectedIndex!].planName}?",
+                                      confirmText: "Renew",
+                                      cancelText: "Cancel",
+                                      onConfirm: () =>
+                                          _controller.renewCertificate(
+                                            context,
+                                            widget.licensePlate,
+                                            _phoneNumberController.text.trim(),
+                                            plans[selectedIndex!].price.toInt(),
+                                          ),
+                                    ),
+                                  );
                                 }
                               : null,
                           child: const Text(
@@ -221,36 +271,6 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
           );
         });
       },
-    );
-  }
-
-  void _showPaymentConfirmation(Map<String, String> plan) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Confirm Payment"),
-        content: Text(
-          "Proceed to pay for ${plan['title']} (${plan['price']})?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("Payment for ${plan['title']} successful!"),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            child: const Text("Pay"),
-          ),
-        ],
-      ),
     );
   }
 
@@ -519,17 +539,17 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                       },
                                     ),
                                     _buildDivider(),
-                                    // _buildCommandItem(
-                                    //   showBanner: _isCertificateExpired(
-                                    //     widget.devices.certificateExpirey,
-                                    //   ),
-                                    //   title: 'Certificate',
-                                    //   subtitle:
-                                    //       'Expiry: ${_utils.formatDate(widget.devices.certificateExpirey)}',
-                                    //   onTap: () {
-                                    //     _showPlanBottomSheet(context);
-                                    //   },
-                                    // ),
+                                    _buildCommandItem(
+                                      showBanner: _isCertificateExpired(
+                                        widget.devices.certificateExpirey,
+                                      ),
+                                      title: 'Certificate',
+                                      subtitle:
+                                          'Expiry: ${_utils.formatDate(widget.devices.certificateExpirey)}',
+                                      onTap: () {
+                                        _showPlanBottomSheet(context);
+                                      },
+                                    ),
                                   ],
                                 ),
                               ),

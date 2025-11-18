@@ -492,4 +492,52 @@ class ApiService {
       throw Exception('Failed to fetch devices: ${response.statusCode}');
     }
   }
+
+  static Future<Map<String, dynamic>?> makePayment(
+    String numberPlate,
+    String phoneNumber,
+    int amount,
+  ) async {
+    final response = await http.get(
+      Uri.parse(
+        'http://payments.atomiot.live/atomiot-express/initiate_stk_push.php'
+        '?stk_amount=$amount'
+        '&stk_phone_number=$phoneNumber'
+        '&stk_account_reference=$numberPlate',
+      ),
+      headers: {"Content-Type": "application/json"},
+    );
+
+    if (response.statusCode == 200) {
+      final body = response.body.trim();
+
+      try {
+        return jsonDecode(body) as Map<String, dynamic>;
+      } catch (_) {
+        return _parsePhpArray(body);
+      }
+    } else {
+      throw Exception('Failed: ${response.statusCode}');
+    }
+  }
+
+  static Map<String, dynamic> _parsePhpArray(String raw) {
+    raw = raw
+        .replaceAll('Array', '')
+        .replaceAll('(', '')
+        .replaceAll(')', '')
+        .trim();
+
+    final Map<String, dynamic> result = {};
+    for (var line in raw.split('\n')) {
+      line = line.trim();
+      if (line.contains('=>')) {
+        final parts = line.split('=>');
+        if (parts.length >= 2) {
+          result[parts[0].trim()] = parts[1].trim();
+        }
+      }
+    }
+    return result;
+  }
 }
