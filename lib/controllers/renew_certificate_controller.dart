@@ -28,7 +28,11 @@ class RenewCertificateController extends GetxController {
         amount,
       );
 
-      return result != null;
+      if (result != null && result['ResponseCode'] == '0') {
+        return true;
+      } else {
+        return false;
+      }
     } catch (e) {
       Get.snackbar("Error", e.toString());
       return false;

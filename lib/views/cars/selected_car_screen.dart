@@ -15,6 +15,7 @@ import 'package:atom/views/violations_screen.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/custom_alert.dart';
+import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -234,28 +235,58 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                             minimumSize: const Size(double.infinity, 50),
                           ),
                           onPressed: selectedIndex != null
-                              ? () {
+                              ? () async {
                                   Navigator.pop(context);
 
+                                  final parentContext = this.context;
+
                                   showCupertinoDialog(
-                                    context: context,
+                                    context: parentContext,
                                     builder: (context) => ActionDialog(
                                       title: "Renew Certificate",
                                       message:
-                                          "Are you sure you want to renew certificate with ${plans[selectedIndex!].planName}?",
+                                          "Do you want to proceed with renewing your certificate using the ${plans[selectedIndex!].planName}?",
                                       confirmText: "Renew",
                                       cancelText: "Cancel",
-                                      onConfirm: () =>
-                                          _controller.renewCertificate(
-                                            context,
-                                            widget.licensePlate,
-                                            _phoneNumberController.text.trim(),
-                                            plans[selectedIndex!].price.toInt(),
-                                          ),
+                                      onConfirm: () async {
+                                        bool success = await _controller
+                                            .renewCertificate(
+                                              parentContext,
+                                              widget.licensePlate,
+                                              _phoneNumberController.text
+                                                  .trim(),
+                                              plans[selectedIndex!].price
+                                                  .toInt(),
+                                            );
+
+                                        if (!mounted) return;
+
+                                        if (success) {
+                                          CustomAlertDialog(
+                                            context: parentContext,
+                                            title: "Success",
+                                            message:
+                                                "Payment request successful, please pay to renew your certificate",
+                                            icon:
+                                                "assets/animations/Success.json",
+                                            buttonColor: kSuccessGreen,
+                                          );
+                                        } else {
+                                          CustomAlertDialog(
+                                            context: parentContext,
+                                            title: "Error",
+                                            message: "Payment request failed.",
+                                            icon:
+                                                "assets/animations/Failed.json",
+                                            buttonColor: kRed,
+                                          );
+                                        }
+                                      },
                                     ),
                                   );
                                 }
                               : null,
+
                           child: const Text(
                             "Renew",
                             style: TextStyle(fontSize: 16, color: Colors.white),

@@ -534,10 +534,32 @@ class ApiService {
       if (line.contains('=>')) {
         final parts = line.split('=>');
         if (parts.length >= 2) {
-          result[parts[0].trim()] = parts[1].trim();
+          // Remove square brackets from key
+          final key = parts[0].trim().replaceAll('[', '').replaceAll(']', '');
+          result[key] = parts[1].trim();
         }
       }
     }
     return result;
   }
+
+  // static Map<String, dynamic> _parsePhpArray(String raw) {
+  //   raw = raw
+  //       .replaceAll('Array', '')
+  //       .replaceAll('(', '')
+  //       .replaceAll(')', '')
+  //       .trim();
+  //
+  //   final Map<String, dynamic> result = {};
+  //   for (var line in raw.split('\n')) {
+  //     line = line.trim();
+  //     if (line.contains('=>')) {
+  //       final parts = line.split('=>');
+  //       if (parts.length >= 2) {
+  //         result[parts[0].trim()] = parts[1].trim();
+  //       }
+  //     }
+  //   }
+  //   return result;
+  // }
 }
