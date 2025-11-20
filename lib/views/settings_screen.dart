@@ -1,5 +1,6 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
+import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/views/settings/about_us.dart';
 import 'package:atom/views/settings/account_screen.dart';
 import 'package:atom/views/settings/change_password.dart';
@@ -20,6 +21,20 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final AuthController _authController = Get.put(AuthController());
+  String? role;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRole();
+  }
+
+  Future<void> _fetchRole() async {
+    final fetchedRole = await StorageService.getData('userRole');
+    setState(() {
+      role = fetchedRole;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,20 +82,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           },
                         ),
                         _buildDivider(),
-                        _buildSettingsItem(
-                          icon: Icons.person_add_alt,
-                          title: 'Transport Managers',
-                          subtitle: 'Add and manage transport managers.',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ManagerScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildDivider(),
+                        if (role == 'SuperAdmin') ...[
+                          _buildSettingsItem(
+                            icon: Icons.person_add_alt,
+                            title: 'Transport Managers',
+                            subtitle: 'Add and manage transport managers.',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ManagerScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildDivider(),
+                        ],
                         _buildSettingsItem(
                           icon: Icons.delete_outline,
                           title: 'Delete Account',
