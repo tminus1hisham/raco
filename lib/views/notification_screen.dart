@@ -65,7 +65,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
             customHeader(label: "Notifications", icon: Icons.notifications),
             const SizedBox(height: 10),
 
-            // 👇 Add this "Mark all as read" button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(

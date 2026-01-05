@@ -514,7 +514,7 @@ class ApiService {
     final response = await http.get(
       Uri.parse(
         'http://payments.atomiot.live/atomiot-express/initiate_stk_push.php'
-        '?stk_amount=${1}'
+        '?stk_amount=$amount'
         '&stk_phone_number=$phoneNumber'
         '&stk_account_reference=$numberPlate'
         '&bookingId=$bookingId'

@@ -3,8 +3,8 @@ import 'package:atom/controllers/notifcations_controller.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/views/notification_screen.dart';
 import 'package:atom/views/settings_screen.dart';
-import 'package:atom/views/technician/create_device.dart';
 import 'package:atom/views/technician/devices_screen.dart';
+import 'package:atom/views/technician/technician_home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -46,7 +46,7 @@ class _DashboardState extends State<Dashboard> {
     setState(() {
       role = fetchedRole;
       _screens = [
-        role == 'SuperAdmin' ? HomeScreen() : TechnicianScreen(),
+        role == 'SuperAdmin' ? HomeScreen() : TechnicianHomeScreen(),
         role == 'SuperAdmin' ? NotificationScreen() : DevicesScreen(),
         SettingsScreen(),
       ];

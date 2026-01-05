@@ -424,7 +424,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
                                     ),
                                   ),
                                   child: const Text(
-                                    'renew certificate',
+                                    'Renew Certificate',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 13,
