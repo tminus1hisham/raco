@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:atom/views/technician/create_device.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -272,18 +274,47 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     }
   }
 
+  String _buffer = '';
+  // StreamSubscription<Uint8List>? _dataSubscription;
+
   void _startListeningForData() {
     _dataSubscription?.cancel();
-    _dataSubscription = _bluetooth.onDeviceDataReceived().listen((
-      Uint8List data,
-    ) {
-      // Convert Uint8List to String
-      final String receivedString = String.fromCharCodes(data);
-      setState(() {
-        _receivedData += receivedString;
-      });
-      debugPrint('Received data: $receivedString');
-    });
+
+    _dataSubscription = _bluetooth.onDeviceDataReceived().listen(
+      (Uint8List data) {
+        _buffer += utf8.decode(data);
+
+        debugPrint('Buffer: $_buffer');
+
+        // Detect complete JSON object
+        while (_buffer.contains('{') && _buffer.contains('}')) {
+          final start = _buffer.indexOf('{');
+          final end = _buffer.indexOf('}', start);
+
+          if (end == -1) break;
+
+          final jsonString = _buffer.substring(start, end + 1).trim();
+
+          // Remove processed data from buffer
+          _buffer = _buffer.substring(end + 1);
+
+          debugPrint('Received JSON: $jsonString');
+
+          setState(() {
+            _receivedData = jsonString;
+          });
+
+          // OPTIONAL: parse JSON
+          // final dataMap = jsonDecode(jsonString);
+        }
+      },
+      onError: (error) {
+        debugPrint('Bluetooth error: $error');
+      },
+      onDone: () {
+        debugPrint('Bluetooth disconnected');
+      },
+    );
   }
 
   Future<void> _sendCommand(String command) async {
@@ -301,7 +332,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   }
 
   Future<void> _retrieveDataFromDevice() async {
-    await _sendCommand('GetHeader');
+    await _sendCommand('GetORCAid>');
   }
 
   void _clearReceivedData() {
