@@ -99,7 +99,6 @@ class ApiService {
         "Content-Type": "application/json",
       },
     );
-
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return DevicesModel.fromJson(data);
@@ -248,7 +247,6 @@ class ApiService {
       throw Exception('An error occurred during creation: $e');
     }
   }
-
 
   static Future<bool> addUser(RegisterModel request) async {
     String token = await StorageService.getData('access_token');

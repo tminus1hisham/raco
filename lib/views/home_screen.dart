@@ -63,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _countdown--;
         } else {
           _refreshData();
-          _countdown = 10;
+          _countdown = 20;
         }
       });
     });
@@ -71,66 +71,64 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _refreshData() async {
     setState(() => _isRefreshing = true);
-    await _controller.fetchDevices(silent: true);
+    try {
+      await _controller.fetchDevices(silent: true);
 
-    final devices = _controller.devicesModel.value?.devices ?? [];
-    setState(() {
-      _filteredDevices = devices;
-      _isRefreshing = false;
-    });
+      final devices = _controller.devicesModel.value?.devices ?? [];
+      setState(() {
+        _filteredDevices = devices;
+        _isRefreshing = false;
+      });
 
-    // 🔁 Keep following tracked car
-    if (_trackedCarPlate != null) {
-      final trackedDevice = devices.firstWhereOrNull(
-        (d) => d.numberPlate == _trackedCarPlate,
-      );
+      // 🔁 Keep following tracked car
+      if (_trackedCarPlate != null) {
+        final trackedDevice = devices.firstWhereOrNull(
+          (d) => d.numberPlate == _trackedCarPlate,
+        );
 
-      if (trackedDevice != null && mapController != null) {
-        final lat = double.tryParse(trackedDevice.latitude) ?? -1.2842;
-        final lng = double.tryParse(trackedDevice.longitude) ?? 36.8163;
-        mapController!.animateCamera(CameraUpdate.newLatLng(LatLng(lat, lng)));
+        if (trackedDevice != null && mapController != null) {
+          final lat = double.tryParse(trackedDevice.latitude) ?? -1.2842;
+          final lng = double.tryParse(trackedDevice.longitude) ?? 36.8163;
+          mapController!.animateCamera(
+            CameraUpdate.newLatLng(LatLng(lat, lng)),
+          );
+        }
       }
+    } catch (e) {
+      setState(() => _isRefreshing = false);
+    } finally {
+      setState(() => _isRefreshing = false);
     }
   }
 
   Future<void> _initializeData() async {
-    await _loadCustomIcons();
-    await _controller.fetchDevices();
+    try {
+      await _loadCustomIcons();
+      await _controller.fetchDevices();
 
-    final devices = _controller.devicesModel.value?.devices ?? [];
+      final devices = _controller.devicesModel.value?.devices ?? [];
 
-    setState(() {
-      _filteredDevices = devices;
-      _isDataReady = true;
-    });
+      setState(() {
+        _filteredDevices = devices;
+        _isDataReady = true;
+      });
 
-    _getUserLocation();
+      _getUserLocation();
 
-    if (!_hasFitAllCars && devices.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _fitAllCarsOnMap(devices);
-        _hasFitAllCars = true;
+      if (!_hasFitAllCars && devices.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _fitAllCarsOnMap(devices);
+          _hasFitAllCars = true;
+        });
+      }
+    } catch (e) {
+      print('Error initializing data: $e');
+    } finally {
+      setState(() {
+        _isDataReady = true;
       });
     }
   }
-
-  // Future<void> _initializeData() async {
-  //   await _loadCustomIcons();
-  //
-  //   await _controller.fetchDevices();
-  //
-  //   // Update filtered devices
-  //   final devices = _controller.devicesModel.value?.devices ?? [];
-  //   setState(() {
-  //     _filteredDevices = devices;
-  //   });
-  //
-  //   setState(() {
-  //     _isDataReady = true;
-  //   });
-  //
-  //   _getUserLocation();
-  // }
 
   Future<BitmapDescriptor> _resizeAndLoadIcon(
     String assetPath,
@@ -166,8 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       selectedVehicleIndex =
-          (selectedVehicleIndex - 1 + devices.length) %
-          devices.length; // move to prev
+          (selectedVehicleIndex - 1 + devices.length) % devices.length;
     });
 
     _focusOnVehicle(selectedVehicleIndex);
@@ -226,9 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     // Animate camera to show all markers with some padding
-    mapController!.animateCamera(
-      CameraUpdate.newLatLngBounds(bounds, 100), // 100 = padding in pixels
-    );
+    mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
   }
 
   Future<void> _loadCustomIcons() async {
