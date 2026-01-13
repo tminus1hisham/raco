@@ -30,17 +30,45 @@ class AuthService {
   }
 
   Future<Map<String, dynamic>?> register(RegisterModel request) async {
+    String token = await StorageService.getData('access_token');
     try {
       final response = await http.post(
         Uri.parse('${BASE_URL}/auth/register'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: jsonEncode(request.toJson()),
       );
+      final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        await _storeTokens(data);
+        // await _storeTokens(data);
         return data;
+      } else {
+        throw Exception('Failed to register');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred during login: $e');
+    }
+  }
+
+  Future<bool> deleteUser(int id) async {
+    String token = await StorageService.getData('access_token');
+    try {
+      final response = await http.delete(
+        Uri.parse('${BASE_URL}/auth/delete/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        }
+      );
+
+      if (response.statusCode == 200) {
+        return true;
       } else {
         throw Exception('Failed to register');
       }

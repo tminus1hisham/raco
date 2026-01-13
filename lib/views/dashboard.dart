@@ -46,8 +46,8 @@ class _DashboardState extends State<Dashboard> {
     setState(() {
       role = fetchedRole;
       _screens = [
-        role == 'SuperAdmin' ? HomeScreen() : TechnicianHomeScreen(),
-        role == 'SuperAdmin' ? NotificationScreen() : DevicesScreen(),
+        role == 'Technician' ? TechnicianHomeScreen() : HomeScreen(),
+        role == 'Technician' ? DevicesScreen() : NotificationScreen(),
         SettingsScreen(),
       ];
     });
@@ -75,7 +75,7 @@ class _DashboardState extends State<Dashboard> {
         selectedFontSize: 16,
         unselectedFontSize: 14,
         items: <BottomNavigationBarItem>[
-          role == "SuperAdmin"
+          role != "Technician"
               ? const BottomNavigationBarItem(
                   icon: Icon(Icons.home),
                   label: 'Home',
@@ -84,7 +84,7 @@ class _DashboardState extends State<Dashboard> {
                   icon: Icon(Icons.directions_car),
                   label: 'Create Device',
                 ),
-          role == "SuperAdmin"
+          role != "Technician"
               ? BottomNavigationBarItem(
                   icon: Obx(() {
                     // count unread notifications

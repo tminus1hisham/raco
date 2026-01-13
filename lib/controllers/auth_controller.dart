@@ -35,7 +35,6 @@ class AuthController extends GetxController {
         userRole: userRole.value,
         adminPhoneNumber: adminPhoneNumber.value,
       );
-
       final result = await _authService.register(registerModel);
 
       if (result != null) {
@@ -76,6 +75,21 @@ class AuthController extends GetxController {
       }
     } catch (e) {
       debugPrint('Login failed: $e');
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> deleteUser(int id) async {
+    isLoading.value = true;
+
+    try {
+      final result = await _authService.deleteUser(id);
+
+      return result;
+    } catch (e) {
+      debugPrint('Delete user failed: $e');
       return false;
     } finally {
       isLoading.value = false;

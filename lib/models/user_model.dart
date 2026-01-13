@@ -53,6 +53,8 @@ class UserModel {
     this.updatedAt,
   });
 
+
+
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] ?? 0,
@@ -306,6 +308,39 @@ class DeviceModel {
       "vehiclebatteryvoltage": vehiclebatteryvoltage,
       "createdAt": createdAt?.toIso8601String(),
       "updatedAt": updatedAt?.toIso8601String(),
+    };
+  }
+}
+
+
+class RegisterModel {
+  final String fullName;
+  final String phoneNumber;
+  final String emailAddress;
+  final String userRole;
+  final String password;
+  final String userFirebaseToken;
+  final String adminPhoneNumber;
+
+  RegisterModel({
+    required this.fullName,
+    required this.phoneNumber,
+    required this.emailAddress,
+    required this.userRole,
+    required this.password,
+    required this.userFirebaseToken,
+    required this.adminPhoneNumber,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'fullName': fullName,
+      'phoneNumber': phoneNumber,
+      'emailAddress': emailAddress,
+      'userRole': userRole,
+      'password': password,
+      'userFirebaseToken': userFirebaseToken,
+      'adminPhoneNumber': adminPhoneNumber,
     };
   }
 }

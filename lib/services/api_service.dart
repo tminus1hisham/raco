@@ -12,6 +12,7 @@ import 'package:atom/models/register_device_model.dart';
 import 'package:atom/models/report_model.dart';
 import 'package:atom/models/technician_device_model.dart';
 import 'package:atom/models/vehicle_model.dart';
+import 'package:atom/models/user_model.dart';
 import 'package:atom/views/auth/login_screen.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -105,6 +106,26 @@ class ApiService {
     } else {
       _handleAuthError(response.statusCode);
       throw Exception('Failed to load devices');
+    }
+  }
+
+  static Future<List<UserModel>> fetchUsers() async {
+    String token = await StorageService.getData('access_token');
+
+    final response = await http.get(
+      Uri.parse('$BASE_URL/auth/get/users'),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((e) => UserModel.fromJson(e)).toList();
+    } else {
+      _handleAuthError(response.statusCode);
+      throw Exception('Failed to load users');
     }
   }
 
@@ -220,6 +241,33 @@ class ApiService {
       } else {
         _handleAuthError(response.statusCode);
         throw Exception('Failed to create geo fence');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred during creation: $e');
+    }
+  }
+
+
+  static Future<bool> addUser(RegisterModel request) async {
+    String token = await StorageService.getData('access_token');
+
+    try {
+      final response = await http.post(
+        Uri.parse('${BASE_URL}/auth/register'),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        _handleAuthError(response.statusCode);
+        throw Exception('Failed to create user');
       }
     } on SocketException catch (_) {
       throw Exception('Network error, please check your connection');

@@ -16,4 +16,6 @@ const kLightGrey = Color(0xFFBDBDBD);
 const String BASE_URL = 'https://staging-api.ndai.africa/v1/api';
 const String base_url = 'https://staging-api.ndai.africa/api';
 
+// const String base_url = 'https://staging-api.ndai.africa/v1/api';
+
 const GOOGLE_API_KEY = "AIzaSyDRRo79vnVAKfnJtGXtCwftcTBpmal4upQ";

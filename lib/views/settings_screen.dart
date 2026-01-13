@@ -82,11 +82,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           },
                         ),
                         _buildDivider(),
-                        if (role == 'SuperAdmin') ...[
+                        if (role == 'Admin') ...[
                           _buildSettingsItem(
                             icon: Icons.person_add_alt,
-                            title: 'Transport Managers',
-                            subtitle: 'Add and manage transport managers.',
+                            title: 'Managers',
+                            subtitle: 'Add and manage managers.',
                             onTap: () {
                               Navigator.push(
                                 context,

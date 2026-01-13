@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
+import 'package:atom/controllers/user_controller.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/transport%20%20managers/manager_car_list.dart';
@@ -24,27 +25,15 @@ class ManagerScreen extends StatefulWidget {
 
 class _ManagerScreenState extends State<ManagerScreen> {
   final AuthController authController = Get.put(AuthController());
+  final UserResourceController userController = Get.put(
+    UserResourceController(),
+  );
 
-  List<Manager> managers = [
-    Manager(
-      fullName: "John Doe",
-      phoneNumber: "+254712345678",
-      emailAddress: "john.doe@example.com",
-      password: "password123",
-    ),
-    Manager(
-      fullName: "Jane Smith",
-      phoneNumber: "+254798765432",
-      emailAddress: "jane.smith@example.com",
-      password: "password456",
-    ),
-    Manager(
-      fullName: "Mike Johnson",
-      phoneNumber: "+254723456789",
-      emailAddress: "mike.johnson@example.com",
-      password: "password789",
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    userController.fetchUsers();
+  }
 
   void _showAddManagerBottomSheet() {
     showModalBottomSheet(
@@ -54,7 +43,7 @@ class _ManagerScreenState extends State<ManagerScreen> {
       builder: (context) => AddManagerBottomSheet(
         onManagerAdded: (manager) {
           setState(() {
-            managers.add(manager);
+            // managers.add(manager);
           });
         },
       ),
@@ -82,9 +71,9 @@ class _ManagerScreenState extends State<ManagerScreen> {
                   ),
                   Expanded(
                     child: ListView.builder(
-                      itemCount: managers.length,
+                      itemCount: userController.users.length,
                       itemBuilder: (context, index) {
-                        final manager = managers[index];
+                        final manager = userController.users[index];
                         return ManagerInfoCard(
                           fullName: manager.fullName,
                           phoneNumber: manager.phoneNumber,
@@ -107,8 +96,35 @@ class _ManagerScreenState extends State<ManagerScreen> {
                                 confirmText: "Delete",
                                 cancelText: "Cancel",
                                 onConfirm: () {
+                                  authController.deleteUser(manager.id).then(
+                                    (success) {
+                                      if (success) {
+                                        Navigator.pop(context); // Close dialog
+                                        CustomAlertDialog(
+                                          context: context,
+                                          title: "Success",
+                                          message:
+                                              "Manager deleted successfully.",
+                                          icon:
+                                              "assets/animations/Success.json",
+                                          buttonColor: kSuccessGreen,
+                                        );
+                                      } else {
+                                        Navigator.pop(context); // Close dialog
+                                        CustomAlertDialog(
+                                          context: context,
+                                          title: "Error",
+                                          message:
+                                              "Failed to delete manager.",
+                                          icon:
+                                              "assets/animations/Failed.json",
+                                          buttonColor: kRed,
+                                        );
+                                      }
+                                    },
+                                  );
                                   setState(() {
-                                    managers.removeAt(index);
+                                    userController.users.removeAt(index);
                                   });
                                 },
                               ),
@@ -153,6 +169,9 @@ class AddManagerBottomSheet extends StatefulWidget {
 }
 
 class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
+  final UserResourceController userController = Get.put(
+    UserResourceController(),
+  );
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -173,6 +192,7 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
   void initState() {
     super.initState();
     fetchAdminPhone();
+    userController.fetchUsers();
   }
 
   final utils = Utils();
@@ -198,7 +218,7 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
     authController.phoneNumber.value = utils.normalizePhoneNumber(
       _phoneController.text,
     );
-    authController.userRole.value = 'Admin';
+    authController.userRole.value = 'Manager';
     authController.userFirebaseToken.value = 'string';
     authController.adminPhoneNumber.value = adminPhone;
 
@@ -212,6 +232,8 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
         icon: "assets/animations/Success.json",
         buttonColor: kSuccessGreen,
       );
+      // Refresh user list
+      userController.fetchUsers();
     } else {
       await CustomAlertDialog(
         context: context,
