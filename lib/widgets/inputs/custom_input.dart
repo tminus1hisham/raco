@@ -14,7 +14,7 @@ class InputField extends StatefulWidget {
     this.isRequired = false,
     this.validator,
     this.prefixIcon,
-    this.maxLines = 1,
+    this.maxLines = 1, 
   });
 
   final String hintText;

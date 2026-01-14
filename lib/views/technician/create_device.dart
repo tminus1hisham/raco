@@ -9,7 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class TechnicianScreen extends StatefulWidget {
-  const TechnicianScreen({super.key});
+  final Map<String, dynamic> deviceData;
+
+  const TechnicianScreen({super.key, required this.deviceData});
 
   @override
   State<TechnicianScreen> createState() => _TechnicianScreenState();
@@ -42,6 +44,52 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
   final RegisterDeviceController registerDeviceController = Get.put(
     RegisterDeviceController(),
   );
+
+  @override
+  void initState() {
+    super.initState();
+    _prepopulateDeviceData();
+  }
+
+  void _prepopulateDeviceData() {
+    // Extract data from device JSON and populate the relevant fields
+    // Adjust these mappings based on your actual JSON structure
+    if (widget.deviceData.isNotEmpty) {
+      // Example mappings (adjust based on your actual JSON keys)
+      final deviceJson = widget.deviceData;
+
+      debugPrint('Device JSON Data: $deviceJson');
+      // LimiterID from device (if available)
+      if (deviceJson['LimiterID'] != null) {
+        _serialController.text = deviceJson['LimiterID'].toString();
+      }
+
+      // MnfSerial from device
+      if (deviceJson['MnfSerial'] != null) {
+        _serialController.text = deviceJson['MnfSerial'].toString();
+      }
+
+      // imei from device
+      if (deviceJson['imei'] != null) {
+        _serialController.text = deviceJson['imei'].toString();
+      }
+
+      // You can add more mappings based on your device data structure
+      // For example:
+      // if (deviceJson['deviceId'] != null) {
+      //   _idController.text = deviceJson['deviceId'].toString();
+      // }
+
+      // Mark these fields as non-editable
+      setState(() {});
+    }
+  }
+
+  // Check if a field should be non-editable
+  bool _isNonEditable(TextEditingController controller) {
+    // Fields that come from device data should be non-editable
+    return controller == _serialController && controller.text.isNotEmpty;
+  }
 
   Future<void> _register() async {
     if (!_createDeviceKey.currentState!.validate()) {
@@ -85,24 +133,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
       );
 
       _createDeviceKey.currentState!.reset();
-      _companyController.clear();
-      _nameController.clear();
-      _idController.clear();
-      _phoneNumberController.clear();
-      _regController.clear();
-      _chassisController.clear();
-      _makeController.clear();
-      _certNoController.clear();
-      _typeController.clear();
-      _serialController.clear();
-      _dateController.clear();
-      _agentController.clear();
-      _agentIDController.clear();
-      _locationController.clear();
-      _emailController.clear();
-      _agentPhoneNumberController.clear();
-      _businessRegController.clear();
-      _groupController.clear();
+      _clearAllControllers();
     } else {
       await CustomAlertDialog(
         context: context,
@@ -114,6 +145,27 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
     }
   }
 
+  void _clearAllControllers() {
+    _companyController.clear();
+    _nameController.clear();
+    _idController.clear();
+    _phoneNumberController.clear();
+    _regController.clear();
+    _chassisController.clear();
+    _makeController.clear();
+    _certNoController.clear();
+    _typeController.clear();
+    _serialController.clear();
+    _dateController.clear();
+    _agentController.clear();
+    _agentIDController.clear();
+    _locationController.clear();
+    _emailController.clear();
+    _agentPhoneNumberController.clear();
+    _businessRegController.clear();
+    _groupController.clear();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,9 +175,33 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
           children: [
             const SizedBox(height: 10),
             customHeader(label: "Create Device", icon: Icons.developer_board),
+            if (widget.deviceData.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 15,
+                  vertical: 10,
+                ),
+                color: kBlue.withOpacity(0.1),
+                child: Row(
+                  children: [
+                    Icon(Icons.bluetooth_connected, color: kBlue, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Device data loaded from Bluetooth connection',
+                        style: TextStyle(
+                          color: kBlue,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 15),
+                padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: Form(
                   key: _createDeviceKey,
                   child: ListView(
@@ -138,7 +214,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -150,7 +226,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -163,7 +239,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         integerOnly: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -176,7 +252,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         integerOnly: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -188,7 +264,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -200,7 +276,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -212,7 +288,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -224,7 +300,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -236,23 +312,46 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
                       ),
-                      InputField(
-                        hintText: 'Serial number',
-                        prefixIcon: Icons.numbers_sharp,
-                        controller: _serialController,
-                        isRequired: true,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
-                          }
-                          return null;
-                        },
+                      // Serial Number Field - Non-editable if from device
+                      Container(
+                        decoration: _isNonEditable(_serialController)
+                            ? BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
+                              )
+                            : null,
+                        child: InputField(
+                          hintText: 'Serial number',
+                          prefixIcon: Icons.numbers_sharp,
+                          controller: _serialController,
+                          isRequired: true,
+                          isEnabled: !_isNonEditable(_serialController),
+                          readOnly: _isNonEditable(_serialController),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return "This field is required";
+                            }
+                            return null;
+                          },
+                        ),
                       ),
+                      if (_isNonEditable(_serialController))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0, top: 4),
+                          child: Text(
+                            'This field is populated from device data',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
                       InputField(
                         hintText: 'Date',
                         prefixIcon: Icons.calendar_month,
@@ -260,7 +359,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -272,7 +371,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -284,7 +383,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -296,7 +395,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -308,7 +407,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -321,7 +420,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         integerOnly: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -333,7 +432,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
@@ -345,19 +444,19 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         isRequired: true,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "This filed is required";
+                            return "This field is required";
                           }
                           return null;
                         },
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       CustomButton(
                         callBackFunction: _register,
-                        label: "Register",
+                        label: "Register Device",
                         backgroundColor: kBlue,
                         txtColor: kWhite,
                       ),
-                      SizedBox(height: 30),
+                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
