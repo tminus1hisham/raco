@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:atom/config/constants.dart';
+import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/views/technician/create_device.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -143,6 +144,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   final TextEditingController _agentPhoneController = TextEditingController();
   final TextEditingController _businessRegController = TextEditingController();
   final TextEditingController _groupController = TextEditingController();
+
   Map<String, dynamic> _deviceData = {};
   bool _showRegistrationForm = false;
 
@@ -494,12 +496,92 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     });
   }
 
+  String _getMonthName(int month) {
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return monthNames[month - 1];
+  }
+
   void _prepopulateFormData() {
     if (_deviceData.isNotEmpty) {
       // Map your JSON data to form fields
-      _nameController.text = _deviceData['Name']?.toString() ?? '';
-      _serialController.text = _deviceData['serial']?.toString() ?? '';
+      _certNoController.text = _deviceData['LimiterID']?.toString() ?? '';
+      _serialController.text = _deviceData['MnfSerial']?.toString() ?? '';
+      _dateController.text =
+          _deviceData['date']?.toString() ??
+          "${_getMonthName(DateTime.now().month)} ${DateTime.now().day}, ${DateTime.now().year}";
       // Add mappings for all other fields...
+    }
+
+    // Get data from local storage for other fields
+    _loadDataFromStorage();
+  }
+
+  Future<void> _loadDataFromStorage() async {
+    try {
+      // Get technician info from storage
+      final technicianId = await StorageService.getData('userDbId');
+      final technicianName = await StorageService.getData('userName');
+
+      // Get agent info from storage (if not already set from device data)
+      // final agentName = await StorageService.getData('agent_name');
+      // final agentId = await StorageService.getData('agent_id');
+      // final agentPhone = await StorageService.getData('agent_phone');
+      // final agentEmail = await StorageService.getData('agent_email');
+      // final agentLocation = await StorageService.getData('agent_location');
+      // final businessReg = await StorageService.getData('business_registration');
+      // final group = await StorageService.getData('group');
+
+      if (technicianId != null && technicianId.isNotEmpty) {
+        _technicianIdController.text = technicianId;
+      }
+
+      if (technicianName != null && technicianName.isNotEmpty) {
+        _technicianNameController.text = technicianName;
+      }
+
+      // Only set agent fields from storage if they're not already populated from device data
+      // if (agentName != null && agentName.isNotEmpty && _agentController.text.isEmpty) {
+      //   _agentController.text = agentName;
+      // }
+
+      // if (agentId != null && agentId.isNotEmpty && _agentIDController.text.isEmpty) {
+      //   _agentIDController.text = agentId;
+      // }
+
+      // if (agentPhone != null && agentPhone.isNotEmpty && _agentPhoneController.text.isEmpty) {
+      //   _agentPhoneController.text = agentPhone;
+      // }
+
+      // if (agentEmail != null && agentEmail.isNotEmpty && _emailController.text.isEmpty) {
+      //   _emailController.text = agentEmail;
+      // }
+
+      // if (agentLocation != null && agentLocation.isNotEmpty && _locationController.text.isEmpty) {
+      //   _locationController.text = agentLocation;
+      // }
+
+      // if (businessReg != null && businessReg.isNotEmpty && _businessRegController.text.isEmpty) {
+      //   _businessRegController.text = businessReg;
+      // }
+
+      // if (group != null && group.isNotEmpty && _groupController.text.isEmpty) {
+      //   _groupController.text = group;
+      // }
+    } catch (e) {
+      debugPrint('Error loading data from storage: $e');
     }
   }
 
@@ -523,7 +605,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   }
 
   Future<void> _retrieveDataFromDevice() async {
-    await _sendCommand('Get Header>');
+    await _sendCommand('GetORCAid>');
   }
 
   Future<void> _registerDevice() async {
@@ -1053,6 +1135,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
+                        readOnly: _certNoController.text.isNotEmpty,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return "Certificate number is required";
@@ -1071,10 +1154,6 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          filled: _serialController.text.isNotEmpty,
-                          fillColor: _serialController.text.isNotEmpty
-                              ? Colors.grey.shade100
-                              : null,
                         ),
                         readOnly: _serialController.text.isNotEmpty,
                         validator: (value) {
@@ -1107,6 +1186,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
+                        readOnly: _dateController.text.isNotEmpty,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return "Date is required";
