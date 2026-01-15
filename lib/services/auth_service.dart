@@ -22,8 +22,46 @@ class AuthService {
         'userName': data['userName'],
         'isLoggedin': true,
         'userRole': data['user']['userRole'],
-        'userDbId': data['user']['id'],
+        'userDbId': data['user']['id'].toString() ?? '',
       });
+
+      final userRole = data['user']['userRole']?.toString().toLowerCase() ?? '';
+      if (userRole == 'technician') {
+        // Store agent data from the 'agent' object in response
+        if (data['agent'] != null) {
+          final agent = data['agent'] as Map<String, dynamic>;
+
+          // Store agent ID
+          if (agent['id'] != null) {
+            await StorageService.storeData({'agentId': agent['id'].toString()});
+          }
+
+          // Store agent name
+          if (agent['agentName'] != null) {
+            await StorageService.storeData({'agentName': agent['agentName']});
+          }
+
+          // Store agent email
+          if (agent['email'] != null) {
+            await StorageService.storeData({'agentEmail': agent['email']});
+          }
+
+          // Store agent phone
+          if (agent['phoneNumber'] != null) {
+            await StorageService.storeData({'agentPhone': agent['phoneNumber']});
+          }
+
+          // Store business registration
+          if (agent['businessReg'] != null) {
+            await StorageService.storeData({'businessReg': agent['businessReg']});
+          }
+
+          // Store location
+          if (agent['location'] != null) {
+            await StorageService.storeData({'agentLocation': agent['location']});
+          }
+        }
+      }
     } catch (e) {
       print('Error storing tokens: $e');
     }
@@ -64,7 +102,7 @@ class AuthService {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
-        }
+        },
       );
 
       if (response.statusCode == 200) {

@@ -13,6 +13,7 @@ import 'package:atom/models/report_model.dart';
 import 'package:atom/models/technician_device_model.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/models/user_model.dart';
+import 'package:atom/models/company_model.dart';
 import 'package:atom/views/auth/login_screen.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -105,6 +106,47 @@ class ApiService {
     } else {
       _handleAuthError(response.statusCode);
       throw Exception('Failed to load devices');
+    }
+  }
+
+  static Future<CompanyModel> fetchCompanies() async {
+    String token = await StorageService.getData('access_token');
+
+    final response = await http.get(
+      Uri.parse('$base_url/devices/get/companies'),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    print('Fetch Companies Response: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      // Handle the raw list response: [{"fullName":"...", "phoneNumber":"..."}]
+      if (data is List) {
+        // Convert the raw list to CompanyModel
+        return CompanyModel(
+          success: true,
+          message: 'Success',
+          data: data
+              .map((companyJson) => Company.fromJson(companyJson))
+              .toList(),
+        );
+      }
+      // If the response is not a list, throw an error or handle accordingly
+      else {
+        return CompanyModel(
+          success: false,
+          message: 'Unexpected response format',
+          data: [],
+        );
+      }
+    } else {
+      _handleAuthError(response.statusCode);
+      throw Exception('Failed to load companies');
     }
   }
 
@@ -477,31 +519,30 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>?> registerDevice(
-    RegisterDeviceModel request,
+  static Future<Map<String, dynamic>> registerDevice(
+    Map<String, dynamic> deviceData,
   ) async {
     String token = await StorageService.getData('access_token');
 
-    try {
-      final response = await http.post(
-        Uri.parse('${BASE_URL}/devices/register'),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode(request.toJson()),
-      );
+    final response = await http.post(
+      Uri.parse('$base_url/devices/register'),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode(deviceData),
+    );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data;
-      } else {
-        throw Exception('Failed to register device');
-      }
-    } on SocketException catch (_) {
-      throw Exception('Network error, please check your connection');
-    } catch (e) {
-      throw Exception('An error occurred during creation: $e');
+    print('Register Device Response: ${response}');
+    print('Register Device Response: ${response.body}');
+    print('Register Device Response: ${response.statusCode}');
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return data;
+    } else {
+      _handleAuthError(response.statusCode);
+      throw Exception('Failed to register device: ${response.statusCode}');
     }
   }
 
