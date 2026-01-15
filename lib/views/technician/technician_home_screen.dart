@@ -124,6 +124,12 @@ class ConnectDeviceScreen extends StatefulWidget {
 class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   final GlobalKey<FormState> _registrationFormKey = GlobalKey<FormState>();
 
+  TextEditingController _frequencyController = TextEditingController(text: '0');
+  FocusNode _frequencyFocusNode = FocusNode();
+
+  static const int MAX_FREQUENCY = 5000;
+  static const int MIN_FREQUENCY = 1;
+
   // Company search and selection
   List<Map<String, dynamic>> _allCompanies = [];
   List<Map<String, dynamic>> _filteredCompanies = [];
@@ -191,6 +197,12 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   StringBuffer _jsonBuffer = StringBuffer();
   Timer? _jsonCompletionTimer;
 
+  // Calibration state
+  bool _showCalibrationModal = false;
+  String _selectedFrequency = '30'; // Default frequency
+  bool _isCalibrating = false;
+  bool _isFuelCalibrationMode = false; // Track if we're in fuel calibration
+
   @override
   void initState() {
     super.initState();
@@ -203,6 +215,12 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     // Initialize focus nodes
     _companyFocusNode = FocusNode();
     _companyPhoneFocusNode = FocusNode();
+  }
+
+  void _updateFrequencyController() {
+    if (_frequencyController.text != _selectedFrequency) {
+      _frequencyController.text = _selectedFrequency;
+    }
   }
 
   Future<void> _loadAllCompanies() async {
@@ -751,6 +769,489 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     await _sendCommand('GetORCAid>');
   }
 
+  // Calibration methods
+  void _showCalibrationModalPopup() {
+    // Always sync controller with current selected frequency
+    _frequencyController.text = _selectedFrequency;
+
+    setState(() {
+      _showCalibrationModal = true;
+      _isFuelCalibrationMode = false;
+    });
+
+    // Focus on input field
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _frequencyFocusNode.requestFocus();
+      // Place cursor at the end
+      _frequencyController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _frequencyController.text.length),
+      );
+    });
+  }
+
+  void _incrementFrequency() {
+    setState(() {
+      int currentFreq = int.tryParse(_selectedFrequency) ?? 30;
+      if (currentFreq < MAX_FREQUENCY) {
+        currentFreq++;
+        _selectedFrequency = currentFreq.toString();
+        _frequencyController.text = currentFreq.toString();
+        // Keep cursor at end
+        _frequencyController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _frequencyController.text.length),
+        );
+      } else {
+        _showError('Maximum frequency is ${MAX_FREQUENCY}Hz');
+      }
+    });
+  }
+
+  void _decrementFrequency() {
+    setState(() {
+      int currentFreq = int.tryParse(_selectedFrequency) ?? 30;
+      if (currentFreq > MIN_FREQUENCY) {
+        currentFreq--;
+        _selectedFrequency = currentFreq.toString();
+        _frequencyController.text = currentFreq.toString();
+        // Keep cursor at end
+        _frequencyController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _frequencyController.text.length),
+        );
+      } else {
+        _showError('Minimum frequency is ${MIN_FREQUENCY}Hz');
+      }
+    });
+  }
+
+  Future<void> _calibrateSpeed() async {
+    if (!_isConnected) {
+      _showError('No device connected');
+      return;
+    }
+
+    setState(() {
+      _isCalibrating = true;
+    });
+
+    try {
+      // Format the calibration command
+      // Assuming the device expects a command like: "CAL_SPEED:30"
+      String command = 'CAL_SPEED:$_selectedFrequency>';
+
+      bool success = await _bluetoothSerial.sendString(command);
+
+      if (success) {
+        _showSuccess('Speed calibration started at ${_selectedFrequency}Hz');
+
+        // Wait a bit for calibration to complete
+        await Future.delayed(Duration(seconds: 2));
+
+        // Show success and switch to fuel calibration mode
+        _showSuccess('Speed calibration complete!');
+
+        setState(() {
+          _isCalibrating = false;
+          _isFuelCalibrationMode = true; // Switch to fuel calibration
+        });
+      } else {
+        _showError('Failed to send calibration command');
+        setState(() {
+          _isCalibrating = false;
+        });
+      }
+    } catch (e) {
+      _showError('Calibration error: $e');
+      setState(() {
+        _isCalibrating = false;
+      });
+    }
+  }
+
+  Future<void> _calibrateFuel() async {
+    if (!_isConnected) {
+      _showError('No device connected');
+      return;
+    }
+
+    setState(() {
+      _isCalibrating = true;
+    });
+
+    try {
+      // Format the fuel calibration command
+      // Assuming the device expects a command like: "CAL_FUEL:1"
+      String command = 'CAL_FUEL:1>'; // 1 for calibrate, 0 for stop
+
+      bool success = await _bluetoothSerial.sendString(command);
+
+      if (success) {
+        _showSuccess('Fuel calibration started...');
+
+        // Wait a bit for calibration to complete
+        await Future.delayed(Duration(seconds: 5));
+
+        // Send stop calibration command
+        await _bluetoothSerial.sendString('CAL_FUEL:0>');
+
+        _showSuccess('Fuel calibration complete!');
+
+        setState(() {
+          _isCalibrating = false;
+          _showCalibrationModal = false; // Close modal after fuel calibration
+        });
+      } else {
+        _showError('Failed to send fuel calibration command');
+        setState(() {
+          _isCalibrating = false;
+        });
+      }
+    } catch (e) {
+      _showError('Fuel calibration error: $e');
+      setState(() {
+        _isCalibrating = false;
+      });
+    }
+  }
+
+  Widget _buildCalibrationModal() {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.85,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _isFuelCalibrationMode
+                      ? 'Fuel Calibration'
+                      : 'Speed Calibration',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: kBlue,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      _showCalibrationModal = false;
+                      _isCalibrating = false;
+                    });
+                  },
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            if (!_isFuelCalibrationMode)
+              // Speed Calibration UI
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Selected Frequency Display
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 20,
+                      horizontal: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: kBlue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Selected Frequency',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '$_selectedFrequency Hz',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: kBlue,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Derived from device data',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Frequency Input and Controls
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Decrement Button
+                      ElevatedButton(
+                        onPressed: _decrementFrequency,
+                        style: ElevatedButton.styleFrom(
+                          shape: CircleBorder(),
+                          padding: const EdgeInsets.all(12),
+                          backgroundColor: kBlue.withOpacity(0.1),
+                          foregroundColor: kBlue,
+                          minimumSize: Size(48, 48),
+                        ),
+                        child: Icon(Icons.remove, size: 24),
+                      ),
+
+                      const SizedBox(width: 16),
+
+                      // Frequency Input - FIXED with proper constraints
+                      SizedBox(
+                        width: 110,
+                        height: 56,
+                        child: TextFormField(
+                          controller: _frequencyController,
+                          focusNode: _frequencyFocusNode,
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 12,
+                            ),
+                          ),
+                          onChanged: (value) {
+                            if (value.isNotEmpty) {
+                              final intValue = int.tryParse(value);
+                              if (intValue != null) {
+                                if (intValue >= MIN_FREQUENCY &&
+                                    intValue <= MAX_FREQUENCY) {
+                                  setState(() {
+                                    _selectedFrequency = value;
+                                  });
+                                } else if (intValue > MAX_FREQUENCY) {
+                                  _showError(
+                                    'Maximum frequency is ${MAX_FREQUENCY}Hz',
+                                  );
+                                  setState(() {
+                                    _selectedFrequency = MAX_FREQUENCY
+                                        .toString();
+                                    _frequencyController.text = MAX_FREQUENCY
+                                        .toString();
+                                  });
+                                } else if (intValue < MIN_FREQUENCY) {
+                                  _showError(
+                                    'Minimum frequency is ${MIN_FREQUENCY}Hz',
+                                  );
+                                  setState(() {
+                                    _selectedFrequency = MIN_FREQUENCY
+                                        .toString();
+                                    _frequencyController.text = MIN_FREQUENCY
+                                        .toString();
+                                  });
+                                }
+                              }
+                            }
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(width: 16),
+
+                      // Increment Button
+                      ElevatedButton(
+                        onPressed: _incrementFrequency,
+                        style: ElevatedButton.styleFrom(
+                          shape: CircleBorder(),
+                          padding: const EdgeInsets.all(12),
+                          backgroundColor: kBlue.withOpacity(0.1),
+                          foregroundColor: kBlue,
+                          minimumSize: Size(48, 48),
+                        ),
+                        child: Icon(Icons.add, size: 24),
+                      ),
+                    ],
+                  ),
+
+                  // Frequency range info
+                  const SizedBox(height: 12),
+
+                  Text(
+                    'Adjust frequency (${MIN_FREQUENCY}-${MAX_FREQUENCY}Hz, 1Hz steps)',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Calibrate Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isCalibrating ? null : _calibrateSpeed,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _isCalibrating
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text('Calibrating...'),
+                              ],
+                            )
+                          : Text(
+                              'Calibrate Speed',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              // Fuel Calibration UI
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Fuel Calibration Instructions
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.local_gas_station,
+                          size: 48,
+                          color: Colors.orange,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Fuel Calibration',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Speed calibration is complete. You can now calibrate the fuel sensor.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Calibrate Fuel Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isCalibrating ? null : _calibrateFuel,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _isCalibrating
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text('Calibrating Fuel...'),
+                              ],
+                            )
+                          : Text(
+                              'Calibrate Fuel',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Back to Speed Calibration Button
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _isFuelCalibrationMode = false;
+                      });
+                    },
+                    child: Text(
+                      'Back to Speed Calibration',
+                      style: TextStyle(color: kBlue),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _registerDevice() async {
     if (!_registrationFormKey.currentState!.validate()) {
       return;
@@ -800,13 +1301,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
       // Check response
       if (response['success'] == true) {
-
         // Send Command To Device
         await _sendCommand(jsonEncode(registrationData));
 
         // Show success message
         _showSuccess('Device registered successfully!');
-
 
         // Close the modal
         setState(() {
@@ -2081,6 +2580,58 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           ),
                         ),
 
+                      // Calibration Button (only show when connected)
+                      if (_isConnected && _deviceData.isNotEmpty)
+                        Column(
+                          children: [
+                            const SizedBox(height: 20),
+                            Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.orange,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: _showCalibrationModalPopup,
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.speed,
+                                          color: Colors.white,
+                                          size: 24,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Calibrate Device',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
                       // Received Data Section
                       if (_receivedData.isNotEmpty) ...[
                         const SizedBox(height: 20),
@@ -2329,6 +2880,28 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
           // Registration Form Dialog
           Center(child: _buildRegistrationForm()),
+        ],
+
+        // Calibration Modal Overlay
+        if (_showCalibrationModal) ...[
+          // Semi-transparent background overlay
+          GestureDetector(
+            onTap: () {
+              if (!_isCalibrating) {
+                setState(() {
+                  _showCalibrationModal = false;
+                });
+              }
+            },
+            child: Container(
+              color: Colors.black.withOpacity(0.5),
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+
+          // Calibration Dialog
+          Center(child: _buildCalibrationModal()),
         ],
       ],
     );

@@ -52,7 +52,7 @@ class RegisterDeviceController extends GetxController {
         group: group.value.trim(),
       );
 
-      // final result = await _apiService.registerDevice(registerModel);
+      final result = await ApiService.registerDevice(registerModel);
 
       if (result != null) {
         return true;
