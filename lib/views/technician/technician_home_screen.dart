@@ -769,6 +769,31 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     await _sendCommand('GetORCAid>');
   }
 
+  Future<void> _prepareCalibration() async {
+    if (!_isConnected) {
+      _showError('No device connected');
+      return;
+    }
+
+    // Show loading
+    _showLoading('Preparing device for calibration...');
+
+    try {
+      // Initialize Calibration//  Initialize Speed Calibration
+      String command = 'SpdInit>';
+
+      debugPrint('Sending calibration preparation command: $command');
+
+      await _sendCommand('SpdInit>');
+
+      _showCalibrationModalPopup();
+    } catch (e) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      _showError('Error preparing calibration: $e');
+      debugPrint('Calibration preparation error: $e');
+    }
+  }
+
   // Calibration methods
   void _showCalibrationModalPopup() {
     // Always sync controller with current selected frequency
@@ -835,32 +860,147 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
     try {
       // Format the calibration command
-      // Assuming the device expects a command like: "CAL_SPEED:30"
-      String command = 'CAL_SPEED:$_selectedFrequency>';
+      String command = '{"Cal":"Callibrate"}>';
+
+      await _sendCommand(command);
+
+      _showSuccess('Speed calibration started at ${_selectedFrequency}Hz');
+
+      // Wait a bit for calibration to complete
+      await Future.delayed(Duration(seconds: 2));
+
+      // Send stop command
+      await _sendCommand("StopSpeed>");
+
+      setState(() {
+        _isCalibrating = false;
+      });
+
+      // Show calibration success modal
+      _showCalibrationSuccessModal();
+    } catch (e) {
+      _showError('Calibration error: $e');
+      setState(() {
+        _isCalibrating = false;
+      });
+    }
+  }
+
+  void _showCalibrationSuccessModal() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green, size: 24),
+            SizedBox(width: 8),
+            Text(
+              'Calibration Successful',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Speed calibration completed successfully!',
+              style: TextStyle(fontSize: 14),
+            ),
+            SizedBox(height: 12),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: kBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.speed, size: 16, color: kBlue),
+                      SizedBox(width: 8),
+                      Text(
+                        'Calibrated Frequency:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '$_selectedFrequency Hz',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: kBlue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'What would you like to do next?',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              setState(() {
+                _showCalibrationModal = false;
+                _isFuelCalibrationMode = false;
+              });
+            },
+            child: Text('Done', style: TextStyle(color: kBlue)),
+          ),
+        ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 8,
+        backgroundColor: Colors.white,
+      ),
+    );
+  }
+
+  Future<void> _sendFrequencyToDevice() async {
+    if (!_isConnected) {
+      _showError('No device connected');
+      return;
+    }
+
+    setState(() {
+      _isCalibrating = true;
+    });
+
+    try {
+      // Format the frequency command
+      // Adjust the command format based on your device protocol
+      String command = '{"Spd":$_selectedFrequency}>';
+
+      debugPrint('Sending frequency command: $command');
 
       bool success = await _bluetoothSerial.sendString(command);
 
       if (success) {
-        _showSuccess('Speed calibration started at ${_selectedFrequency}Hz');
-
-        // Wait a bit for calibration to complete
-        await Future.delayed(Duration(seconds: 2));
-
-        // Show success and switch to fuel calibration mode
-        _showSuccess('Speed calibration complete!');
-
-        setState(() {
-          _isCalibrating = false;
-          _isFuelCalibrationMode = true; // Switch to fuel calibration
-        });
+        _showSuccess('Frequency ${_selectedFrequency}Hz sent to device');
+        // You might want to update deviceData or show confirmation
       } else {
-        _showError('Failed to send calibration command');
-        setState(() {
-          _isCalibrating = false;
-        });
+        _showError('Failed to send frequency to device');
       }
     } catch (e) {
-      _showError('Calibration error: $e');
+      _showError('Error sending frequency: $e');
+    } finally {
       setState(() {
         _isCalibrating = false;
       });
@@ -1103,8 +1243,42 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   ),
 
-                  const SizedBox(height: 30),
-
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isCalibrating
+                            ? null
+                            : _sendFrequencyToDevice,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.send, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Send ${_selectedFrequency}Hz to Device',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                   // Calibrate Button
                   SizedBox(
                     width: double.infinity,
@@ -2601,7 +2775,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(
-                                  onTap: _showCalibrationModalPopup,
+                                  onTap: _prepareCalibration,
                                   borderRadius: BorderRadius.circular(12),
                                   child: Padding(
                                     padding: const EdgeInsets.all(16),
