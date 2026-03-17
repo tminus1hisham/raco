@@ -139,7 +139,7 @@ class _ManagerScreenState extends State<ManagerScreen> {
             ),
             if (authController.isLoading.value)
               Container(
-                color: Colors.black.withOpacity(0.3),
+                color: kBlack.withValues(alpha: 0.3),
                 child: Center(
                   child: LoadingAnimationWidget.fourRotatingDots(
                     color: kBlue,
@@ -251,10 +251,10 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kWhite,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+          topLeft: Radius.circular(kRadiusPill),
+          topRight: Radius.circular(kRadiusPill),
         ),
       ),
       padding: EdgeInsets.only(
@@ -275,7 +275,7 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
                     height: 4,
                     margin: EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
-                      color: Colors.grey[300],
+                      color: kLightGrey,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -287,7 +287,7 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: kBlue.withOpacity(0.1),
+                        color: kBlue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
@@ -302,7 +302,7 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: kBlack,
                       ),
                     ),
                   ],
@@ -368,14 +368,14 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(kRadiusMD),
+                            side: BorderSide(color: kLightGrey),
                           ),
                         ),
                         child: Text(
                           'Cancel',
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: kGrey,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -390,14 +390,14 @@ class _AddManagerBottomSheetState extends State<AddManagerBottomSheet> {
                           backgroundColor: kBlue,
                           padding: EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(kRadiusMD),
                           ),
                           elevation: 0,
                         ),
                         child: Text(
                           'Add Manager',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: kWhite,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),

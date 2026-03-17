@@ -33,7 +33,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     return Obx(
       () => Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: kWhite,
         body: Stack(
           children: [
             SafeArea(
@@ -64,7 +64,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade800,
+                          color: kBlack,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -76,7 +76,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         'The password must be different than before',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey.shade600,
+                          color: kGrey,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -110,7 +110,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         },
                         label: 'Continue',
                         backgroundColor: kBlue,
-                        txtColor: Colors.white,
+                        txtColor: kWhite,
                       ),
 
                       const SizedBox(height: 10),
@@ -119,7 +119,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           Navigator.pop(context);
                         },
                         label: "Cancel",
-                        borderColor: Colors.grey.shade400,
+                        borderColor: kLightGrey,
                         txtColor: kBlack,
                       ),
                     ],
@@ -129,7 +129,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             ),
             if (resetPasswordService.isLoading.value)
               Container(
-                color: Colors.black.withOpacity(0.3),
+                color: kBlack.withValues(alpha: 0.3),
                 child: Center(
                   child: LoadingAnimationWidget.fourRotatingDots(
                     color: kBlue,
@@ -184,7 +184,7 @@ class ForgotPasswordIllustration extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
 
     // Email envelope
-    paint.color = Colors.blue.shade300;
+    paint.color = kBlue.withValues(alpha: 0.7);
     final emailRect = RRect.fromRectAndRadius(
       Rect.fromCenter(center: center, width: 120, height: 80),
       Radius.circular(8),
@@ -208,7 +208,7 @@ class ForgotPasswordIllustration extends CustomPainter {
       text: TextSpan(
         text: '?',
         style: TextStyle(
-          color: Colors.white,
+          color: kWhite,
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),

@@ -77,7 +77,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700,
+                          color: kGrey,
                         ),
                       ),
                       SizedBox(height: 20),
@@ -91,7 +91,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                               horizontalInterval: 20,
                               getDrawingHorizontalLine: (value) {
                                 return FlLine(
-                                  color: Colors.grey.shade200,
+                                  color: kDivider,
                                   strokeWidth: 1,
                                 );
                               },
@@ -112,7 +112,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                   getTitlesWidget:
                                       (double value, TitleMeta meta) {
                                         const style = TextStyle(
-                                          color: Colors.grey,
+                                          color: kGrey,
                                           fontWeight: FontWeight.w500,
                                           fontSize: 12,
                                         );
@@ -154,7 +154,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                 axisNameWidget: Text(
                                   'Score',
                                   style: TextStyle(
-                                    color: Colors.grey,
+                                    color: kGrey,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -168,7 +168,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                         return Text(
                                           value.toInt().toString(),
                                           style: TextStyle(
-                                            color: Colors.grey,
+                                            color: kGrey,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 12,
                                           ),
@@ -210,15 +210,15 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                             radius: 4,
                                             color: Color(0xFF4285F4),
                                             strokeWidth: 2,
-                                            strokeColor: Colors.white,
+                                            strokeColor: kWhite,
                                           ),
                                 ),
                                 belowBarData: BarAreaData(
                                   show: true,
                                   gradient: LinearGradient(
                                     colors: [
-                                      Color(0xFF4285F4).withOpacity(0.1),
-                                      Color(0xFF4285F4).withOpacity(0.05),
+                                      Color(0xFF4285F4).withValues(alpha: 0.1),
+                                      Color(0xFF4285F4).withValues(alpha: 0.05),
                                     ],
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
@@ -235,7 +235,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700,
+                          color: kGrey,
                         ),
                       ),
                       SizedBox(height: 20),
@@ -261,7 +261,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                   getTitlesWidget:
                                       (double value, TitleMeta meta) {
                                         const style = TextStyle(
-                                          color: Colors.grey,
+                                          color: kGrey,
                                           fontWeight: FontWeight.w500,
                                           fontSize: 12,
                                         );
@@ -303,7 +303,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                 axisNameWidget: Text(
                                   'Events',
                                   style: TextStyle(
-                                    color: Colors.grey,
+                                    color: kGrey,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -317,7 +317,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                         return Text(
                                           value.toInt().toString(),
                                           style: TextStyle(
-                                            color: Colors.grey,
+                                            color: kGrey,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 12,
                                           ),
@@ -333,7 +333,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                               horizontalInterval: 2,
                               getDrawingHorizontalLine: (value) {
                                 return FlLine(
-                                  color: Colors.grey.shade200,
+                                  color: kDivider,
                                   strokeWidth: 1,
                                 );
                               },
@@ -422,7 +422,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
           title,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey.shade600,
+            color: kGrey,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -434,19 +434,13 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: kWhite,
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        boxShadow: [kShadowSM],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(kRadiusMD),
         child: child,
       ),
     );
@@ -463,7 +457,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.grey.shade600,
+              color: kGrey,
             ),
           ),
           SizedBox(height: 2),
@@ -471,7 +465,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
             subtitle,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.black87,
+              color: kBlack,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -488,7 +482,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: Colors.grey.shade600,
+          color: kGrey,
           letterSpacing: 0.5,
         ),
       ),
@@ -496,6 +490,6 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
   }
 
   Widget _buildDivider() {
-    return Container(height: 1, color: Colors.grey.shade100);
+    return Container(height: 1, color: kDivider);
   }
 }

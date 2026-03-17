@@ -26,8 +26,8 @@ class ManagerInfoCard extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: kWhite,
+            borderRadius: BorderRadius.circular(kRadiusLG),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,8 +38,8 @@ class ManagerInfoCard extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: kBlue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      color: kBlue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(kRadiusSM),
                     ),
                     child: Icon(Icons.person_outline, color: kBlue, size: 20),
                   ),
@@ -55,7 +55,7 @@ class ManagerInfoCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: kBlack,
                           ),
                         ),
                         SizedBox(height: 4),
@@ -63,7 +63,7 @@ class ManagerInfoCard extends StatelessWidget {
                           phoneNumber,
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey.shade600,
+                            color: kGrey,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -76,8 +76,8 @@ class ManagerInfoCard extends StatelessWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: kRed.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
+                        color: kRed.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(kRadiusSM),
                       ),
                       child: IconButton(
                         onPressed: onDelete,

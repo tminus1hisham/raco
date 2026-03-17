@@ -1,3 +1,4 @@
+import 'package:atom/config/constants.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
@@ -135,7 +136,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: kBlack,
       body: Stack(
         children: [
           // Centered camera preview
@@ -165,7 +166,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
             bottom: 70,
             right: 20,
             child: IconButton(
-              icon: Icon(Icons.cameraswitch, color: Colors.white, size: 30),
+              icon: Icon(Icons.cameraswitch, color: kWhite, size: 30),
               onPressed: _isSwitchingCamera ? null : _switchCamera,
             ),
           ),
@@ -182,9 +183,9 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
                   width: 70,
                   height: 70,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: kWhite,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey.shade400, width: 4),
+                    border: Border.all(color: kLightGrey, width: 4),
                   ),
                 ),
               ),

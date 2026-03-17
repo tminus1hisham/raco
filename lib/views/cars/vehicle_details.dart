@@ -177,19 +177,13 @@ class _VehicleDetailsState extends State<VehicleDetails> {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: kWhite,
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        boxShadow: [kShadowSM],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(kRadiusMD),
         child: child,
       ),
     );
@@ -207,7 +201,7 @@ class _VehicleDetailsState extends State<VehicleDetails> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.grey.shade600,
+              color: kGrey,
             ),
           ),
 
@@ -220,7 +214,7 @@ class _VehicleDetailsState extends State<VehicleDetails> {
               overflow: TextOverflow.visible,
               style: const TextStyle(
                 fontSize: 14,
-                color: Colors.black87,
+                color: kBlack,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -238,7 +232,7 @@ class _VehicleDetailsState extends State<VehicleDetails> {
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: Colors.grey.shade600,
+          color: kGrey,
           letterSpacing: 0.5,
         ),
       ),
@@ -246,6 +240,6 @@ class _VehicleDetailsState extends State<VehicleDetails> {
   }
 
   Widget _buildDivider() {
-    return Container(height: 1, color: Colors.grey.shade100);
+    return Container(height: 1, color: kDivider);
   }
 }

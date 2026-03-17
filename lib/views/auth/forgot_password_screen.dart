@@ -59,7 +59,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     return Obx(
       () => Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: kWhite,
         body: Stack(
           children: [
             SafeArea(
@@ -85,7 +85,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
+                        color: kBlack,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -94,7 +94,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       'Enter your phone number to reset password',
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey.shade600,
+                        color: kGrey,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -122,7 +122,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     CustomBorderButton(
                       callBackFunction: () => Navigator.pop(context),
                       label: "Cancel",
-                      borderColor: Colors.grey.shade400,
+                      borderColor: kLightGrey,
                       txtColor: kBlack,
                     ),
                   ],
@@ -132,7 +132,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
             if (forgotPasswordService.isLoading.value)
               Container(
-                color: Colors.black.withOpacity(0.3),
+                color: kBlack.withValues(alpha: 0.3),
                 child: Center(
                   child: LoadingAnimationWidget.fourRotatingDots(
                     color: kBlue,

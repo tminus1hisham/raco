@@ -172,7 +172,7 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
           child: Container(
             decoration: const BoxDecoration(
-              color: Colors.white,
+              color: kWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: SafeArea(
@@ -194,7 +194,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           height: 4,
                           margin: const EdgeInsets.only(bottom: 16),
                           decoration: BoxDecoration(
-                            color: Colors.grey[300],
+                            color: kLightGrey,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -206,7 +206,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: kBlue.withOpacity(0.1),
+                              color: kBlue.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
@@ -221,14 +221,14 @@ class _AccountScreenState extends State<AccountScreen> {
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: kBlack,
                             ),
                           ),
                           const Spacer(),
                           IconButton(
                             onPressed: () => Navigator.pop(context),
                             icon: const Icon(Icons.close),
-                            color: Colors.grey[600],
+                            color: kGrey,
                           ),
                         ],
                       ),
@@ -271,7 +271,7 @@ class _AccountScreenState extends State<AccountScreen> {
                             Get.snackbar(
                               "Validation Error",
                               "Full name and email cannot be empty.",
-                              backgroundColor: kRed.withOpacity(0.1),
+                              backgroundColor: kRed.withValues(alpha: 0.1),
                               colorText: kRed,
                             );
                             return;
@@ -349,7 +349,7 @@ class _AccountScreenState extends State<AccountScreen> {
           body: const Center(
             child: Text(
               "No user data found",
-              style: TextStyle(fontSize: 16, color: Colors.black),
+              style: TextStyle(fontSize: 16, color: kBlack),
             ),
           ),
         );
@@ -376,11 +376,11 @@ class _AccountScreenState extends State<AccountScreen> {
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: kWhite,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: kBlack.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -397,10 +397,10 @@ class _AccountScreenState extends State<AccountScreen> {
                               width: 130,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.grey[200],
+                                color: kLightGrey,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: kBlack.withValues(alpha: 0.1),
                                     blurRadius: 6,
                                     offset: const Offset(0, 2),
                                   ),
@@ -420,7 +420,7 @@ class _AccountScreenState extends State<AccountScreen> {
                                               return Icon(
                                                 Icons.person,
                                                 size: 80,
-                                                color: Colors.grey,
+                                                color: kGrey,
                                               );
                                             },
                                       ),
@@ -428,7 +428,7 @@ class _AccountScreenState extends State<AccountScreen> {
                                   : Icon(
                                       Icons.person,
                                       size: 80,
-                                      color: Colors.grey,
+                                      color: kGrey,
                                     ),
                             ),
 
@@ -446,7 +446,7 @@ class _AccountScreenState extends State<AccountScreen> {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
+                                        color: kBlack.withValues(alpha: 0.2),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -454,7 +454,7 @@ class _AccountScreenState extends State<AccountScreen> {
                                   ),
                                   child: const Icon(
                                     Icons.edit,
-                                    color: Colors.white,
+                                    color: kWhite,
                                     size: 18,
                                   ),
                                 ),
@@ -511,7 +511,7 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             if (isUploadingImage)
               Container(
-                color: Colors.black.withOpacity(0.3),
+                color: kBlack.withValues(alpha: 0.3),
                 child: Center(
                   child: LoadingAnimationWidget.fourRotatingDots(
                     color: kBlue,
@@ -532,7 +532,7 @@ class _AccountScreenState extends State<AccountScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: kBlue.withOpacity(0.1),
+            color: kBlue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: kBlue, size: 20),
@@ -546,7 +546,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: kGrey,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -554,7 +554,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 value,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Colors.black87,
+                  color: kBlack,
                   fontWeight: FontWeight.w500,
                 ),
               ),

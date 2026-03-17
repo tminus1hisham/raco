@@ -27,7 +27,7 @@ class CarInfoCard extends StatefulWidget {
     required this.licensePlate,
     this.carIcon = Icons.directions_car_rounded,
     required this.status,
-    this.statusColor = Colors.green,
+    this.statusColor = kSuccessGreen,
     this.statusBackgroundColor = const Color(0xFFE8F5E8),
     required this.currentSpeed,
     required this.topSpeed,
@@ -80,7 +80,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(kRadiusLG)),
       ),
       builder: (context) {
         int? selectedIndex;
@@ -128,8 +128,8 @@ class _CarInfoCardState extends State<CarInfoCard> {
                             height: 5,
                             width: 40,
                             decoration: BoxDecoration(
-                              color: Colors.grey[400],
-                              borderRadius: BorderRadius.circular(20),
+                              color: kLightGrey,
+                              borderRadius: BorderRadius.circular(kRadiusPill),
                             ),
                           ),
                         ),
@@ -151,7 +151,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
                           integerOnly: true,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return "This filed is required";
+                              return "This field is required";
                             }
                             return null;
                           },
@@ -170,13 +170,13 @@ class _CarInfoCardState extends State<CarInfoCard> {
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? kBlue.withOpacity(0.1)
-                                    : Colors.white,
+                                    ? kBlue.withValues(alpha: 0.1)
+                                    : kWhite,
                                 border: Border.all(
-                                  color: isSelected ? kBlue : Colors.grey[300]!,
+                                  color: isSelected ? kBlue : kLightGrey,
                                   width: isSelected ? 2 : 1,
                                 ),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(kRadiusMD),
                               ),
                               child: Row(
                                 children: [
@@ -184,7 +184,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
                                     isSelected
                                         ? Icons.radio_button_checked
                                         : Icons.radio_button_off,
-                                    color: isSelected ? kBlue : Colors.grey,
+                                    color: isSelected ? kBlue : kLightGrey,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -199,7 +199,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.black87,
+                                            color: kBlack,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
@@ -207,7 +207,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
                                           "${plan.durationInDays} ${plan.durationInDays > 1 ? 'Years' : 'Year'}",
                                           style: TextStyle(
                                             fontSize: 13,
-                                            color: Colors.grey[600],
+                                            color: kGrey,
                                           ),
                                         ),
                                       ],
@@ -231,7 +231,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: kBlue,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(kRadiusMD),
                             ),
                             minimumSize: const Size(double.infinity, 50),
                           ),
@@ -291,7 +291,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
 
                           child: const Text(
                             "Renew",
-                            style: TextStyle(fontSize: 16, color: Colors.white),
+                            style: TextStyle(fontSize: 16, color: kWhite),
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -310,20 +310,13 @@ class _CarInfoCardState extends State<CarInfoCard> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 20, right: 20, top: 5),
+      padding: const EdgeInsets.only(left: kSpaceXL, right: kSpaceXL, top: kSpaceSM),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: kSpaceXL, vertical: kSpaceLG),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              spreadRadius: 0,
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: kWhite,
+          borderRadius: BorderRadius.circular(kRadiusLG),
+          boxShadow: [kShadowSM],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,7 +324,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
             // Only this Row is tappable
             InkWell(
               onTap: widget.onPressed,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(kRadiusLG),
               child: Row(
                 children: [
                   Expanded(
@@ -348,15 +341,15 @@ class _CarInfoCardState extends State<CarInfoCard> {
                                   style: const TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
+                                    color: kBlack,
                                   ),
                                 ),
-                                const SizedBox(width: 5),
+                                const SizedBox(width: kSpaceSM),
                                 Text(
                                   widget.carModel,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 14,
-                                    color: Colors.grey[600],
+                                    color: kGrey,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -364,26 +357,26 @@ class _CarInfoCardState extends State<CarInfoCard> {
                             ),
                             Text(
                               '${widget.currentSpeed}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey[600],
+                                color: kGrey,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: kSpaceSM),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
+                                horizontal: kSpaceLG,
                                 vertical: 5,
                               ),
                               decoration: BoxDecoration(
                                 color: widget.statusBackgroundColor,
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(kRadiusPill),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -414,19 +407,21 @@ class _CarInfoCardState extends State<CarInfoCard> {
                                   onPressed: () =>
                                       _showPlanBottomSheet(context),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
+                                    backgroundColor: kSuccessGreen,
+                                    foregroundColor: kWhite,
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 2,
                                       horizontal: 10,
                                     ),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(kRadiusMD),
                                     ),
+                                    elevation: 0,
                                   ),
                                   child: const Text(
                                     'Renew Certificate',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: kWhite,
                                       fontSize: 13,
                                     ),
                                   ),

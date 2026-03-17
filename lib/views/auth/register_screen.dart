@@ -126,7 +126,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Expanded(
                   child: Text(
                     'By agreeing to the terms and conditions, you are entering into a legally binding contract with atom.',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+                    style: TextStyle(color: kGrey, fontSize: 15),
                   ),
                 ),
               ],

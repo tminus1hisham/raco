@@ -144,18 +144,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
       height: 70,
       width: double.infinity,
       child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: kWhite,
+        borderRadius: BorderRadius.circular(kRadiusMD),
         elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: kBlack.withValues(alpha:0.1),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(kRadiusMD),
             border: Border.all(
               color: _selectedReportType != null
-                  ? kBlue.withOpacity(0.3)
-                  : Colors.grey.withOpacity(0.2),
+                  ? kBlue.withValues(alpha:0.3)
+                  : kGrey.withValues(alpha:0.2),
               width: 1.5,
             ),
           ),
@@ -166,12 +166,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 "Report Type",
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: kGrey,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               isExpanded: true,
-              icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[400]),
+              icon: Icon(Icons.keyboard_arrow_down, color: kLightGrey),
               items: _reportOptions.map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
@@ -179,7 +179,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     value,
                     style: const TextStyle(
                       fontSize: 14,
-                      color: Colors.black87,
+                      color: kBlack,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -203,13 +203,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: (double.tryParse(record.spd ?? '0') ?? 0) > 80 || record.wr == 1
-            ? kRed.withOpacity(0.1)
+            ? kRed.withValues(alpha:0.1)
             : kWhite,
 
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: kBlack.withValues(alpha:0.05),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -225,7 +225,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: kBlack,
             ),
           ),
           const SizedBox(height: 4),
@@ -424,7 +424,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   return Center(
                     child: Text(
                       "No reports found",
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: kGrey),
                     ),
                   );
                 }

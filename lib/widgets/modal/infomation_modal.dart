@@ -1,3 +1,4 @@
+import 'package:atom/config/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
@@ -15,9 +16,9 @@ Future<void> CustomAlertDialog({
     useRootNavigator: true,
     barrierDismissible: false,
     builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kRadiusLG)),
       elevation: 8,
-      backgroundColor: Colors.white,
+      backgroundColor: kWhite,
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
       contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
       actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
@@ -44,7 +45,7 @@ Future<void> CustomAlertDialog({
         textAlign: TextAlign.center,
         style: const TextStyle(
           fontSize: 18,
-          color: Colors.black54,
+          color: kGrey,
           height: 1.4,
         ),
       ),
@@ -56,11 +57,11 @@ Future<void> CustomAlertDialog({
             onPressed: onPressed ?? () => Navigator.of(context).pop(),
             style: ElevatedButton.styleFrom(
               backgroundColor: buttonColor,
-              foregroundColor: Colors.white,
+              foregroundColor: kWhite,
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(kRadiusSM),
               ),
             ),
             child: Text(

@@ -68,7 +68,7 @@ class _CarListScreenState extends State<CarListScreen> {
                               : kRed,
                           statusBackgroundColor: device.isDeviceOnline
                               ? const Color(0xFFE8F5E8)
-                              : kRed.withOpacity(0.1),
+                              : kRed.withValues(alpha: 0.1),
                           currentSpeed: "${device.speed} km/h",
                           topSpeed: "",
                           onPressed: () {

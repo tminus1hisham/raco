@@ -1,3 +1,4 @@
+import 'package:atom/config/constants.dart';
 import 'package:flutter/material.dart';
 
 class CarInfoCard extends StatelessWidget {
@@ -21,16 +22,9 @@ class CarInfoCard extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              spreadRadius: 0,
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
+          color: kWhite,
+          borderRadius: BorderRadius.circular(kRadiusLG),
+          boxShadow: [kShadowMD],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,7 +40,7 @@ class CarInfoCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: kBlack,
                       ),
                     ),
                     SizedBox(height: 6),
@@ -54,7 +48,7 @@ class CarInfoCard extends StatelessWidget {
                       issuedBy,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: kGrey,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -70,9 +64,9 @@ class CarInfoCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: status == "success"
-                            ? Colors.green.withOpacity(0.1)
-                            : Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
+                            ? kSuccessGreen.withValues(alpha: 0.1)
+                            : kRed.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(kRadiusPill),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -82,8 +76,8 @@ class CarInfoCard extends StatelessWidget {
                             height: 8,
                             decoration: BoxDecoration(
                               color: status == "success"
-                                  ? Colors.green
-                                  : Colors.red,
+                                  ? kSuccessGreen
+                                  : kRed,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -92,8 +86,8 @@ class CarInfoCard extends StatelessWidget {
                             status,
                             style: TextStyle(
                               color: status == "success"
-                                  ? Colors.green
-                                  : Colors.red,
+                                  ? kSuccessGreen
+                                  : kRed,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -106,7 +100,7 @@ class CarInfoCard extends StatelessWidget {
                       date,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: kGrey,
                         fontWeight: FontWeight.w500,
                       ),
                     ),

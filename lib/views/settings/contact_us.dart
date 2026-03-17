@@ -91,7 +91,7 @@ class _ContactUsState extends State<ContactUs> {
                   SizedBox(height: 8),
                   Text(
                     'We\'d love to hear from you',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 14, color: kGrey),
                   ),
                   SizedBox(height: 30),
                   _buildContactCard(
@@ -130,23 +130,23 @@ class _ContactUsState extends State<ContactUs> {
         child: Container(
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: kWhite,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: kBlack.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: Offset(0, 4),
               ),
             ],
-            border: Border.all(color: Colors.grey.withOpacity(0.1), width: 1),
+            border: Border.all(color: kGrey.withValues(alpha: 0.1), width: 1),
           ),
           child: Row(
             children: [
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: kBlue.withOpacity(0.1),
+                  color: kBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: kBlue, size: 24),
@@ -160,7 +160,7 @@ class _ContactUsState extends State<ContactUs> {
                       title,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: kGrey,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -170,7 +170,7 @@ class _ContactUsState extends State<ContactUs> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: kBlack,
                       ),
                     ),
                   ],
@@ -179,7 +179,7 @@ class _ContactUsState extends State<ContactUs> {
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 16,
-                color: Colors.grey[400],
+                color: kLightGrey,
               ),
             ],
           ),

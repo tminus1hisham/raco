@@ -1,8 +1,10 @@
 import 'package:atom/config/constants.dart';
 import 'package:flutter/material.dart';
 
+// ignore: camel_case_types
 class customHeader extends StatelessWidget {
-  customHeader({
+  const customHeader({
+    super.key,
     required this.label,
     required this.icon,
     this.onPressed,
@@ -12,53 +14,48 @@ class customHeader extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
-  bool showBackButton;
+  final bool showBackButton;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20),
-      padding: EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: kSpaceXL),
+      padding: const EdgeInsets.all(kSpaceXL),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [kBlue, kBlue.withOpacity(0.3)],
+          colors: [kBlue, kBlue.withValues(alpha: 0.3)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(kRadiusLG),
       ),
       child: Row(
         children: [
           if (showBackButton) ...[
             GestureDetector(
               onTap: onPressed,
-              child: Icon(Icons.arrow_back_ios, color: kWhite),
+              child: const Icon(Icons.arrow_back_ios, color: kWhite),
             ),
-            SizedBox(width: 4),
+            const SizedBox(width: kSpaceXS),
           ],
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 25,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: kWhite,
+                fontSize: 25,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           Container(
             width: 70,
             height: 50,
             decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(12),
+              color: kWhite.withValues(alpha: 0.24),
+              borderRadius: BorderRadius.circular(kRadiusMD),
             ),
-            child: Icon(icon, color: Colors.white, size: 30),
+            child: Icon(icon, color: kWhite, size: 30),
           ),
         ],
       ),

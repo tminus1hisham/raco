@@ -122,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen>
   Widget build(BuildContext context) {
     return Obx(
       () => Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: kWhite,
         body: Stack(
           children: [
             SafeArea(
@@ -138,28 +138,29 @@ class _LoginScreenState extends State<LoginScreen>
                         child: Hero(
                           tag: "logo",
                           child: Image(
-                            image: AssetImage('assets/eagle_logo.png'),
-                            height: 180,
-                            width: 180,
+                            image: const AssetImage('assets/eagle_logo.png'),
+                            height: 130,
+                            width: 130,
                           ),
                         ),
                       ),
 
-                      Text(
+                      const Text(
                         'Welcome to Eagles Eye',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
+                          color: kBlack,
                         ),
                       ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: kSpaceSM),
 
-                      Text(
-                        'Sign up or login below to be able to\ntrack your vehicle',
+                      const Text(
+                        'Sign up or login below to be able to track your vehicle',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey.shade600,
+                          color: kGrey,
                           height: 1.5,
                         ),
                         textAlign: TextAlign.center,
@@ -175,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             if (authController.isLoading.value)
               Container(
-                color: Colors.black.withOpacity(0.3),
+                color: kBlack.withValues(alpha: 0.3),
                 child: Center(
                   child: LoadingAnimationWidget.fourRotatingDots(
                     color: kBlue,
@@ -203,7 +204,7 @@ class _LoginScreenState extends State<LoginScreen>
             integerOnly: true,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return "This filed is required";
+                return "This field is required";
               }
               return null;
             },
@@ -268,7 +269,7 @@ class _LoginScreenState extends State<LoginScreen>
           Text.rich(
             TextSpan(
               text: 'By signing up, you agree to our ',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+              style: const TextStyle(color: kGrey, fontSize: 16),
               children: [
                 TextSpan(
                   text: 'Terms of service',
@@ -287,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen>
                       );
                     },
                 ),
-                const TextSpan(text: '\nand '),
+                const TextSpan(text: ' and '),
                 TextSpan(
                   text: 'Privacy Policy',
                   style: TextStyle(

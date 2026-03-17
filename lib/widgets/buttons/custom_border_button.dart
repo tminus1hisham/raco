@@ -1,7 +1,9 @@
+import 'package:atom/config/constants.dart';
 import 'package:flutter/material.dart';
 
-class CustomBorderButton extends StatefulWidget {
-  CustomBorderButton({
+class CustomBorderButton extends StatelessWidget {
+  const CustomBorderButton({
+    super.key,
     required this.callBackFunction,
     required this.label,
     required this.borderColor,
@@ -14,32 +16,24 @@ class CustomBorderButton extends StatefulWidget {
   final Color txtColor;
 
   @override
-  _CustomBorderButtonState createState() => _CustomBorderButtonState();
-}
-
-class _CustomBorderButtonState extends State<CustomBorderButton> {
-  @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: widget.borderColor, width: 1.5),
-        borderRadius: BorderRadius.circular(15.0),
-      ),
-      child: ElevatedButton(
-        onPressed: widget.callBackFunction,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15.0),
-          ),
+    return OutlinedButton(
+      onPressed: callBackFunction,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: txtColor,
+        side: BorderSide(color: borderColor, width: 1.5),
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadiusMD),
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Text(
-            widget.label,
-            style: TextStyle(color: widget.txtColor, fontSize: 16),
-          ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: txtColor,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

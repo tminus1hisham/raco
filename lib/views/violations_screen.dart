@@ -174,9 +174,9 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
               primary: kBlue,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
+              onPrimary: kWhite,
+              surface: kWhite,
+              onSurface: kBlack,
             ),
           ),
           child: child!,
@@ -213,9 +213,9 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
               primary: kBlue,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
+              onPrimary: kWhite,
+              surface: kWhite,
+              onSurface: kBlack,
             ),
           ),
           child: child!,
@@ -245,18 +245,18 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
       height: 70,
       width: double.infinity,
       child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: kWhite,
+        borderRadius: BorderRadius.circular(kRadiusMD),
         elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: kBlack.withValues(alpha:0.1),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(kRadiusMD),
             border: Border.all(
               color: _selectedViolation != null
-                  ? kBlue.withOpacity(0.3)
-                  : Colors.grey.withOpacity(0.2),
+                  ? kBlue.withValues(alpha:0.3)
+                  : kGrey.withValues(alpha:0.2),
               width: 1.5,
             ),
           ),
@@ -267,12 +267,12 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                 "Violation Type",
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: kGrey,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               isExpanded: true,
-              icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[400]),
+              icon: Icon(Icons.keyboard_arrow_down, color: kLightGrey),
               items: _violationOptions.map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
@@ -280,7 +280,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                     value,
                     style: const TextStyle(
                       fontSize: 14,
-                      color: Colors.black87,
+                      color: kBlack,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -308,21 +308,21 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
       child: Container(
         height: 70,
         child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: kWhite,
+          borderRadius: BorderRadius.circular(kRadiusMD),
           elevation: 2,
-          shadowColor: Colors.black.withOpacity(0.1),
+          shadowColor: kBlack.withValues(alpha:0.1),
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(kRadiusMD),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(kRadiusMD),
                 border: Border.all(
                   color: selectedDate != null
-                      ? kBlue.withOpacity(0.3)
-                      : Colors.grey.withOpacity(0.2),
+                      ? kBlue.withValues(alpha:0.3)
+                      : kGrey.withValues(alpha:0.2),
                   width: 1.5,
                 ),
               ),
@@ -330,7 +330,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                 children: [
                   Icon(
                     icon,
-                    color: selectedDate != null ? kBlue : Colors.grey[600],
+                    color: selectedDate != null ? kBlue : kGrey,
                     size: 20,
                   ),
                   const SizedBox(width: 12),
@@ -343,7 +343,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                           label,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: kGrey,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -355,8 +355,8 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             color: selectedDate != null
-                                ? Colors.black87
-                                : Colors.grey[500],
+                                ? kBlack
+                                : kGrey,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -365,7 +365,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                   ),
                   Icon(
                     Icons.keyboard_arrow_down,
-                    color: Colors.grey[400],
+                    color: kLightGrey,
                     size: 20,
                   ),
                 ],
@@ -382,11 +382,11 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: kWhite,
+        borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: kBlack.withValues(alpha:0.05),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -406,7 +406,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: kBlack,
                 ),
               ),
               const SizedBox(height: 4),
@@ -429,7 +429,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                   children: [
                     const Icon(
                       Icons.location_on,
-                      color: Colors.blueAccent,
+                      color: kBlue,
                       size: 16,
                     ),
                     const SizedBox(width: 4),
@@ -437,7 +437,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                       "Open Location",
                       style: TextStyle(
                         fontSize: 15,
-                        color: Colors.blueAccent,
+                        color: kBlue,
                         fontWeight: FontWeight.w500,
                         decoration: TextDecoration.underline,
                       ),
@@ -458,9 +458,9 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                 color:
                     v.spd != null && double.tryParse(v.spd.toString()) != null
                     ? (double.parse(v.spd.toString()) > 80
-                          ? Colors.red
-                          : Colors.blue)
-                    : Colors.grey,
+                          ? kRed
+                          : kBlue)
+                    : kGrey,
               ),
             ),
         ],
@@ -594,7 +594,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                   return Center(
                     child: Text(
                       "No violations found",
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: kGrey),
                     ),
                   );
                 }
@@ -612,7 +612,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: kBlack,
                         ),
                       ),
                     ),

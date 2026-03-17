@@ -107,11 +107,11 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
                     controller: _tabController,
                     indicator: BoxDecoration(
                       color: kBlue,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(kRadiusSM),
                     ),
                     indicatorSize: TabBarIndicatorSize.tab,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.grey[600],
+                    labelColor: kWhite,
+                    unselectedLabelColor: kGrey,
                     labelStyle: const TextStyle(fontWeight: FontWeight.w600),
                     unselectedLabelStyle: const TextStyle(
                       fontWeight: FontWeight.w500,
@@ -251,14 +251,14 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
             Icon(
               Icons.directions_car_outlined,
               size: 64,
-              color: Colors.grey[400],
+              color: kLightGrey,
             ),
             const SizedBox(height: 16),
             Text(
               'No cars available',
               style: TextStyle(
                 fontSize: 18,
-                color: Colors.grey[600],
+                color: kGrey,
                 fontWeight: FontWeight.w500,
               ),
             ),

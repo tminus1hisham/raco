@@ -8,7 +8,6 @@ import 'package:atom/views/settings/contact_us.dart';
 import 'package:atom/views/settings/delete_account.dart';
 import 'package:atom/views/settings/privacy_policy.dart';
 import 'package:atom/views/transport%20%20managers/manager_screen.dart';
-import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/modal/custom_alert.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -22,18 +21,34 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final AuthController _authController = Get.put(AuthController());
   String? role;
+  String? userName;
+  String? phone;
 
   @override
   void initState() {
     super.initState();
-    _fetchRole();
+    _fetchUserData();
   }
 
-  Future<void> _fetchRole() async {
+  Future<void> _fetchUserData() async {
     final fetchedRole = await StorageService.getData('userRole');
+    final fetchedName = await StorageService.getData('userName');
+    final fetchedPhone = await StorageService.getData('phone');
     setState(() {
       role = fetchedRole;
+      userName = fetchedName;
+      phone = fetchedPhone;
     });
+  }
+
+  String _getInitials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2 && parts[1].isNotEmpty) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
+      return parts[0][0].toUpperCase();
+    }
+    return 'U';
   }
 
   @override
@@ -41,177 +56,125 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: kBgGrey,
       body: SafeArea(
-        child: Column(
-          children: [
-            SizedBox(height: 10),
-            customHeader(label: "Settings", icon: Icons.settings),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                children: [
-                  // Account Settings Section
-                  _buildSectionHeader('Account'),
-                  _buildSettingsCard(
-                    child: Column(
-                      children: [
-                        _buildSettingsItem(
-                          icon: Icons.person_outline,
-                          title: 'Account Details',
-                          subtitle: 'Manage your profile information',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => AccountScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildDivider(),
-                        _buildSettingsItem(
-                          icon: Icons.lock_outline,
-                          title: 'Change Password',
-                          subtitle: 'Update your account password',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChangePassword(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildDivider(),
-                        if (role == 'Admin') ...[
-                          _buildSettingsItem(
-                            icon: Icons.person_add_alt,
-                            title: 'Managers',
-                            subtitle: 'Add and manage managers.',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ManagerScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                          _buildDivider(),
-                        ],
-                        _buildSettingsItem(
-                          icon: Icons.delete_outline,
-                          title: 'Delete Account',
-                          subtitle: 'Permanently remove your account',
-                          textColor: Colors.red.shade600,
-                          iconColor: Colors.red.shade600,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DeleteAccount(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(child: _buildProfileHeader()),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  const SizedBox(height: 24),
+
+                  // Account section
+                  _buildSectionLabel('Account'),
+                  const SizedBox(height: 8),
+                  _buildCard([
+                    _buildItem(
+                      icon: Icons.person_outline_rounded,
+                      iconBg: const Color(0xFF3B82F6),
+                      title: 'Account Details',
+                      subtitle: 'Manage your profile information',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => AccountScreen()),
+                      ),
                     ),
-                  ),
-
-                  SizedBox(height: 32),
-
-                  // Legal & About Section
-                  _buildSectionHeader('Legal & About'),
-                  _buildSettingsCard(
-                    child: Column(
-                      children: [
-                        _buildSettingsItem(
-                          icon: Icons.privacy_tip_outlined,
-                          title: 'Privacy Policy',
-                          subtitle: 'Learn how we protect your data',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PrivacyPolicy(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildDivider(),
-                        _buildSettingsItem(
-                          icon: Icons.info_outline,
-                          title: 'About Atom',
-                          subtitle: 'Get to know about us',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => AboutUs(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                    _buildDivider(),
+                    _buildItem(
+                      icon: Icons.lock_outline_rounded,
+                      iconBg: const Color(0xFF8B5CF6),
+                      title: 'Change Password',
+                      subtitle: 'Update your account password',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => ChangePassword()),
+                      ),
                     ),
-                  ),
-
-                  SizedBox(height: 32),
-
-                  _buildSectionHeader('Support'),
-                  _buildSettingsCard(
-                    child: Column(
-                      children: [
-                        _buildSettingsItem(
-                          icon: Icons.help_outline,
-                          title: 'Help & Support',
-                          subtitle: 'Get help or contact support',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ContactUs(),
-                              ),
-                            );
-                          },
+                    if (role == 'Admin') ...[
+                      _buildDivider(),
+                      _buildItem(
+                        icon: Icons.group_outlined,
+                        iconBg: const Color(0xFF0EA5E9),
+                        title: 'Managers',
+                        subtitle: 'Add and manage transport managers',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => ManagerScreen()),
                         ),
-                        _buildDivider(),
-                      ],
+                      ),
+                    ],
+                  ]),
+
+                  const SizedBox(height: 24),
+
+                  // Legal & About section
+                  _buildSectionLabel('Legal & About'),
+                  const SizedBox(height: 8),
+                  _buildCard([
+                    _buildItem(
+                      icon: Icons.privacy_tip_outlined,
+                      iconBg: const Color(0xFFF59E0B),
+                      title: 'Privacy Policy',
+                      subtitle: 'Learn how we protect your data',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => PrivacyPolicy()),
+                      ),
                     ),
-                  ),
-
-                  SizedBox(height: 32),
-
-                  _buildSectionHeader('Logout'),
-                  _buildSettingsCard(
-                    child: Column(
-                      children: [
-                        _buildSettingsItem(
-                          icon: Icons.logout,
-                          title: 'Logout',
-                          subtitle: 'Sign out of Atom',
-                          textColor: Colors.red.shade600,
-                          iconColor: Colors.red.shade600,
-                          onTap: () {
-                            showCupertinoDialog(
-                              context: context,
-                              builder: (context) => ActionDialog(
-                                title: "Logout",
-                                message: "Are you sure you want to logout?",
-                                confirmText: "Logout",
-                                cancelText: "Cancel",
-                                onConfirm: () =>
-                                    _authController.logout(context),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildDivider(),
-                      ],
+                    _buildDivider(),
+                    _buildItem(
+                      icon: Icons.info_outline_rounded,
+                      iconBg: const Color(0xFF6366F1),
+                      title: 'About Atom',
+                      subtitle: 'Get to know about us',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => AboutUs()),
+                      ),
                     ),
-                  ),
+                  ]),
 
-                  SizedBox(height: 100),
-                ],
+                  const SizedBox(height: 24),
+
+                  // Support section
+                  _buildSectionLabel('Support'),
+                  const SizedBox(height: 8),
+                  _buildCard([
+                    _buildItem(
+                      icon: Icons.headset_mic_outlined,
+                      iconBg: const Color(0xFF10B981),
+                      title: 'Help & Support',
+                      subtitle: 'Get help or contact our team',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => ContactUs()),
+                      ),
+                    ),
+                  ]),
+
+                  const SizedBox(height: 24),
+
+                  // Danger zone
+                  _buildCard([
+                    _buildItem(
+                      icon: Icons.delete_outline_rounded,
+                      iconBg: kRed,
+                      title: 'Delete Account',
+                      subtitle: 'Permanently remove your account',
+                      textColor: kRed,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => DeleteAccount()),
+                      ),
+                    ),
+                  ]),
+
+                  const SizedBox(height: 24),
+
+                  // Sign out button
+                  _buildSignOutButton(),
+                  const SizedBox(height: 40),
+                ]),
               ),
             ),
           ],
@@ -220,92 +183,157 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: Colors.grey.shade600,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingsCard({required Widget child, VoidCallback? onTap}) {
+  Widget _buildProfileHeader() {
+    final initials = _getInitials(userName ?? 'User');
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: Offset(0, 2),
+      color: kWhite,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+      child: Row(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF287ec3), Color(0xFF1a5a8a)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Center(
+              child: Text(
+                initials,
+                style: const TextStyle(
+                  color: kWhite,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  userName ?? 'User',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: kBlack,
+                  ),
+                ),
+                if (phone != null && phone!.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    phone!,
+                    style: const TextStyle(fontSize: 14, color: kGrey),
+                  ),
+                ],
+                const SizedBox(height: 7),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: kBlue.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(kRadiusPill),
+                  ),
+                  child: Text(
+                    role ?? 'User',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: kBlue,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: child,
-        ),
+    );
+  }
+
+  Widget _buildSectionLabel(String text) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: kGrey,
+        letterSpacing: 1.0,
       ),
     );
   }
 
-  Widget _buildSettingsItem({
+  Widget _buildCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        boxShadow: [kShadowSM],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        child: Column(children: children),
+      ),
+    );
+  }
+
+  Widget _buildItem({
     required IconData icon,
+    required Color iconBg,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
     Color? textColor,
-    Color? iconColor,
   }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: (iconColor ?? kBlue).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(kRadiusSM),
+                ),
+                child: Icon(icon, color: kWhite, size: 20),
               ),
-              child: Icon(icon, color: iconColor ?? kBlue, size: 20),
-            ),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: textColor ?? Colors.black87,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: textColor ?? kBlack,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(fontSize: 13, color: kGrey),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
-          ],
+              Icon(Icons.chevron_right_rounded, color: kLightGrey, size: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -313,9 +341,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildDivider() {
     return Container(
-      margin: EdgeInsets.only(left: 56),
+      margin: const EdgeInsets.only(left: 70),
       height: 1,
-      color: Colors.grey.shade100,
+      color: kDivider,
+    );
+  }
+
+  Widget _buildSignOutButton() {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(kRadiusMD),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        onTap: () {
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => ActionDialog(
+              title: "Sign Out",
+              message: "Are you sure you want to sign out?",
+              confirmText: "Sign Out",
+              cancelText: "Cancel",
+              onConfirm: () => _authController.logout(context),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: kRed.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(kRadiusMD),
+            border: Border.all(
+              color: kRed.withValues(alpha: 0.20),
+              width: 1,
+            ),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.logout_rounded, color: kRed, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Sign Out',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: kRed,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

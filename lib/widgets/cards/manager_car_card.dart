@@ -20,26 +20,19 @@ class SelectableCarCard extends StatelessWidget {
     return Container(
       margin: EdgeInsets.only(bottom: 5),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        color: kWhite,
+        borderRadius: BorderRadius.circular(kRadiusSM),
         border: Border.all(
           color: isSelected ? kBlue : Colors.transparent,
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            spreadRadius: 0,
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
+        boxShadow: [kShadowSM],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onCardTap,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(kRadiusSM),
           child: Padding(
             padding: EdgeInsets.only(top: 10, bottom: 10, right: 10),
             child: Row(
@@ -61,7 +54,7 @@ class SelectableCarCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: kBlack,
                         ),
                       ),
                       SizedBox(height: 4),
@@ -69,7 +62,7 @@ class SelectableCarCard extends StatelessWidget {
                         car.carName,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade600,
+                          color: kGrey,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -82,9 +75,9 @@ class SelectableCarCard extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: car.isAssigned
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
+                        ? kSuccessGreen.withValues(alpha: 0.1)
+                        : Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(kRadiusPill),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -93,7 +86,7 @@ class SelectableCarCard extends StatelessWidget {
                         width: 6,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: car.isAssigned ? Colors.green : Colors.orange,
+                          color: car.isAssigned ? kSuccessGreen : Colors.orange,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -101,7 +94,7 @@ class SelectableCarCard extends StatelessWidget {
                       Text(
                         car.isAssigned ? 'Assigned' : 'Available',
                         style: TextStyle(
-                          color: car.isAssigned ? Colors.green : Colors.orange,
+                          color: car.isAssigned ? kSuccessGreen : Colors.orange,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),

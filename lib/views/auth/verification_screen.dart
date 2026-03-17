@@ -24,7 +24,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kWhite,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -53,7 +53,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
+                    color: kBlack,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -64,13 +64,13 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                 RichText(
                   text: TextSpan(
                     text: 'We have sent a code to ',
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 16, color: kGrey),
                     children: [
                       TextSpan(
                         text: widget.phoneNumber,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade800,
+                          color: kBlack,
                         ),
                       ),
                     ],
@@ -88,7 +88,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                       width: 70,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: kDivider,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
@@ -101,7 +101,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade800,
+                            color: kBlack,
                           ),
                           decoration: InputDecoration(
                             counterText: '',
@@ -132,7 +132,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   },
                   label: 'Verify Now',
                   backgroundColor: kBlue,
-                  txtColor: Colors.white,
+                  txtColor: kWhite,
                 ),
 
                 const SizedBox(height: 20),
@@ -145,7 +145,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                       "Didn't you receive any code? ",
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: kGrey,
                       ),
                     ),
                     TextButton(
@@ -161,7 +161,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                         'Resend Code',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade800,
+                          color: kBlack,
                           decoration: TextDecoration.underline,
                           fontWeight: FontWeight.w600,
                         ),

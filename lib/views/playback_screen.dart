@@ -105,7 +105,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
     // Add white border
     final Paint borderPaint = Paint()
-      ..color = Colors.white
+      ..color = kWhite
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5;
     canvas.drawCircle(
@@ -119,7 +119,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       text: TextSpan(
         text: label,
         style: const TextStyle(
-          color: Colors.white,
+          color: kWhite,
           fontSize: 36,
           fontWeight: FontWeight.bold,
         ),
@@ -153,9 +153,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
               primary: kBlue,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
+              onPrimary: kWhite,
+              surface: kWhite,
+              onSurface: kBlack,
             ),
           ),
           child: child!,
@@ -198,9 +198,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
               primary: kBlue,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
+              onPrimary: kWhite,
+              surface: kWhite,
+              onSurface: kBlack,
             ),
           ),
           child: child!,
@@ -242,21 +242,21 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       child: Container(
         height: 80,
         child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: kWhite,
+          borderRadius: BorderRadius.circular(kRadiusMD),
           elevation: 2,
-          shadowColor: Colors.black.withOpacity(0.1),
+          shadowColor: kBlack.withValues(alpha: 0.1),
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(kRadiusMD),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(kRadiusMD),
                 border: Border.all(
                   color: selectedDate != null
-                      ? kBlue.withOpacity(0.3)
-                      : Colors.grey.withOpacity(0.2),
+                      ? kBlue.withValues(alpha: 0.3)
+                      : kLightGrey.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
               ),
@@ -264,7 +264,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 children: [
                   Icon(
                     icon,
-                    color: selectedDate != null ? kBlue : Colors.grey[600],
+                    color: selectedDate != null ? kBlue : kGrey,
                     size: 20,
                   ),
                   const SizedBox(width: 12),
@@ -277,7 +277,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                           label,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: kGrey,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -289,8 +289,8 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             color: selectedDate != null
-                                ? Colors.black87
-                                : Colors.grey[500],
+                                ? kBlack
+                                : kGrey,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -299,7 +299,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                   ),
                   Icon(
                     Icons.keyboard_arrow_down,
-                    color: Colors.grey[400],
+                    color: kLightGrey,
                     size: 20,
                   ),
                 ],
@@ -364,7 +364,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       // SPEEDING
       if (speed > 80) {
         final icon = await _createConditionMarker(
-          color: Colors.red,
+          color: kRed,
           label: 'S',
         );
         _conditionalMarkers.add(
@@ -489,7 +489,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           polylineId: PolylineId('route'),
           points: points,
           width: 6,
-          color: Colors.blue,
+          color: kBlue,
           geodesic: true,
         ),
       );
@@ -664,12 +664,12 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     final Canvas canvas = Canvas(recorder);
 
     // Draw green circle
-    final Paint paint = Paint()..color = Colors.green;
+    final Paint paint = Paint()..color = kSuccessGreen;
     canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, paint);
 
     // Add white border
     final Paint borderPaint = Paint()
-      ..color = Colors.white
+      ..color = kWhite
       ..style = PaintingStyle.stroke
       ..strokeWidth = 6;
     canvas.drawCircle(
@@ -683,7 +683,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       text: TextSpan(
         text: 'START',
         style: const TextStyle(
-          color: Colors.white,
+          color: kWhite,
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
@@ -712,12 +712,12 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     final Canvas canvas = Canvas(recorder);
 
     // Draw red circle
-    final Paint paint = Paint()..color = Colors.red;
+    final Paint paint = Paint()..color = kRed;
     canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, paint);
 
     // Add white border
     final Paint borderPaint = Paint()
-      ..color = Colors.white
+      ..color = kWhite
       ..style = PaintingStyle.stroke
       ..strokeWidth = 6;
     canvas.drawCircle(
@@ -730,7 +730,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       text: TextSpan(
         text: 'STOP',
         style: const TextStyle(
-          color: Colors.white,
+          color: kWhite,
           fontSize: 22,
           fontWeight: FontWeight.bold,
         ),
@@ -816,20 +816,18 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: kBgGrey,
       appBar: AppBar(
         elevation: 0,
         title: Text(
           "Playback",
-          style: TextStyle(color: kWhite, fontWeight: FontWeight.w600),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: kBlue,
-        iconTheme: IconThemeData(color: kWhite),
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
           return Container(
-            color: Colors.white,
+            color: kWhite,
             child: Center(
               child: LoadingAnimationWidget.fourRotatingDots(
                 color: kBlue,
@@ -846,16 +844,16 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.map_outlined, size: 80, color: Colors.grey[400]),
+                Icon(Icons.map_outlined, size: 60, color: kLightGrey),
                 SizedBox(height: 20),
                 Text(
                   "No playback data available",
-                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 18, color: kGrey),
                 ),
                 SizedBox(height: 10),
                 Text(
                   "Select a date range to view vehicle history",
-                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                  style: TextStyle(fontSize: 14, color: kGrey),
                 ),
                 SizedBox(height: 30),
                 Padding(
@@ -888,11 +886,11 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.map_outlined, size: 80, color: Colors.grey[400]),
+                Icon(Icons.map_outlined, size: 60, color: kLightGrey),
                 SizedBox(height: 20),
                 Text(
                   "Select date range to view playback",
-                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 18, color: kGrey),
                 ),
                 SizedBox(height: 30),
                 Padding(
@@ -976,12 +974,12 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
               right: 16,
               child: Material(
                 elevation: 4,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(kRadiusMD),
                 child: Container(
-                  padding: EdgeInsets.all(16),
+                  padding: EdgeInsets.all(kSpaceLG),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    color: kWhite,
+                    borderRadius: BorderRadius.circular(kRadiusMD),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1003,16 +1001,16 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                             ),
                             decoration: BoxDecoration(
                               color: ignitionStatus == 1
-                                  ? Colors.green[100]
-                                  : Colors.grey[300],
-                              borderRadius: BorderRadius.circular(12),
+                                  ? kSuccessGreen.withValues(alpha: 0.15)
+                                  : kLightGrey.withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(kRadiusMD),
                             ),
                             child: Text(
                               ignitionStatus == 1 ? 'ON' : 'OFF',
                               style: TextStyle(
                                 color: ignitionStatus == 1
-                                    ? Colors.green[800]
-                                    : Colors.grey[700],
+                                    ? kSuccessGreen
+                                    : kGrey,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 12,
                               ),
@@ -1051,12 +1049,12 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
               right: 16,
               child: Material(
                 elevation: 8,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(kRadiusLG),
                 child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  padding: EdgeInsets.symmetric(vertical: kSpaceLG, horizontal: kSpaceXL),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    color: kWhite,
+                    borderRadius: BorderRadius.circular(kRadiusLG),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1087,8 +1085,8 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: kBlue.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          color: kBlue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(kRadiusSM),
                         ),
                         child: Text(
                           '${_playbackSpeed.toStringAsFixed(1)}x',
@@ -1123,9 +1121,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                             child: SliderTheme(
                               data: SliderTheme.of(context).copyWith(
                                 activeTrackColor: kBlue,
-                                inactiveTrackColor: Colors.grey[300],
+                                inactiveTrackColor: kLightGrey,
                                 thumbColor: kBlue,
-                                overlayColor: kBlue.withOpacity(0.2),
+                                overlayColor: kBlue.withValues(alpha: 0.2),
                                 trackHeight: 3,
                               ),
                               child: Slider(
@@ -1175,19 +1173,17 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                           _ControlButton(
                             icon: Icons.stop,
                             onPressed: _stopPlayback,
-                            color: Colors.red[400]!,
+                            color: kRed,
                           ),
                           TextButton.icon(
                             style: TextButton.styleFrom(
-                              backgroundColor: Colors.redAccent.withOpacity(
-                                0.1,
-                              ), // light background
+                              backgroundColor: kRed.withValues(alpha: 0.1),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
                                 vertical: 10,
                               ),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(kRadiusMD),
                               ),
                             ),
                             onPressed: () {
@@ -1198,12 +1194,12 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                             },
                             icon: const Icon(
                               Icons.clear,
-                              color: Colors.redAccent,
+                              color: kRed,
                             ),
                             label: const Text(
                               "Clear Dates",
                               style: TextStyle(
-                                color: Colors.redAccent,
+                                color: kRed,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1240,11 +1236,11 @@ class _InfoItem extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: 16, color: Colors.grey[600]),
+            Icon(icon, size: 16, color: kGrey),
             SizedBox(width: 4),
             Text(
               label,
-              style: TextStyle(fontSize: 15, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 15, color: kGrey),
             ),
           ],
         ),
@@ -1282,7 +1278,7 @@ class _ControlButton extends StatelessWidget {
         child: Container(
           width: isLarge ? 60 : 50,
           height: isLarge ? 60 : 50,
-          child: Icon(icon, color: Colors.white, size: isLarge ? 32 : 24),
+          child: Icon(icon, color: kWhite, size: isLarge ? 32 : 24),
         ),
       ),
     );

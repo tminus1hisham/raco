@@ -61,7 +61,7 @@ class AboutUs extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: kBlue.withOpacity(0.1),
+                          color: kBlue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -100,7 +100,7 @@ class AboutUs extends StatelessWidget {
                           '© ${DateTime.now().year} Atom. All rights reserved.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: kGrey,
                           ),
                         ),
                       ),

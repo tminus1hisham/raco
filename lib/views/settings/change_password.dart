@@ -76,7 +76,7 @@ class _ChangePasswordState extends State<ChangePassword> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: kBgGrey,
       body: Obx(
         () => Stack(
           children: [
@@ -107,7 +107,7 @@ class _ChangePasswordState extends State<ChangePassword> {
             ),
             if (changePasswordController.isLoading.value)
               Container(
-                color: Colors.black.withOpacity(0.3),
+                color: kBlack.withValues(alpha: 0.3),
                 child: Center(
                   child: LoadingAnimationWidget.fourRotatingDots(
                     color: kBlue,
@@ -125,11 +125,11 @@ class _ChangePasswordState extends State<ChangePassword> {
     return Container(
       padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kWhite,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: kBlack.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: Offset(0, 2),
           ),

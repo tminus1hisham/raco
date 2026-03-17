@@ -40,7 +40,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: kBlack.withValues(alpha: 0.1),
                       blurRadius: 10,
                       spreadRadius: 1,
                       offset: const Offset(0, 9),
@@ -126,7 +126,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       statusColor: device.isDeviceOnline ? kSuccessGreen : kRed,
                       statusBackgroundColor: device.isDeviceOnline
                           ? const Color(0xFFE8F5E8)
-                          : kRed.withOpacity(0.1),
+                          : kRed.withValues(alpha: 0.1),
                       currentSpeed: "${device.speed} km/h",
                       topSpeed: "",
                       onPressed: () {
@@ -164,16 +164,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              spreadRadius: 1,
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: kWhite,
+          borderRadius: BorderRadius.circular(kRadiusMD),
+          boxShadow: [kShadowSM],
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -184,8 +177,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(kRadiusSM),
                 ),
                 child: Icon(icon, color: color, size: 16),
               ),
@@ -193,20 +186,20 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 children: [
                   Text(
                     count,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: kBlack.withValues(alpha: 0.87),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     title,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black54,
+                      color: kBlack.withValues(alpha: 0.54),
                     ),
                   ),
                 ],

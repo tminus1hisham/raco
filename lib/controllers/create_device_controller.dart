@@ -25,8 +25,6 @@ class RegisterDeviceController extends GetxController {
 
   var isLoading = false.obs;
 
-  final ApiService _apiService = ApiService();
-
   Future<bool> registration(BuildContext context) async {
     isLoading.value = true;
 
@@ -52,13 +50,8 @@ class RegisterDeviceController extends GetxController {
         group: group.value.trim(),
       );
 
-      final result = await ApiService.registerDevice(registerModel);
-
-      if (result != null) {
-        return true;
-      } else {
-        return false;
-      }
+      await ApiService.registerDevice(registerModel.toJson());
+      return true;
     } catch (e) {
       debugPrint('Registration failed: $e');
       return false;

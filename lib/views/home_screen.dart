@@ -394,23 +394,23 @@ class _HomeScreenState extends State<HomeScreen> {
               preferredSize: Size.fromHeight(40),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: kBgGrey,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: kBlack.withValues(alpha: 0.05),
                       spreadRadius: 1,
                       blurRadius: 4,
-                      offset: Offset(0, 2),
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: TabBar(
                   indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(kRadiusSM),
                     color: kBlue,
                     boxShadow: [
                       BoxShadow(
-                        color: kBlue.withOpacity(0.3),
+                        color: kBlue.withValues(alpha: 0.3),
                         spreadRadius: 1,
                         blurRadius: 4,
                         offset: Offset(0, 2),
@@ -420,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicatorPadding: EdgeInsets.all(4),
                   labelColor: kWhite,
-                  unselectedLabelColor: Colors.grey[600],
+                  unselectedLabelColor: kGrey,
                   labelStyle: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -623,29 +623,23 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: Colors.grey.shade400, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: kWhite,
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        border: Border.all(color: kLightGrey, width: 1),
+        boxShadow: [kShadowSM],
       ),
       child: Row(
         children: [
           Padding(
-            padding: EdgeInsets.only(left: 20),
-            child: Icon(Icons.search, color: Colors.grey[600], size: 24),
+            padding: const EdgeInsets.only(left: kSpaceXL),
+            child: const Icon(Icons.search, color: kGrey, size: 24),
           ),
           Expanded(
             child: TextField(
               controller: _searchController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: "Search by number plate",
-                hintStyle: TextStyle(color: Colors.grey[600], fontSize: 16),
+                hintStyle: TextStyle(color: kGrey, fontSize: 16),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(
                   horizontal: 16,
@@ -673,7 +667,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.clear, color: Colors.grey[600]),
+            icon: const Icon(Icons.clear, color: kGrey),
             onPressed: () {
               _searchController.clear();
               FocusScope.of(context).unfocus();
@@ -699,7 +693,7 @@ class _HomeScreenState extends State<HomeScreen> {
   //       border: Border.all(color: Colors.grey.shade400, width: 1),
   //       boxShadow: [
   //         BoxShadow(
-  //           color: Colors.black.withOpacity(0.1),
+  //           color: Colors.black.withValues(alpha: 0.1),
   //           blurRadius: 10,
   //           offset: Offset(0, 2),
   //         ),
@@ -746,18 +740,12 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 45,
           height: 45,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+            color: kWhite,
+            borderRadius: BorderRadius.circular(kRadiusSM),
+            boxShadow: [kShadowSM],
           ),
           child: IconButton(
-            icon: Icon(Icons.add, color: Colors.grey[700]),
+            icon: Icon(Icons.add, color: kGrey),
             onPressed: _zoomIn,
           ),
         ),
@@ -766,18 +754,12 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 45,
           height: 45,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+            color: kWhite,
+            borderRadius: BorderRadius.circular(kRadiusSM),
+            boxShadow: [kShadowSM],
           ),
           child: IconButton(
-            icon: Icon(Icons.remove, color: Colors.grey[700]),
+            icon: Icon(Icons.remove, color: kGrey),
             onPressed: _zoomOut,
           ),
         ),
@@ -786,18 +768,12 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 45,
           height: 45,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+            color: kWhite,
+            borderRadius: BorderRadius.circular(kRadiusSM),
+            boxShadow: [kShadowSM],
           ),
           child: IconButton(
-            icon: Icon(Icons.layers, color: Colors.grey[700]),
+            icon: Icon(Icons.layers, color: kGrey),
             onPressed: _toggleMapType,
           ),
         ),
@@ -806,15 +782,9 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 45,
           height: 45,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+            color: kWhite,
+            borderRadius: BorderRadius.circular(kRadiusSM),
+            boxShadow: [kShadowSM],
           ),
           child: isLoadingLocation
               ? Padding(
@@ -827,7 +797,7 @@ class _HomeScreenState extends State<HomeScreen> {
               : IconButton(
                   icon: Icon(
                     Icons.my_location,
-                    color: userLocation != null ? kBlue : Colors.grey[700],
+                    color: userLocation != null ? kBlue : kGrey,
                   ),
                   onPressed: _moveToUserLocation,
                 ),
@@ -837,20 +807,14 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 45,
           height: 45,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+            color: kWhite,
+            borderRadius: BorderRadius.circular(kRadiusSM),
+            boxShadow: [kShadowSM],
           ),
           child: IconButton(
             icon: Icon(
               Icons.keyboard_arrow_up_rounded,
-              color: Colors.grey[700],
+              color: kGrey,
             ),
             onPressed: _showPreviousVehicle,
           ),
@@ -860,20 +824,14 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 45,
           height: 45,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+            color: kWhite,
+            borderRadius: BorderRadius.circular(kRadiusSM),
+            boxShadow: [kShadowSM],
           ),
           child: IconButton(
             icon: Icon(
               Icons.keyboard_arrow_down_outlined,
-              color: Colors.grey[700],
+              color: kGrey,
             ),
             onPressed: _showNextVehicle,
           ),
@@ -883,18 +841,12 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 45,
           height: 45,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+            color: kWhite,
+            borderRadius: BorderRadius.circular(kRadiusSM),
+            boxShadow: [kShadowSM],
           ),
           child: IconButton(
-            icon: Icon(Icons.center_focus_strong, color: Colors.grey[700]),
+            icon: Icon(Icons.center_focus_strong, color: kGrey),
             onPressed: () => _fitAllCarsOnMap(_filteredDevices),
           ),
         ),
@@ -903,15 +855,9 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 45,
           height: 45,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+            color: kWhite,
+            borderRadius: BorderRadius.circular(kRadiusSM),
+            boxShadow: [kShadowSM],
           ),
           child: _isRefreshing
               ? Padding(
@@ -927,7 +873,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: _countdown <= 3 ? Colors.red : kBlue,
+                      color: _countdown <= 3 ? kRed : kBlue,
                     ),
                   ),
                   onPressed: () {
@@ -946,21 +892,21 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.43,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+        color: kWhite,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(kRadiusLG),
+          topRight: Radius.circular(kRadiusLG),
         ),
       ),
       child: Column(
         children: [
           Container(
-            margin: EdgeInsets.symmetric(vertical: 10),
+            margin: const EdgeInsets.symmetric(vertical: 10),
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
+              color: kLightGrey,
+              borderRadius: BorderRadius.circular(kRadiusSM),
             ),
           ),
           Padding(
@@ -985,19 +931,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: EdgeInsets.symmetric(vertical: 5),
                     decoration: BoxDecoration(
                       color: kWhite,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(kRadiusMD),
                       border: Border.all(
-                        color: kBlue.withOpacity(0.5),
+                        color: kBlue.withValues(alpha: 0.5),
                         width: 1.5,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          spreadRadius: 1,
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
+                      boxShadow: [kShadowSM],
                     ),
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 10),
@@ -1022,9 +961,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () {
                     Navigator.pop(context);
                   },
-                  child: Icon(
+                  child: const Icon(
                     Icons.close,
-                    color: Colors.black.withOpacity(0.5),
+                    color: kGrey,
                   ),
                 ),
               ],
@@ -1049,18 +988,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Text(
                             device.numberPlate,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 25,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: kBlack,
                             ),
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(height: kSpaceXS),
                           Text(
                             "${device.type} ${device.make}",
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 16,
-                              color: Colors.grey[600],
+                              color: kGrey,
                             ),
                           ),
                         ],
@@ -1076,8 +1015,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     'ENGINE',
                                     style: TextStyle(
                                       color: isVehicleActive
-                                          ? Colors.green
-                                          : Colors.grey[600],
+                                          ? kSuccessGreen
+                                          : kGrey,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -1086,23 +1025,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                     style: TextStyle(
                                       fontSize: 15,
                                       color: isVehicleActive
-                                          ? Colors.green
-                                          : Colors.grey[600],
+                                          ? kSuccessGreen
+                                          : kGrey,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
                               ),
-                              SizedBox(width: 10),
+                              const SizedBox(width: kSpaceSM),
                               Switch(
                                 value: isVehicleActive,
                                 onChanged: (bool value) {},
-                                activeColor: Colors.green,
-                                activeTrackColor: Colors.green.withOpacity(0.3),
-                                inactiveThumbColor: Colors.grey,
-                                inactiveTrackColor: Colors.grey.withOpacity(
-                                  0.3,
-                                ),
+                                activeColor: kSuccessGreen,
+                                activeTrackColor: kSuccessGreen.withValues(alpha: 0.3),
+                                inactiveThumbColor: kGrey,
+                                inactiveTrackColor: kGrey.withValues(alpha: 0.3),
                               ),
                             ],
                           );
@@ -1111,51 +1048,41 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
 
-                  SizedBox(height: 10),
+                  const SizedBox(height: kSpaceMD),
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            "Driver Behaviour: Safe",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
+                      Text(
+                        "Driver Behaviour: Safe",
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: kGrey,
+                        ),
                       ),
-                      Row(
-                        children: [
-                          Text(
-                            "Time: ${_utils.formatTime(device.updatedAt)} ",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
+                      Text(
+                        "Time: ${_utils.formatTime(device.updatedAt)} ",
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: kGrey,
+                        ),
                       ),
                     ],
                   ),
 
-                  SizedBox(height: 10),
-
-                  SizedBox(height: 10),
+                  const SizedBox(height: kSpaceMD),
 
                   Row(
                     children: [
                       Text(
                         "Speed: ${device.speed} Km/h",
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        style: const TextStyle(fontSize: 16, color: kGrey),
                       ),
-                      Spacer(),
+                      const Spacer(),
                     ],
                   ),
 
-                  SizedBox(height: 20),
+                  const SizedBox(height: kSpaceXL),
                   Row(
                     children: [
                       Expanded(
@@ -1213,29 +1140,22 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: onPressed,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: kSpaceLG),
         decoration: BoxDecoration(
           color: kWhite,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.5), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              spreadRadius: 1,
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(kRadiusMD),
+          border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
+          boxShadow: [kShadowSM],
         ),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.symmetric(horizontal: kSpaceSM),
           child: Column(
             children: [
               Icon(icon, color: color, size: 20),
-              SizedBox(height: 5),
+              const SizedBox(height: kSpaceSM),
               Text(
                 title,
-                style: TextStyle(fontSize: 15, color: Colors.black87),
+                style: const TextStyle(fontSize: 15, color: kBlack),
               ),
             ],
           ),

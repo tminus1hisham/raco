@@ -23,7 +23,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: kBgGrey,
       body: SafeArea(
         child: Column(
           children: [
@@ -42,7 +42,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                     buildCard(
                       icon: Icons.bluetooth_searching,
                       label: "Connect Device",
-                      color: Colors.teal,
+                      color: kBlue,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -72,14 +72,14 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(kRadiusPill),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            color: kWhite,
+            borderRadius: BorderRadius.circular(kRadiusPill),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: kGrey.withValues(alpha:0.1),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -91,7 +91,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha:0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 40, color: color),
@@ -103,7 +103,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade800,
+                  color: kBlack,
                 ),
               ),
             ],
@@ -893,14 +893,14 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 24),
+            Icon(Icons.check_circle, color: kSuccessGreen, size: 24),
             SizedBox(width: 8),
             Text(
               'Calibration Successful',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.green,
+                color: kSuccessGreen,
               ),
             ),
           ],
@@ -917,8 +917,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: kBlue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                color: kBlue.withValues(alpha:0.1),
+                borderRadius: BorderRadius.circular(kRadiusSM),
               ),
               child: Column(
                 children: [
@@ -930,7 +930,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         'Calibrated Frequency:',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: kGrey,
                         ),
                       ),
                     ],
@@ -950,7 +950,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
             SizedBox(height: 8),
             Text(
               'What would you like to do next?',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 12, color: kGrey),
             ),
           ],
         ),
@@ -966,9 +966,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
             child: Text('Done', style: TextStyle(color: kBlue)),
           ),
         ],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kRadiusLG)),
         elevation: 8,
-        backgroundColor: Colors.white,
+        backgroundColor: kWhite,
       ),
     );
   }
@@ -1055,7 +1055,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   Widget _buildCalibrationModal() {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kRadiusLG)),
       child: Container(
         padding: const EdgeInsets.all(20),
         constraints: BoxConstraints(
@@ -1104,8 +1104,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                       horizontal: 16,
                     ),
                     decoration: BoxDecoration(
-                      color: kBlue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: kBlue.withValues(alpha:0.1),
+                      borderRadius: BorderRadius.circular(kRadiusMD),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -1113,7 +1113,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         Text(
                           'Selected Frequency',
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: kGrey,
                             fontSize: 14,
                           ),
                         ),
@@ -1130,7 +1130,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         Text(
                           'Derived from device data',
                           style: TextStyle(
-                            color: Colors.grey.shade500,
+                            color: kGrey,
                             fontSize: 12,
                           ),
                         ),
@@ -1150,7 +1150,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         style: ElevatedButton.styleFrom(
                           shape: CircleBorder(),
                           padding: const EdgeInsets.all(12),
-                          backgroundColor: kBlue.withOpacity(0.1),
+                          backgroundColor: kBlue.withValues(alpha:0.1),
                           foregroundColor: kBlue,
                           minimumSize: Size(48, 48),
                         ),
@@ -1175,7 +1175,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           decoration: InputDecoration(
                             isDense: true,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(kRadiusSM),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               vertical: 16,
@@ -1226,7 +1226,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         style: ElevatedButton.styleFrom(
                           shape: CircleBorder(),
                           padding: const EdgeInsets.all(12),
-                          backgroundColor: kBlue.withOpacity(0.1),
+                          backgroundColor: kBlue.withValues(alpha:0.1),
                           foregroundColor: kBlue,
                           minimumSize: Size(48, 48),
                         ),
@@ -1240,7 +1240,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
                   Text(
                     'Adjust frequency (${MIN_FREQUENCY}-${MAX_FREQUENCY}Hz, 1Hz steps)',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    style: TextStyle(color: kGrey, fontSize: 12),
                   ),
 
                   Padding(
@@ -1255,11 +1255,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                             ? null
                             : _sendFrequencyToDevice,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
+                          backgroundColor: kSuccessGreen,
+                          foregroundColor: kWhite,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         child: Row(
@@ -1286,10 +1286,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                       onPressed: _isCalibrating ? null : _calibrateSpeed,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: kBlue,
-                        foregroundColor: Colors.white,
+                        foregroundColor: kWhite,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(kRadiusSM),
                         ),
                       ),
                       child: _isCalibrating
@@ -1302,7 +1302,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
+                                      kWhite,
                                     ),
                                   ),
                                 ),
@@ -1330,9 +1330,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      color: Colors.orange.withValues(alpha:0.1),
+                      borderRadius: BorderRadius.circular(kRadiusMD),
+                      border: Border.all(color: Colors.orange.withValues(alpha:0.3)),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -1355,7 +1355,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         Text(
                           'Speed calibration is complete. You can now calibrate the fuel sensor.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(color: kGrey),
                         ),
                       ],
                     ),
@@ -1370,10 +1370,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                       onPressed: _isCalibrating ? null : _calibrateFuel,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
+                        foregroundColor: kWhite,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(kRadiusSM),
                         ),
                       ),
                       child: _isCalibrating
@@ -1386,7 +1386,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
+                                      kWhite,
                                     ),
                                   ),
                                 ),
@@ -1546,7 +1546,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                valueColor: AlwaysStoppedAnimation<Color>(kWhite),
               ),
             ),
             const SizedBox(width: 12),
@@ -1629,7 +1629,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.redAccent,
+        backgroundColor: kRed,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
       ),
@@ -1640,7 +1640,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: kSuccessGreen,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ),
@@ -1654,11 +1654,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: kWhite,
+        borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: kGrey.withValues(alpha:0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1671,26 +1671,26 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           height: 40,
           decoration: BoxDecoration(
             color: isConnected
-                ? kBlue.withOpacity(0.1)
-                : Colors.grey.withOpacity(0.1),
+                ? kBlue.withValues(alpha:0.1)
+                : kGrey.withValues(alpha:0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
             Icons.bluetooth,
-            color: isConnected ? kBlue : Colors.grey,
+            color: isConnected ? kBlue : kGrey,
           ),
         ),
         title: Text(
           deviceName,
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: isConnected ? kBlue : Colors.grey[800],
+            color: isConnected ? kBlue : kBlack,
           ),
         ),
         subtitle: Text(
           device.address,
           style: TextStyle(
-            color: Colors.grey[600],
+            color: kGrey,
             fontSize: 12,
             fontFamily: 'Monospace',
           ),
@@ -1713,10 +1713,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                 ElevatedButton(
                   onPressed: _disconnectDevice,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
+                    backgroundColor: kRed,
+                    foregroundColor: kWhite,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(kRadiusSM),
                     ),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -1730,9 +1730,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                   onPressed: () => _connectToDevice(device),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kBlue,
-                    foregroundColor: Colors.white,
+                    foregroundColor: kWhite,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(kRadiusSM),
                     ),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -1751,7 +1751,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   Widget _buildRegistrationForm() {
     return Dialog(
       insetPadding: const EdgeInsets.all(20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kRadiusPill)),
       child: Container(
         width: double.infinity,
         constraints: BoxConstraints(
@@ -1774,7 +1774,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                 children: [
                   const Icon(
                     Icons.developer_board,
-                    color: Colors.white,
+                    color: kWhite,
                     size: 24,
                   ),
                   const SizedBox(width: 12),
@@ -1782,7 +1782,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                     child: Text(
                       'Device Registration',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: kWhite,
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1791,7 +1791,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                   IconButton(
                     icon: const Icon(
                       Icons.close,
-                      color: Colors.white,
+                      color: kWhite,
                       size: 24,
                     ),
                     onPressed: () {
@@ -1820,9 +1820,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: kBlue.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: kBlue.withOpacity(0.3)),
+                          color: kBlue.withValues(alpha:0.1),
+                          borderRadius: BorderRadius.circular(kRadiusSM),
+                          border: Border.all(color: kBlue.withValues(alpha:0.3)),
                         ),
                         child: Row(
                           children: [
@@ -1873,7 +1873,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                   : 'Start typing to search ${_allCompanies.length} companies...',
                               prefixIcon: Icon(Icons.business),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(kRadiusSM),
                               ),
                               suffixIcon: _isLoadingCompanies
                                   ? SizedBox(
@@ -1927,12 +1927,12 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                               _filteredCompanies.isNotEmpty)
                             Container(
                               decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey.shade300),
+                                color: kWhite,
+                                borderRadius: BorderRadius.circular(kRadiusSM),
+                                border: Border.all(color: kLightGrey),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: kBlack.withValues(alpha:0.1),
                                     blurRadius: 10,
                                     offset: Offset(0, 4),
                                   ),
@@ -1986,7 +1986,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                                   company['phone']!,
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    color: Colors.grey.shade600,
+                                                    color: kGrey,
                                                   ),
                                                 ),
                                               ),
@@ -2001,7 +2001,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                                   company['email']!,
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    color: Colors.grey.shade600,
+                                                    color: kGrey,
                                                   ),
                                                 ),
                                               ),
@@ -2021,16 +2021,16 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                             Container(
                               padding: EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey.shade200),
+                                color: kBgGrey,
+                                borderRadius: BorderRadius.circular(kRadiusSM),
+                                border: Border.all(color: kDivider),
                               ),
                               margin: EdgeInsets.only(top: 4),
                               child: Text(
                                 'No existing company found with "$_companySearchQuery". You can enter a new company.',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade600,
+                                  color: kGrey,
                                 ),
                               ),
                             ),
@@ -2047,7 +2047,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Company phone number',
                           prefixIcon: Icon(Icons.phone),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         keyboardType: TextInputType.phone,
@@ -2078,7 +2078,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter technician ID',
                           prefixIcon: Icon(Icons.badge),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         keyboardType: TextInputType.number,
@@ -2099,7 +2099,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter technician name',
                           prefixIcon: Icon(Icons.person),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         readOnly: _technicianNameController.text.isNotEmpty,
@@ -2130,7 +2130,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter owner name',
                           prefixIcon: Icon(Icons.person_outline),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         validator: (value) {
@@ -2149,7 +2149,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter owner ID',
                           prefixIcon: Icon(Icons.perm_identity),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         validator: (value) {
@@ -2168,7 +2168,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter owner phone number',
                           prefixIcon: Icon(Icons.phone_android),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         keyboardType: TextInputType.phone,
@@ -2199,7 +2199,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter vehicle registration number',
                           prefixIcon: Icon(Icons.confirmation_number),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         validator: (value) {
@@ -2218,7 +2218,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter chassis number',
                           prefixIcon: Icon(Icons.directions_car),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         validator: (value) {
@@ -2237,7 +2237,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter vehicle make (e.g., Toyota, Honda)',
                           prefixIcon: Icon(Icons.directions_car_filled),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         validator: (value) {
@@ -2267,7 +2267,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter certificate number',
                           prefixIcon: Icon(Icons.verified),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         readOnly: _certNoController.text.isNotEmpty,
@@ -2287,7 +2287,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter device serial number',
                           prefixIcon: Icon(Icons.numbers),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         readOnly: _serialController.text.isNotEmpty,
@@ -2304,7 +2304,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           child: Text(
                             'Populated from device data',
                             style: TextStyle(
-                              color: Colors.grey.shade600,
+                              color: kGrey,
                               fontSize: 12,
                             ),
                           ),
@@ -2318,7 +2318,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter date (e.g., Nov 10, 2025)',
                           prefixIcon: Icon(Icons.calendar_today),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         readOnly: _dateController.text.isNotEmpty,
@@ -2349,7 +2349,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter agent name',
                           prefixIcon: Icon(Icons.person_add),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         readOnly: _agentController.text.isNotEmpty,
@@ -2369,7 +2369,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter agent ID',
                           prefixIcon: Icon(Icons.badge_outlined),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         readOnly: _agentIDController.text.isNotEmpty,
@@ -2389,7 +2389,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter location',
                           prefixIcon: Icon(Icons.location_on),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         readOnly: _locationController.text.isNotEmpty,
@@ -2409,7 +2409,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter email address',
                           prefixIcon: Icon(Icons.email),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         readOnly: _emailController.text.isNotEmpty,
@@ -2435,7 +2435,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter agent phone number',
                           prefixIcon: Icon(Icons.phone_iphone),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         readOnly: _agentPhoneController.text.isNotEmpty,
@@ -2456,7 +2456,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter business registration number',
                           prefixIcon: Icon(Icons.app_registration),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         readOnly: _businessRegController.text.isNotEmpty,
@@ -2476,7 +2476,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           hintText: 'Enter group name',
                           prefixIcon: Icon(Icons.group),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         validator: (value) {
@@ -2493,10 +2493,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         onPressed: _registerDevice,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: kBlue,
-                          foregroundColor: Colors.white,
+                          foregroundColor: kWhite,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
                         child: const Text(
@@ -2527,7 +2527,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         appBar: AppBar(
           title: const Text("Connect Device"),
           backgroundColor: kBlue,
-          foregroundColor: Colors.white,
+          foregroundColor: kWhite,
           elevation: 0,
         ),
         body: Center(
@@ -2537,7 +2537,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               const Icon(
                 Icons.bluetooth_disabled,
                 size: 64,
-                color: Colors.grey,
+                color: kGrey,
               ),
               const SizedBox(height: 16),
               const Text(
@@ -2545,21 +2545,21 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey,
+                  color: kGrey,
                 ),
               ),
               const SizedBox(height: 8),
               const Text(
                 'Please enable Bluetooth to scan for devices',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: kGrey),
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _initializeBluetooth,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kBlue,
-                  foregroundColor: Colors.white,
+                  foregroundColor: kWhite,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
                     vertical: 16,
@@ -2579,7 +2579,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           appBar: AppBar(
             title: const Text("Connect Device"),
             backgroundColor: kBlue,
-            foregroundColor: Colors.white,
+            foregroundColor: kWhite,
             elevation: 0,
             actions: [
               if (_isScanning)
@@ -2593,14 +2593,14 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
+                            kWhite,
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       const Text(
                         'Scanning...',
-                        style: TextStyle(fontSize: 14, color: Colors.white),
+                        style: TextStyle(fontSize: 14, color: kWhite),
                       ),
                     ],
                   ),
@@ -2626,10 +2626,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(15),
+                          color: kWhite.withValues(alpha:0.1),
+                          borderRadius: BorderRadius.circular(kRadiusLG),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
+                            color: kWhite.withValues(alpha:0.3),
                           ),
                         ),
                         child: Row(
@@ -2638,7 +2638,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                               _isConnected
                                   ? Icons.bluetooth_connected
                                   : Icons.bluetooth_disabled,
-                              color: Colors.white,
+                              color: kWhite,
                               size: 28,
                             ),
                             const SizedBox(width: 12),
@@ -2651,7 +2651,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                         ? 'Connected'
                                         : 'Not Connected',
                                     style: const TextStyle(
-                                      color: Colors.white,
+                                      color: kWhite,
                                       fontSize: 16,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -2661,7 +2661,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                         ? 'Connected to ${_selectedDevice?.name ?? "Unknown"}'
                                         : 'Tap scan to find Atom Speed devices',
                                     style: TextStyle(
-                                      color: Colors.white.withOpacity(0.8),
+                                      color: kWhite.withValues(alpha:0.8),
                                       fontSize: 14,
                                     ),
                                   ),
@@ -2673,7 +2673,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                 onPressed: _disconnectDevice,
                                 icon: const Icon(
                                   Icons.link_off,
-                                  color: Colors.white,
+                                  color: kWhite,
                                 ),
                                 tooltip: 'Disconnect',
                               ),
@@ -2687,11 +2687,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                          color: kWhite,
+                          borderRadius: BorderRadius.circular(kRadiusMD),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: kBlack.withValues(alpha:0.1),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -2701,7 +2701,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           color: Colors.transparent,
                           child: InkWell(
                             onTap: _isScanning ? null : _startScanning,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(kRadiusMD),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Row(
@@ -2730,7 +2730,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
                                       color: _isScanning
-                                          ? kBlue.withOpacity(0.7)
+                                          ? kBlue.withValues(alpha:0.7)
                                           : kBlue,
                                     ),
                                   ),
@@ -2748,7 +2748,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           child: Text(
                             'Found ${_devices.length} Atom Speed device(s)',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: kWhite,
                               fontSize: 14,
                             ),
                           ),
@@ -2763,10 +2763,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                               width: double.infinity,
                               decoration: BoxDecoration(
                                 color: Colors.orange,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(kRadiusMD),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
+                                    color: kBlack.withValues(alpha:0.2),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),
@@ -2776,7 +2776,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                 color: Colors.transparent,
                                 child: InkWell(
                                   onTap: _prepareCalibration,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(kRadiusMD),
                                   child: Padding(
                                     padding: const EdgeInsets.all(16),
                                     child: Row(
@@ -2785,7 +2785,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                       children: [
                                         Icon(
                                           Icons.speed,
-                                          color: Colors.white,
+                                          color: kWhite,
                                           size: 24,
                                         ),
                                         const SizedBox(width: 12),
@@ -2794,7 +2794,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.white,
+                                            color: kWhite,
                                           ),
                                         ),
                                       ],
@@ -2812,10 +2812,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(15),
+                            color: kWhite.withValues(alpha:0.1),
+                            borderRadius: BorderRadius.circular(kRadiusLG),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: kWhite.withValues(alpha:0.3),
                             ),
                           ),
                           child: Column(
@@ -2828,7 +2828,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                   const Text(
                                     'Received Data:',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: kWhite,
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -2839,7 +2839,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                         onPressed: _clearReceivedData,
                                         icon: const Icon(
                                           Icons.clear_all,
-                                          color: Colors.white,
+                                          color: kWhite,
                                         ),
                                         tooltip: 'Clear',
                                       ),
@@ -2847,7 +2847,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                         onPressed: _retrieveDataFromDevice,
                                         icon: const Icon(
                                           Icons.refresh,
-                                          color: Colors.white,
+                                          color: kWhite,
                                         ),
                                         tooltip: 'Get Data',
                                       ),
@@ -2861,14 +2861,14 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                 height: 120,
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(10),
+                                  color: kBlack.withValues(alpha:0.2),
+                                  borderRadius: BorderRadius.circular(kRadiusMD),
                                 ),
                                 child: SingleChildScrollView(
                                   child: Text(
                                     _receivedData,
                                     style: const TextStyle(
-                                      color: Colors.white,
+                                      color: kWhite,
                                       fontFamily: 'Monospace',
                                       fontSize: 12,
                                     ),
@@ -2886,15 +2886,15 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                 // Devices List Section
                 Expanded(
                   child: Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
+                    decoration:  BoxDecoration(
+                      color: kWhite,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(30),
                         topRight: Radius.circular(30),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black26,
+                          color: kBlack.withValues(alpha: 0.26),
                           blurRadius: 20,
                           offset: Offset(0, -5),
                         ),
@@ -2923,7 +2923,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                     '${_devices.length} device(s) found',
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey[600],
+                                      color: kGrey,
                                     ),
                                   ),
                                 ],
@@ -2933,14 +2933,14 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                 icon: const Icon(Icons.refresh, size: 20),
                                 label: const Text('Refresh'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: kBlue.withOpacity(0.1),
+                                  backgroundColor: kBlue.withValues(alpha:0.1),
                                   foregroundColor: kBlue,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 12,
                                     vertical: 8,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(kRadiusSM),
                                   ),
                                 ),
                               ),
@@ -2956,14 +2956,14 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                       Icon(
                                         Icons.bluetooth_disabled,
                                         size: 80,
-                                        color: Colors.grey[300],
+                                        color: kLightGrey,
                                       ),
                                       const SizedBox(height: 20),
                                       Text(
                                         'No Atom Speed devices found',
                                         style: TextStyle(
                                           fontSize: 18,
-                                          color: Colors.grey[500],
+                                          color: kGrey,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -2972,7 +2972,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                         'Tap the scan button to discover nearby devices',
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.grey[400],
+                                          color: kLightGrey,
                                         ),
                                         textAlign: TextAlign.center,
                                       ),
@@ -2985,7 +2985,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                             onPressed: _startScanning,
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: kBlue,
-                                              foregroundColor: Colors.white,
+                                              foregroundColor: kWhite,
                                               padding:
                                                   const EdgeInsets.symmetric(
                                                     horizontal: 24,
@@ -3027,9 +3027,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                   icon: const Icon(Icons.download),
                   label: const Text('Get Device Data'),
                   backgroundColor: kBlue,
-                  foregroundColor: Colors.white,
+                  foregroundColor: kWhite,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50),
+                    borderRadius: BorderRadius.circular(kRadiusPill),
                   ),
                   elevation: 4,
                 )
@@ -3046,7 +3046,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               });
             },
             child: Container(
-              color: Colors.black.withOpacity(0.5),
+              color: kBlack.withValues(alpha:0.5),
               width: double.infinity,
               height: double.infinity,
             ),
@@ -3068,7 +3068,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               }
             },
             child: Container(
-              color: Colors.black.withOpacity(0.5),
+              color: kBlack.withValues(alpha:0.5),
               width: double.infinity,
               height: double.infinity,
             ),

@@ -47,21 +47,18 @@ class _OnboardingState extends State<Onboarding> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kWhite,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(0.0),
-              child: Center(
-                child: Hero(
-                  tag: "logo",
-                  child: Image(
-                    image: AssetImage('assets/eagle_logo.png'),
-                    height: 200,
-                    width: 200,
-                  ),
+            Center(
+              child: Hero(
+                tag: "logo",
+                child: Image(
+                  image: const AssetImage('assets/eagle_logo.png'),
+                  height: 140,
+                  width: 140,
                 ),
               ),
             ),
@@ -93,14 +90,14 @@ class _OnboardingState extends State<Onboarding> {
                                 ),
                               ),
 
-                              const SizedBox(height: 40),
+                              const SizedBox(height: kSpace3XL),
 
                               Text(
                                 item.title,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.grey.shade800,
+                                  color: kBlack,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -113,9 +110,9 @@ class _OnboardingState extends State<Onboarding> {
                                 ),
                                 child: Text(
                                   item.description,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 16,
-                                    color: Colors.grey.shade600,
+                                    color: kGrey,
                                     height: 1.5,
                                   ),
                                   textAlign: TextAlign.center,
@@ -148,7 +145,7 @@ class _OnboardingState extends State<Onboarding> {
                       dotWidth: 8,
                       dotHeight: 8,
                       activeDotColor: kBlue,
-                      dotColor: Colors.grey.shade300,
+                      dotColor: kLightGrey,
                       spacing: 8,
                     ),
                   ),
@@ -179,7 +176,7 @@ class _OnboardingState extends State<Onboarding> {
                         ? 'Sign in'
                         : 'Next',
                     backgroundColor: kBlue,
-                    txtColor: Colors.white,
+                    txtColor: kWhite,
                   ),
 
                   const SizedBox(height: 10),
@@ -198,8 +195,8 @@ class _OnboardingState extends State<Onboarding> {
                         }
                       },
                       label: 'Skip',
-                      borderColor: Colors.grey.shade400,
-                      txtColor: Colors.grey.shade700,
+                      borderColor: kLightGrey,
+                      txtColor: kGrey,
                     ),
                   SizedBox(height: 10),
                   Row(

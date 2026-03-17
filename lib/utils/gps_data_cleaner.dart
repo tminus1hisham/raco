@@ -161,21 +161,7 @@ class GpsDataCleaner {
     List<dynamic> smoothed = [history[0]]; // Keep first point as-is
 
     for (int i = 1; i < history.length - 1; i++) {
-      final prev = history[i - 1];
       final current = history[i];
-      final next = history[i + 1];
-
-      // Get coordinates
-      final lat1 = double.parse(prev.lt);
-      final lng1 = double.parse(prev.lg);
-      final lat2 = double.parse(current.lt);
-      final lng2 = double.parse(current.lg);
-      final lat3 = double.parse(next.lt);
-      final lng3 = double.parse(next.lg);
-
-      // Apply weighted average (current point has more weight)
-      final smoothedLat = (lat1 + 2 * lat2 + lat3) / 4.0;
-      final smoothedLng = (lng1 + 2 * lng2 + lng3) / 4.0;
 
       // Create a modified record (you'll need to adjust based on your data structure)
       // This is a simplified example - adapt to your actual record structure

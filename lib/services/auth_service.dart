@@ -22,7 +22,7 @@ class AuthService {
         'userName': data['userName'],
         'isLoggedin': true,
         'userRole': data['user']['userRole'],
-        'userDbId': data['user']['id'].toString() ?? '',
+        'userDbId': data['user']['id'].toString(),
       });
 
       final userRole = data['user']['userRole']?.toString().toLowerCase() ?? '';
@@ -78,8 +78,6 @@ class AuthService {
         },
         body: jsonEncode(request.toJson()),
       );
-      final data = json.decode(response.body);
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         // await _storeTokens(data);

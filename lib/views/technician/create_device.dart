@@ -181,7 +181,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                   horizontal: 15,
                   vertical: 10,
                 ),
-                color: kBlue.withOpacity(0.1),
+                color: kBlue.withValues(alpha: 0.1),
                 child: Row(
                   children: [
                     Icon(Icons.bluetooth_connected, color: kBlue, size: 20),
@@ -321,9 +321,9 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                       Container(
                         decoration: _isNonEditable(_serialController)
                             ? BoxDecoration(
-                                color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey.shade300),
+                                color: kDivider,
+                                borderRadius: BorderRadius.circular(kRadiusSM),
+                                border: Border.all(color: kLightGrey),
                               )
                             : null,
                         child: InputField(
@@ -347,7 +347,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                           child: Text(
                             'This field is populated from device data',
                             style: TextStyle(
-                              color: Colors.grey.shade600,
+                              color: kGrey,
                               fontSize: 12,
                             ),
                           ),

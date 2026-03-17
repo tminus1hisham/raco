@@ -1,3 +1,4 @@
+import 'package:atom/config/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -14,7 +15,7 @@ class InputField extends StatefulWidget {
     this.isRequired = false,
     this.validator,
     this.prefixIcon,
-    this.maxLines = 1, 
+    this.maxLines = 1,
   });
 
   final String hintText;
@@ -56,70 +57,88 @@ class _InputFieldState extends State<InputField> {
 
   @override
   Widget build(BuildContext context) {
+    final hasError = _errorMessage != null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Container for the input field
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: TextFormField(
-              obscureText: widget.password ? _obscureText : false,
-              readOnly: widget.readOnly,
-              enabled: widget.isEnabled,
-              style: TextStyle(color: Colors.grey.shade800, fontSize: 16),
-              onChanged: widget.onChanged,
-              maxLines: widget.maxLines,
-              controller: widget.controller,
-              onTap: widget.onTap,
-              validator: _validateField,
-              inputFormatters: widget.integerOnly
-                  ? [FilteringTextInputFormatter.digitsOnly]
+          TextFormField(
+            obscureText: widget.password ? _obscureText : false,
+            readOnly: widget.readOnly,
+            enabled: widget.isEnabled,
+            style: const TextStyle(color: kBlack, fontSize: 16),
+            onChanged: widget.onChanged,
+            maxLines: widget.maxLines,
+            controller: widget.controller,
+            onTap: widget.onTap,
+            validator: _validateField,
+            inputFormatters: widget.integerOnly
+                ? [FilteringTextInputFormatter.digitsOnly]
+                : null,
+            decoration: InputDecoration(
+              hintText: widget.hintText,
+              hintStyle: const TextStyle(color: kGrey),
+              filled: true,
+              fillColor: kInputBg,
+              prefixIcon: widget.prefixIcon != null
+                  ? Icon(widget.prefixIcon, color: kGrey)
                   : null,
-              decoration: InputDecoration(
-                hintText: widget.hintText,
-                hintStyle: TextStyle(color: Colors.grey.shade500),
-                prefixIcon: widget.prefixIcon != null
-                    ? Icon(widget.prefixIcon, color: Colors.grey.shade500)
-                    : null,
-                suffixIcon: widget.password
-                    ? IconButton(
-                        icon: Icon(
-                          _obscureText
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          color: Colors.grey.shade500,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureText = !_obscureText;
-                          });
-                        },
-                      )
-                    : null,
-                border: InputBorder.none,
-                // 🚨 Hide Flutter's inline error completely
-                errorStyle: const TextStyle(height: 0, fontSize: 0),
-                errorBorder: InputBorder.none,
-                focusedErrorBorder: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
+              suffixIcon: widget.password
+                  ? IconButton(
+                      icon: Icon(
+                        _obscureText
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: kGrey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureText = !_obscureText;
+                        });
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(kRadiusMD),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(kRadiusMD),
+                borderSide: hasError
+                    ? const BorderSide(color: kRed, width: 1)
+                    : BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(kRadiusMD),
+                borderSide: BorderSide(
+                  color: hasError ? kRed : kBlue,
+                  width: 1.5,
                 ),
+              ),
+              errorStyle: const TextStyle(height: 0, fontSize: 0),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(kRadiusMD),
+                borderSide: const BorderSide(color: kRed, width: 1),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(kRadiusMD),
+                borderSide: const BorderSide(color: kRed, width: 1.5),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
               ),
             ),
           ),
 
-          if (_errorMessage != null)
+          if (hasError)
             Padding(
               padding: const EdgeInsets.only(top: 6.0, left: 4.0),
               child: Text(
                 _errorMessage!,
-                style: TextStyle(color: Colors.red.shade600, fontSize: 12),
+                style: const TextStyle(color: kRed, fontSize: 12),
               ),
             ),
         ],

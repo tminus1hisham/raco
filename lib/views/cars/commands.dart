@@ -72,7 +72,7 @@ class _CommandsState extends State<Commands> {
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: Colors.grey.shade600,
+          color: kGrey,
           letterSpacing: 0.5,
         ),
       ),
@@ -83,22 +83,16 @@ class _CommandsState extends State<Commands> {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: kWhite,
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        boxShadow: [kShadowSM],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(kRadiusMD),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(kRadiusMD),
           child: child,
         ),
       ),
@@ -126,18 +120,18 @@ class _CommandsState extends State<Commands> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: textColor ?? Colors.black87,
+                      color: textColor ?? kBlack,
                     ),
                   ),
                   SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 14, color: kGrey),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+            Icon(Icons.chevron_right, color: kLightGrey, size: 20),
           ],
         ),
       ),
@@ -145,6 +139,6 @@ class _CommandsState extends State<Commands> {
   }
 
   Widget _buildDivider() {
-    return Container(height: 1, color: Colors.grey.shade100);
+    return Container(height: 1, color: kDivider);
   }
 }

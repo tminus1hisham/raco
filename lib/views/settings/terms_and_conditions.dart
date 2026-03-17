@@ -41,7 +41,7 @@ class TermsAndConditions extends StatelessWidget {
                       const SizedBox(height: 8),
                       const Text(
                         "Effective Date: 30/10/2025\nLast Updated: 10/11/2025",
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                        style: TextStyle(fontSize: 14, color: kGrey),
                       ),
                       const SizedBox(height: 20),
 
@@ -191,7 +191,7 @@ class TermsAndConditions extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                          color: kDivider,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -214,7 +214,7 @@ class TermsAndConditions extends StatelessWidget {
                               "Email: info@atomiot.live",
                               style: TextStyle(
                                 fontSize: 16,
-                                color: Colors.blue,
+                                color: kBlue,
                               ),
                             ),
                             SizedBox(height: 8),
@@ -222,7 +222,7 @@ class TermsAndConditions extends StatelessWidget {
                               "Phone: +254 798 032 158",
                               style: TextStyle(
                                 fontSize: 16,
-                                color: Colors.blue,
+                                color: kBlue,
                               ),
                             ),
                             SizedBox(height: 8),

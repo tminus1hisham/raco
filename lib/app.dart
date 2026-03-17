@@ -70,13 +70,98 @@ class _MyAppState extends State<MyApp> {
         return GetMaterialApp(
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
+            useMaterial3: true,
+            scaffoldBackgroundColor: kBgGrey,
+            colorScheme: ColorScheme.light(
+              primary: kBlue,
+              onPrimary: kWhite,
+              secondary: kSuccessGreen,
+              error: kRed,
+              surface: kWhite,
+              onSurface: kBlack,
+              outline: kLightGrey,
+            ),
+            textTheme: const TextTheme(
+              headlineLarge: TextStyle(fontSize: 25, fontWeight: FontWeight.w700, color: kBlack),
+              headlineMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: kBlack),
+              titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: kBlack),
+              titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kBlack),
+              bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: kBlack),
+              bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: kGrey),
+              bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: kGrey),
+              labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kWhite),
+            ),
             appBarTheme: const AppBarTheme(
+              elevation: 0,
+              backgroundColor: kBgGrey,
+              foregroundColor: kBlack,
               systemOverlayStyle: SystemUiOverlayStyle(
-                // statusBarColor: kBlue,
                 statusBarIconBrightness: Brightness.dark,
-                systemNavigationBarColor: Colors.white,
+                systemNavigationBarColor: kWhite,
                 systemNavigationBarIconBrightness: Brightness.light,
               ),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kBlue,
+                foregroundColor: kWhite,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(kRadiusMD),
+                ),
+                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+            outlinedButtonTheme: OutlinedButtonThemeData(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kGrey,
+                side: const BorderSide(color: kLightGrey),
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(kRadiusMD),
+                ),
+                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: kInputBg,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(kRadiusMD),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(kRadiusMD),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(kRadiusMD),
+                borderSide: const BorderSide(color: kBlue, width: 1.5),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              hintStyle: TextStyle(color: kGrey),
+            ),
+            cardTheme: CardThemeData(
+              elevation: 0,
+              color: kWhite,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(kRadiusMD),
+              ),
+            ),
+            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+              backgroundColor: kWhite,
+              selectedItemColor: kBlue,
+              unselectedItemColor: kGrey,
+              type: BottomNavigationBarType.fixed,
+              selectedLabelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
+              elevation: 8,
+            ),
+            dividerTheme: const DividerThemeData(
+              color: kDivider,
+              thickness: 1,
+              space: 0,
             ),
           ),
           onGenerateRoute: AppRoutes.generateRoute,
@@ -91,7 +176,7 @@ class _MyAppState extends State<MyApp> {
             nextScreen: nextScreen,
             splashTransition: SplashTransition.fadeTransition,
             duration: 2000,
-            backgroundColor: Colors.white,
+            backgroundColor: kWhite,
           ),
         );
       },

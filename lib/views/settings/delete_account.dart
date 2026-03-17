@@ -105,7 +105,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
           ),
           if (deleteAccountController.isLoading.value)
             Container(
-              color: Colors.black.withOpacity(0.3),
+              color: kBlack.withValues(alpha: 0.3),
               child: Center(
                 child: LoadingAnimationWidget.fourRotatingDots(
                   color: kBlue,
@@ -122,11 +122,11 @@ class _DeleteAccountState extends State<DeleteAccount> {
     return Container(
       padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kWhite,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: kBlack.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
@@ -151,13 +151,13 @@ class _DeleteAccountState extends State<DeleteAccount> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: kBlack,
             ),
             textAlign: TextAlign.center,
           ),
           Text(
             'Help us improve by telling us why you\'re leaving',
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 14, color: kGrey),
             textAlign: TextAlign.center,
           ),
 
@@ -170,8 +170,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: selectedReason == reason
-                        ? Colors.blue[400]!
-                        : Colors.grey[300]!,
+                        ? kBlue
+                        : kLightGrey,
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -185,9 +185,9 @@ class _DeleteAccountState extends State<DeleteAccount> {
                   },
                   title: Text(
                     reason,
-                    style: TextStyle(fontSize: 14, color: Colors.black87),
+                    style: TextStyle(fontSize: 14, color: kBlack),
                   ),
-                  activeColor: Colors.blue[600],
+                  activeColor: kBlue,
                   dense: true,
                 ),
               );
@@ -204,9 +204,9 @@ class _DeleteAccountState extends State<DeleteAccount> {
           Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.red[50],
+              color: kRed.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red[100]!),
+              border: Border.all(color: kRed.withValues(alpha: 0.15)),
             ),
             child: Row(
               children: [
@@ -226,7 +226,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                       ),
                       Text(
                         'This action cannot be undone. All your data will be permanently deleted.',
-                        style: TextStyle(fontSize: 14, color: Colors.red[600]),
+                        style: TextStyle(fontSize: 14, color: kRed),
                       ),
                     ],
                   ),

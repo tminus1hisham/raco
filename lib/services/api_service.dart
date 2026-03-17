@@ -8,7 +8,6 @@ import 'package:atom/models/location_model.dart';
 import 'package:atom/models/plans_model.dart';
 import 'package:atom/models/playback_model.dart';
 import 'package:atom/models/profile_picture_model.dart';
-import 'package:atom/models/register_device_model.dart';
 import 'package:atom/models/report_model.dart';
 import 'package:atom/models/technician_device_model.dart';
 import 'package:atom/models/vehicle_model.dart';
@@ -119,8 +118,6 @@ class ApiService {
         "Content-Type": "application/json",
       },
     );
-
-    print('Fetch Companies Response: ${response.body}');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -268,7 +265,7 @@ class ApiService {
 
     try {
       final response = await http.post(
-        Uri.parse('${base_url}/devices/create/geo/fence'),
+        Uri.parse('$base_url/devices/create/geo/fence'),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
@@ -295,7 +292,7 @@ class ApiService {
 
     try {
       final response = await http.post(
-        Uri.parse('${BASE_URL}/auth/register'),
+        Uri.parse('$BASE_URL/auth/register'),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
@@ -378,7 +375,7 @@ class ApiService {
 
     try {
       final response = await http.post(
-        Uri.parse('${base_url}/devices/renew/certificate'),
+        Uri.parse('$base_url/devices/renew/certificate'),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
@@ -405,7 +402,7 @@ class ApiService {
 
     try {
       final response = await http.post(
-        Uri.parse('${base_url}/devices/mark/read/notifications'),
+        Uri.parse('$base_url/devices/mark/read/notifications'),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
@@ -434,7 +431,7 @@ class ApiService {
 
     try {
       final response = await http.post(
-        Uri.parse('${BASE_URL}/auth/request/delete/account'),
+        Uri.parse('$BASE_URL/auth/request/delete/account'),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
@@ -489,7 +486,7 @@ class ApiService {
     String token = await StorageService.getData('access_token');
 
     try {
-      final uri = Uri.parse('${BASE_URL}/auth/user/mobile/update').replace(
+      final uri = Uri.parse('$BASE_URL/auth/user/mobile/update').replace(
         queryParameters: {
           'userId': userId,
           'emailAddress': email,
@@ -506,7 +503,6 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
         return true;
       } else {
         _handleAuthError(response.statusCode);
@@ -533,9 +529,6 @@ class ApiService {
       body: jsonEncode(deviceData),
     );
 
-    print('Register Device Response: ${response}');
-    print('Register Device Response: ${response.body}');
-    print('Register Device Response: ${response.statusCode}');
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);

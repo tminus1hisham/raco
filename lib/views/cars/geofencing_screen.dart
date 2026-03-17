@@ -87,8 +87,8 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
           circleId: CircleId('selected_circle'),
           center: latLng,
           radius: selectedGeofence!.radius.toDouble(),
-          fillColor: Colors.blue.withOpacity(0.2),
-          strokeColor: Colors.blue,
+          fillColor: kBlue.withValues(alpha: 0.2),
+          strokeColor: kBlue,
           strokeWidth: 2,
         ),
       );
@@ -111,7 +111,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
           circleId: CircleId('new_circle'),
           center: selectedPoint!,
           radius: radiusKm * 1000,
-          fillColor: Colors.orange.withOpacity(0.3),
+          fillColor: Colors.orange.withValues(alpha: 0.3),
           strokeColor: Colors.orange,
           strokeWidth: 2,
         ),
@@ -218,14 +218,14 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: Colors.grey[50],
+          backgroundColor: kBgGrey,
           appBar: AppBar(
             title: Text(
               'Geofencing',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black87,
+            backgroundColor: kWhite,
+            foregroundColor: kBlack,
             elevation: 0.5,
           ),
           body: Column(
@@ -247,11 +247,11 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
       margin: EdgeInsets.all(16),
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kWhite,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: kBlack.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: Offset(0, 2),
           ),
@@ -350,7 +350,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: kBlack.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: Offset(0, 4),
           ),
@@ -382,10 +382,10 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kWhite,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: kBlack.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: Offset(0, -2),
           ),
@@ -431,7 +431,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
                     }
                   },
                   label: "Save",
-                  backgroundColor: isSaveEnabled ? kBlue : Colors.grey.shade400,
+                  backgroundColor: isSaveEnabled ? kBlue : kLightGrey,
                   // grey when inactive
                   txtColor: kWhite,
                 ),
@@ -446,7 +446,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     return Obx(() {
       if (_geoFenceController.isLoading.value) {
         return Container(
-          color: Colors.black.withOpacity(0.3),
+          color: kBlack.withValues(alpha: 0.3),
           child: Center(
             child: LoadingAnimationWidget.fourRotatingDots(
               color: kBlue,

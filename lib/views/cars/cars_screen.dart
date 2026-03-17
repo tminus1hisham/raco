@@ -49,7 +49,7 @@ class _CarsScreenState extends State<CarsScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: kBlack.withValues(alpha: 0.1),
                           blurRadius: 10,
                           spreadRadius: 1,
                           offset: const Offset(0, 9),
@@ -142,7 +142,7 @@ class _CarsScreenState extends State<CarsScreen> {
                               : kRed,
                           statusBackgroundColor: device.isDeviceOnline
                               ? const Color(0xFFE8F5E8)
-                              : kRed.withOpacity(0.1),
+                              : kRed.withValues(alpha: 0.1),
                           currentSpeed: "${device.speed} km/h",
                           topSpeed: "",
                           onPressed: () {
@@ -168,7 +168,7 @@ class _CarsScreenState extends State<CarsScreen> {
           if (_controller.isLoading.value ||
               _renewCertificateController.isLoading.value) ...[
             Container(
-              color: Colors.black.withOpacity(0.3),
+              color: kBlack.withValues(alpha: 0.3),
               child: Center(
                 child: LoadingAnimationWidget.fourRotatingDots(
                   color: kBlue,
@@ -194,16 +194,9 @@ class _CarsScreenState extends State<CarsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              spreadRadius: 1,
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: kWhite,
+          borderRadius: BorderRadius.circular(kRadiusMD),
+          boxShadow: [kShadowSM],
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -214,10 +207,10 @@ class _CarsScreenState extends State<CarsScreen> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(kRadiusSM),
                 ),
-                child: Icon(icon, color: color, size: 16),
+                child: Icon(icon, color: color, size: 20),
               ),
               Column(
                 children: [
@@ -226,7 +219,7 @@ class _CarsScreenState extends State<CarsScreen> {
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: kBlack,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -236,7 +229,7 @@ class _CarsScreenState extends State<CarsScreen> {
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black54,
+                      color: kGrey,
                     ),
                   ),
                 ],

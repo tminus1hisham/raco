@@ -78,7 +78,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(kRadiusLG)),
       ),
       builder: (context) {
         int? selectedIndex;
@@ -127,7 +127,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                             height: 5,
                             width: 40,
                             decoration: BoxDecoration(
-                              color: Colors.grey[400],
+                              color: kLightGrey,
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
@@ -150,7 +150,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                           integerOnly: true,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return "This filed is required";
+                              return "This field is required";
                             }
                             return null;
                           },
@@ -169,13 +169,13 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? kBlue.withOpacity(0.1)
-                                    : Colors.white,
+                                    ? kBlue.withValues(alpha:0.1)
+                                    : kWhite,
                                 border: Border.all(
-                                  color: isSelected ? kBlue : Colors.grey[300]!,
+                                  color: isSelected ? kBlue : kLightGrey,
                                   width: isSelected ? 2 : 1,
                                 ),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(kRadiusMD),
                               ),
                               child: Row(
                                 children: [
@@ -183,7 +183,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                     isSelected
                                         ? Icons.radio_button_checked
                                         : Icons.radio_button_off,
-                                    color: isSelected ? kBlue : Colors.grey,
+                                    color: isSelected ? kBlue : kGrey,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -198,7 +198,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.black87,
+                                            color: kBlack,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
@@ -206,7 +206,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                           "${plan.durationInDays} ${plan.durationInDays > 1 ? 'Years' : 'Year'}",
                                           style: TextStyle(
                                             fontSize: 13,
-                                            color: Colors.grey[600],
+                                            color: kGrey,
                                           ),
                                         ),
                                       ],
@@ -230,7 +230,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: kBlue,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(kRadiusSM),
                             ),
                             minimumSize: const Size(double.infinity, 50),
                           ),
@@ -290,7 +290,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
 
                           child: const Text(
                             "Renew",
-                            style: TextStyle(fontSize: 16, color: Colors.white),
+                            style: TextStyle(fontSize: 16, color: kWhite),
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -359,8 +359,8 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                             style: TextStyle(
                                               fontSize: 15,
                                               color: isVehicleActive
-                                                  ? Colors.green
-                                                  : Colors.grey[600],
+                                                  ? kSuccessGreen
+                                                  : kGrey,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
@@ -368,12 +368,12 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                           Switch(
                                             value: isVehicleActive,
                                             onChanged: (bool value) {},
-                                            activeColor: Colors.green,
-                                            activeTrackColor: Colors.green
-                                                .withOpacity(0.3),
-                                            inactiveThumbColor: Colors.grey,
-                                            inactiveTrackColor: Colors.grey
-                                                .withOpacity(0.3),
+                                            activeColor: kSuccessGreen,
+                                            activeTrackColor: kSuccessGreen
+                                                .withValues(alpha:0.3),
+                                            inactiveThumbColor: kGrey,
+                                            inactiveTrackColor: kGrey
+                                                .withValues(alpha:0.3),
                                           ),
                                         ],
                                       );
@@ -388,7 +388,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                     child: _buildQuickActionButton(
                                       title: 'Vehicle Safety',
                                       icon: Icons.safety_check_outlined,
-                                      color: Colors.green,
+                                      color: kSuccessGreen,
                                       onPressed: () {
                                         Navigator.push(
                                           context,
@@ -425,7 +425,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                   SizedBox(width: 12),
                                   Expanded(
                                     child: _buildQuickActionButton(
-                                      title: 'violations',
+                                      title: 'Violations',
                                       icon: Icons.warning_amber,
                                       color: kRed,
                                       onPressed: () {
@@ -462,14 +462,14 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                       showBanner: false,
                                       title: 'Details',
                                       subtitle:
-                                          "View a detailed infomation of the vehicle.",
+                                          "View detailed information of the vehicle.",
                                       onTap: () {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
                                                 VehicleDetails(
-                                                  vehiclePlate: "KDG001A",
+                                                  vehiclePlate: widget.licensePlate,
                                                   device: widget.devices,
                                                 ),
                                           ),
@@ -528,7 +528,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                       showBanner: false,
                                       title: 'View Live Location',
                                       subtitle:
-                                          "See your the vehicle live location.",
+                                          "See the vehicle live location.",
                                       onTap: () {
                                         Navigator.push(
                                           context,
@@ -597,7 +597,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
             ),
             if (_controller.isLoading.value)
               Container(
-                color: Colors.black.withOpacity(0.3),
+                color: kBlack.withValues(alpha: 0.3),
                 child: Center(
                   child: LoadingAnimationWidget.fourRotatingDots(
                     color: kBlue,
@@ -614,22 +614,16 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
   Widget _buildSettingsCard({required Widget child, VoidCallback? onTap}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: kWhite,
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        boxShadow: [kShadowSM],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(kRadiusMD),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(kRadiusMD),
           child: child,
         ),
       ),
@@ -658,13 +652,13 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: textColor ?? Colors.black87,
+                      color: textColor ?? kBlack,
                     ),
                   ),
                   SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 14, color: kGrey),
                   ),
                 ],
               ),
@@ -674,7 +668,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                 if (showBanner) ...[
                   Container(
                     decoration: BoxDecoration(
-                      color: kRed.withOpacity(0.1),
+                      color: kRed.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(15),
                     ),
                     padding: const EdgeInsets.symmetric(
@@ -695,7 +689,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
 
                 Icon(
                   Icons.chevron_right,
-                  color: Colors.grey.shade400,
+                  color: kLightGrey,
                   size: 20,
                 ),
               ],
@@ -707,7 +701,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
   }
 
   Widget _buildDivider() {
-    return Container(height: 1, color: Colors.grey.shade100);
+    return Container(height: 1, color: kDivider);
   }
 
   Widget _buildQuickActionButton({
@@ -721,16 +715,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              spreadRadius: 1,
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
+          color: kWhite,
+          borderRadius: BorderRadius.circular(kRadiusMD),
+          boxShadow: [kShadowSM],
         ),
         child: Column(
           children: [
@@ -738,8 +725,8 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+                color: color.withValues(alpha:0.1),
+                borderRadius: BorderRadius.circular(kRadiusSM),
               ),
               child: Icon(icon, color: color, size: 20),
             ),
@@ -749,7 +736,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: kBlack,
               ),
             ),
           ],

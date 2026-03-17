@@ -1,6 +1,5 @@
 import 'package:atom/models/user_model.dart';
 import 'package:atom/services/api_service.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
 class UserResourceController extends GetxController {
