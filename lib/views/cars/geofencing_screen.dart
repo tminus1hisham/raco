@@ -138,10 +138,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
         ),
       );
 
-      mapboxMap?.flyTo(
-        CameraOptions(center: point, zoom: 14.0),
-        null,
-      );
+      mapboxMap?.flyTo(CameraOptions(center: point, zoom: 14.0), null);
     }
 
     _updateMapMarkers();
@@ -170,10 +167,10 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
 
     _geoFenceController.numberPlate.value = widget.numberPlate;
     _geoFenceController.fullName.value = zoneNameController.text.trim();
-    _geoFenceController.latitude.value =
-        selectedPoint!.coordinates.lat.toString();
-    _geoFenceController.longitude.value =
-        selectedPoint!.coordinates.lng.toString();
+    _geoFenceController.latitude.value = selectedPoint!.coordinates.lat
+        .toString();
+    _geoFenceController.longitude.value = selectedPoint!.coordinates.lng
+        .toString();
     _geoFenceController.radius.value = radiusKm.round() * 1000;
 
     bool success = await _geoFenceController.addGeoFence(context);
@@ -267,8 +264,9 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
           ),
           value: selectedGeofence,
           icon: Icon(Icons.arrow_drop_down, color: col.textSecondary),
-          items:
-              _fetchGeofenceController.geofences.map((GeofenceModel geofence) {
+          items: _fetchGeofenceController.geofences.map((
+            GeofenceModel geofence,
+          ) {
             return DropdownMenuItem<GeofenceModel>(
               value: geofence,
               child: Text(
@@ -320,8 +318,9 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
                 const SizedBox(height: 5),
                 TextField(
                   controller: radiusController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: InputDecoration(
                     hintText: '0',
                     border: OutlineInputBorder(
@@ -367,14 +366,16 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: MapWidget(
-          styleUri: isDark
-              ? MapboxStyles.DARK
-              : MapboxStyles.MAPBOX_STREETS,
+          styleUri: isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS,
           cameraOptions: CameraOptions(
-            center: selectedPoint ??
+            center:
+                selectedPoint ??
                 Point(
-                    coordinates:
-                        Position(36.816382318562034, -1.2842328448615796)),
+                  coordinates: Position(
+                    36.816382318562034,
+                    -1.2842328448615796,
+                  ),
+                ),
             zoom: 13.0,
           ),
           onMapCreated: (MapboxMap map) {

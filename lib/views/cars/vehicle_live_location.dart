@@ -78,7 +78,8 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
     _mqttSubscription = _mqttService.client.updates!.listen((messages) {
       final recMess = messages[0].payload as MqttPublishMessage;
       final payload = MqttPublishPayload.bytesToStringAsString(
-          recMess.payload.message);
+        recMess.payload.message,
+      );
       if (messages[0].topic == topic) {
         _handleCarLocation(payload);
       }
@@ -94,10 +95,14 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
   void _handleCarLocation(String message) {
     try {
       final data = jsonDecode(message);
-      final double lat =
-          _convertToDecimalDegrees(data['Lt'] ?? '', data['NS'] ?? 'N');
-      final double lng =
-          _convertToDecimalDegrees(data['Lg'] ?? '', data['EW'] ?? 'E');
+      final double lat = _convertToDecimalDegrees(
+        data['Lt'] ?? '',
+        data['NS'] ?? 'N',
+      );
+      final double lng = _convertToDecimalDegrees(
+        data['Lg'] ?? '',
+        data['EW'] ?? 'E',
+      );
 
       if (lat == 0.0 && lng == 0.0) return;
 
@@ -172,10 +177,13 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
   Future<Uint8List> _resizeAndLoadIcon(String assetPath, int width) async {
     final ByteData data = await rootBundle.load(assetPath);
     final ui.Codec codec = await ui.instantiateImageCodec(
-        data.buffer.asUint8List(), targetWidth: width);
+      data.buffer.asUint8List(),
+      targetWidth: width,
+    );
     final ui.FrameInfo fi = await codec.getNextFrame();
-    final ByteData? bytes =
-        await fi.image.toByteData(format: ui.ImageByteFormat.png);
+    final ByteData? bytes = await fi.image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     return bytes!.buffer.asUint8List();
   }
 
@@ -189,7 +197,10 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
       body: isLoading
           ? Center(
               child: LoadingAnimationWidget.threeArchedCircle(
-                  color: kBlue, size: 50))
+                color: kBlue,
+                size: 50,
+              ),
+            )
           : Stack(
               children: [
                 // ── Map ────────────────────────────────────────────
@@ -200,28 +211,36 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
                         : MapboxStyles.MAPBOX_STREETS,
                     cameraOptions: CameraOptions(
                       center: Point(
-                          coordinates:
-                              Position(widget.longitude, widget.latitude)),
+                        coordinates: Position(
+                          widget.longitude,
+                          widget.latitude,
+                        ),
+                      ),
                       zoom: _currentZoom,
                     ),
                     onMapCreated: (MapboxMap map) {
                       mapboxMap = map;
-                      map.annotations
-                          .createPointAnnotationManager()
-                          .then((manager) {
+                      map.annotations.createPointAnnotationManager().then((
+                        manager,
+                      ) {
                         _annotationManager = manager;
                         manager
-                            .create(PointAnnotationOptions(
-                          geometry: Point(
-                              coordinates: Position(
-                                  widget.longitude, widget.latitude)),
-                          image: carIcon,
-                          iconSize: 1.6,
-                          iconRotate: _bearing,
-                          textField: numberPlate.toUpperCase(),
-                          textSize: 11.0,
-                          textOffset: [0.0, 2.2],
-                        ))
+                            .create(
+                              PointAnnotationOptions(
+                                geometry: Point(
+                                  coordinates: Position(
+                                    widget.longitude,
+                                    widget.latitude,
+                                  ),
+                                ),
+                                image: carIcon,
+                                iconSize: 1.6,
+                                iconRotate: _bearing,
+                                textField: numberPlate.toUpperCase(),
+                                textSize: 11.0,
+                                textOffset: [0.0, 2.2],
+                              ),
+                            )
                             .then((ann) => _vehicleAnnotation = ann);
                       });
                     },
@@ -264,15 +283,17 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
                 borderRadius: BorderRadius.circular(kRadiusSM),
                 boxShadow: [kShadowMD],
               ),
-              child: Icon(Icons.arrow_back_ios_new_rounded,
-                  color: col.textPrimary, size: 18),
+              child: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: col.textPrimary,
+                size: 18,
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: col.surface,
                 borderRadius: BorderRadius.circular(kRadiusSM),
@@ -287,23 +308,29 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
                         ? numberPlate.toUpperCase()
                         : 'Live Location',
                     style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: col.textPrimary),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: col.textPrimary,
+                    ),
                   ),
                   const Spacer(),
                   Container(
                     width: 8,
                     height: 8,
                     decoration: const BoxDecoration(
-                        color: kSuccessGreen, shape: BoxShape.circle),
+                      color: kSuccessGreen,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                   const SizedBox(width: 4),
-                  const Text('Live',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: kSuccessGreen,
-                          fontWeight: FontWeight.w500)),
+                  const Text(
+                    'Live',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: kSuccessGreen,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -330,7 +357,10 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
             decoration: BoxDecoration(
               color: kBlue.withValues(alpha: 0.08),
               shape: BoxShape.circle,
-              border: Border.all(color: kBlue.withValues(alpha: 0.25), width: 2),
+              border: Border.all(
+                color: kBlue.withValues(alpha: 0.25),
+                width: 2,
+              ),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -338,12 +368,15 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
                 Text(
                   speed,
                   style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: kBlue),
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: kBlue,
+                  ),
                 ),
-                Text('km/h',
-                    style: TextStyle(fontSize: 9, color: col.textSecondary)),
+                Text(
+                  'km/h',
+                  style: TextStyle(fontSize: 9, color: col.textSecondary),
+                ),
               ],
             ),
           ),
@@ -355,15 +388,19 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.navigation_rounded,
-                        color: kBlue, size: 16),
+                    const Icon(
+                      Icons.navigation_rounded,
+                      color: kBlue,
+                      size: 16,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       _bearingToDirection(_bearing),
                       style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: col.textPrimary),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: col.textPrimary,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -384,14 +421,20 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
           // GPS indicator
           Column(
             children: [
-              const Icon(Icons.gps_fixed_rounded,
-                  color: kSuccessGreen, size: 22),
+              const Icon(
+                Icons.gps_fixed_rounded,
+                color: kSuccessGreen,
+                size: 22,
+              ),
               const SizedBox(height: 2),
-              const Text('GPS',
-                  style: TextStyle(
-                      fontSize: 10,
-                      color: kSuccessGreen,
-                      fontWeight: FontWeight.w500)),
+              const Text(
+                'GPS',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: kSuccessGreen,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         ],

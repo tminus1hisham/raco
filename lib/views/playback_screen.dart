@@ -110,8 +110,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     if (_mapboxMap == null || history.isEmpty) return;
 
     final coords = history
-        .where((r) =>
-            double.tryParse(r.lg) != null && double.tryParse(r.lt) != null)
+        .where(
+          (r) => double.tryParse(r.lg) != null && double.tryParse(r.lt) != null,
+        )
         .map((r) => [double.parse(r.lg), double.parse(r.lt)])
         .toList();
 
@@ -124,33 +125,54 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           "type": "Feature",
           "geometry": {"type": "LineString", "coordinates": coords},
           "properties": {},
-        }
+        },
       ],
     });
 
-    final sourceExists =
-        await _mapboxMap!.style.styleSourceExists(_routeSourceId);
+    final sourceExists = await _mapboxMap!.style.styleSourceExists(
+      _routeSourceId,
+    );
 
     if (sourceExists) {
-      await _mapboxMap!.style
-          .setStyleSourceProperty(_routeSourceId, "data", geoJson);
+      await _mapboxMap!.style.setStyleSourceProperty(
+        _routeSourceId,
+        "data",
+        geoJson,
+      );
     } else {
-      await _mapboxMap!.style
-          .addSource(GeoJsonSource(id: _routeSourceId, data: geoJson));
+      await _mapboxMap!.style.addSource(
+        GeoJsonSource(id: _routeSourceId, data: geoJson),
+      );
 
-      await _mapboxMap!.style
-          .addLayer(LineLayer(id: _routeLayerId, sourceId: _routeSourceId));
+      await _mapboxMap!.style.addLayer(
+        LineLayer(id: _routeLayerId, sourceId: _routeSourceId),
+      );
 
-      await _mapboxMap!.style
-          .setStyleLayerProperty(_routeLayerId, "line-color", "#2563EB");
-      await _mapboxMap!.style
-          .setStyleLayerProperty(_routeLayerId, "line-width", 3.5);
-      await _mapboxMap!.style
-          .setStyleLayerProperty(_routeLayerId, "line-opacity", 0.85);
-      await _mapboxMap!.style
-          .setStyleLayerProperty(_routeLayerId, "line-cap", "round");
-      await _mapboxMap!.style
-          .setStyleLayerProperty(_routeLayerId, "line-join", "round");
+      await _mapboxMap!.style.setStyleLayerProperty(
+        _routeLayerId,
+        "line-color",
+        "#2563EB",
+      );
+      await _mapboxMap!.style.setStyleLayerProperty(
+        _routeLayerId,
+        "line-width",
+        3.5,
+      );
+      await _mapboxMap!.style.setStyleLayerProperty(
+        _routeLayerId,
+        "line-opacity",
+        0.85,
+      );
+      await _mapboxMap!.style.setStyleLayerProperty(
+        _routeLayerId,
+        "line-cap",
+        "round",
+      );
+      await _mapboxMap!.style.setStyleLayerProperty(
+        _routeLayerId,
+        "line-join",
+        "round",
+      );
     }
   }
 
@@ -163,47 +185,53 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       _annotationManager?.deleteAll();
     } catch (_) {}
     _vehicleAnnotation = null;
-    _annotationManager =
-        await _mapboxMap!.annotations.createPointAnnotationManager();
+    _annotationManager = await _mapboxMap!.annotations
+        .createPointAnnotationManager();
 
     final startRec = history.first;
     final startImg = await _createStartMarker();
-    await _annotationManager!.create(PointAnnotationOptions(
-      geometry: Point(
-        coordinates: Position(
-          double.parse(startRec.lg),
-          double.parse(startRec.lt),
+    await _annotationManager!.create(
+      PointAnnotationOptions(
+        geometry: Point(
+          coordinates: Position(
+            double.parse(startRec.lg),
+            double.parse(startRec.lt),
+          ),
         ),
+        image: startImg,
+        iconSize: 0.5,
       ),
-      image: startImg,
-      iconSize: 0.5,
-    ));
+    );
 
     final stopRec = history.last;
     final stopImg = await _createStopMarker();
-    await _annotationManager!.create(PointAnnotationOptions(
-      geometry: Point(
-        coordinates: Position(
-          double.parse(stopRec.lg),
-          double.parse(stopRec.lt),
+    await _annotationManager!.create(
+      PointAnnotationOptions(
+        geometry: Point(
+          coordinates: Position(
+            double.parse(stopRec.lg),
+            double.parse(stopRec.lt),
+          ),
         ),
+        image: stopImg,
+        iconSize: 0.5,
       ),
-      image: stopImg,
-      iconSize: 0.5,
-    ));
+    );
 
     final bearing = _getCurrentBearing(history, 0);
     final carImg = await _getCachedMarker(bearing);
-    _vehicleAnnotation = await _annotationManager!.create(PointAnnotationOptions(
-      geometry: Point(
-        coordinates: Position(
-          double.parse(startRec.lg),
-          double.parse(startRec.lt),
+    _vehicleAnnotation = await _annotationManager!.create(
+      PointAnnotationOptions(
+        geometry: Point(
+          coordinates: Position(
+            double.parse(startRec.lg),
+            double.parse(startRec.lt),
+          ),
         ),
+        image: carImg,
+        iconSize: 0.5,
       ),
-      image: carImg,
-      iconSize: 0.5,
-    ));
+    );
 
     await _fitCameraToBounds(history);
 
@@ -211,7 +239,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   }
 
   Future<void> _updateVehicleMarker(
-      int index, List<DeviceRecord> history) async {
+    int index,
+    List<DeviceRecord> history,
+  ) async {
     if (_vehicleAnnotation == null || _annotationManager == null) return;
     if (index < 0 || index >= history.length) return;
 
@@ -223,8 +253,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     final bearing = _getCurrentBearing(history, index);
     final img = await _getCachedMarker(bearing);
 
-    _vehicleAnnotation!.geometry =
-        Point(coordinates: Position(lng, lat));
+    _vehicleAnnotation!.geometry = Point(coordinates: Position(lng, lat));
     _vehicleAnnotation!.image = img;
     await _annotationManager!.update(_vehicleAnnotation!);
   }
@@ -275,9 +304,11 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       await _mapboxMap!.flyTo(
         CameraOptions(
           center: Point(
-              coordinates: Position(
-                  double.parse(history.first.lg),
-                  double.parse(history.first.lt))),
+            coordinates: Position(
+              double.parse(history.first.lg),
+              double.parse(history.first.lt),
+            ),
+          ),
           zoom: 14.0,
         ),
         null,
@@ -294,8 +325,11 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     final ui.PictureRecorder recorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(recorder);
 
-    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2,
-        Paint()..color = kSuccessGreen);
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2,
+      Paint()..color = kSuccessGreen,
+    );
     canvas.drawCircle(
       const Offset(size / 2, size / 2),
       size / 2 - 3,
@@ -307,9 +341,13 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
     final textPainter = TextPainter(
       text: const TextSpan(
-          text: 'START',
-          style: TextStyle(
-              color: kWhite, fontSize: 20, fontWeight: FontWeight.bold)),
+        text: 'START',
+        style: TextStyle(
+          color: kWhite,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
       textDirection: ui.TextDirection.ltr,
     );
     textPainter.layout();
@@ -318,10 +356,13 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
     );
 
-    final ui.Image image =
-        await recorder.endRecording().toImage(size.toInt(), size.toInt());
-    final ByteData? byteData =
-        await image.toByteData(format: ui.ImageByteFormat.png);
+    final ui.Image image = await recorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
+    final ByteData? byteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     return byteData!.buffer.asUint8List();
   }
 
@@ -330,8 +371,11 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     final ui.PictureRecorder recorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(recorder);
 
-    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2,
-        Paint()..color = kRed);
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2,
+      Paint()..color = kRed,
+    );
     canvas.drawCircle(
       const Offset(size / 2, size / 2),
       size / 2 - 3,
@@ -343,9 +387,13 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
     final textPainter = TextPainter(
       text: const TextSpan(
-          text: 'STOP',
-          style: TextStyle(
-              color: kWhite, fontSize: 22, fontWeight: FontWeight.bold)),
+        text: 'STOP',
+        style: TextStyle(
+          color: kWhite,
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
       textDirection: ui.TextDirection.ltr,
     );
     textPainter.layout();
@@ -354,10 +402,13 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
     );
 
-    final ui.Image image =
-        await recorder.endRecording().toImage(size.toInt(), size.toInt());
-    final ByteData? byteData =
-        await image.toByteData(format: ui.ImageByteFormat.png);
+    final ui.Image image = await recorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
+    final ByteData? byteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     return byteData!.buffer.asUint8List();
   }
 
@@ -370,17 +421,22 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   Future<void> _precacheCommonBearings() async {
     final bearings = [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0];
     for (final bearing in bearings) {
-      _bearingMarkerCache[bearing] =
-          await _createRotatedMarker('assets/blue_car.png', bearing);
+      _bearingMarkerCache[bearing] = await _createRotatedMarker(
+        'assets/blue_car.png',
+        bearing,
+      );
     }
   }
 
   Future<Uint8List> _createRotatedMarker(
-      String assetPath, double rotation) async {
+    String assetPath,
+    double rotation,
+  ) async {
     final ByteData data = await rootBundle.load(assetPath);
     final ui.Codec codec = await ui.instantiateImageCodec(
-        data.buffer.asUint8List(),
-        targetWidth: 70);
+      data.buffer.asUint8List(),
+      targetWidth: 70,
+    );
     final ui.FrameInfo fi = await codec.getNextFrame();
     final originalImage = fi.image;
 
@@ -391,7 +447,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     final canvas = Canvas(
       recorder,
       Rect.fromPoints(
-          Offset.zero, Offset(canvasSize.toDouble(), canvasSize.toDouble())),
+        Offset.zero,
+        Offset(canvasSize.toDouble(), canvasSize.toDouble()),
+      ),
     );
 
     canvas.translate(canvasSize / 2, canvasSize / 2);
@@ -413,8 +471,10 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     if (_bearingMarkerCache.containsKey(roundedBearing)) {
       return _bearingMarkerCache[roundedBearing]!;
     }
-    final marker =
-        await _createRotatedMarker('assets/blue_car.png', roundedBearing);
+    final marker = await _createRotatedMarker(
+      'assets/blue_car.png',
+      roundedBearing,
+    );
     _bearingMarkerCache[roundedBearing] = marker;
     return marker;
   }
@@ -428,7 +488,8 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     final lon2 = to.longitude * math.pi / 180;
     final dLon = lon2 - lon1;
     final y = math.sin(dLon) * math.cos(lat2);
-    final x = math.cos(lat1) * math.sin(lat2) -
+    final x =
+        math.cos(lat1) * math.sin(lat2) -
         math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
     double bearing = math.atan2(y, x) * 180 / math.pi;
     return (bearing + 360) % 360;
@@ -441,22 +502,30 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
     if (currentIndex > 0 && currentIndex < history.length - 1) {
       return _calculateBearing(
-        LatLng(double.parse(history[currentIndex - 1].lt),
-            double.parse(history[currentIndex - 1].lg)),
-        LatLng(double.parse(history[currentIndex + 1].lt),
-            double.parse(history[currentIndex + 1].lg)),
+        LatLng(
+          double.parse(history[currentIndex - 1].lt),
+          double.parse(history[currentIndex - 1].lg),
+        ),
+        LatLng(
+          double.parse(history[currentIndex + 1].lt),
+          double.parse(history[currentIndex + 1].lg),
+        ),
       );
     } else if (currentIndex > 0) {
       return _calculateBearing(
-        LatLng(double.parse(history[currentIndex - 1].lt),
-            double.parse(history[currentIndex - 1].lg)),
+        LatLng(
+          double.parse(history[currentIndex - 1].lt),
+          double.parse(history[currentIndex - 1].lg),
+        ),
         LatLng(double.parse(currentRecord.lt), double.parse(currentRecord.lg)),
       );
     } else if (currentIndex < history.length - 1) {
       return _calculateBearing(
         LatLng(double.parse(currentRecord.lt), double.parse(currentRecord.lg)),
-        LatLng(double.parse(history[currentIndex + 1].lt),
-            double.parse(history[currentIndex + 1].lg)),
+        LatLng(
+          double.parse(history[currentIndex + 1].lt),
+          double.parse(history[currentIndex + 1].lg),
+        ),
       );
     }
     return 0.0;
@@ -513,45 +582,43 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   }
 
   Timer _buildPlaybackTimer(List<DeviceRecord> history) {
-    return Timer.periodic(
-      Duration(milliseconds: (100 ~/ _playbackSpeed)),
-      (timer) async {
-        if (!_isPlaying || _currentIndex >= history.length - 1) {
-          timer.cancel();
-          setState(() => _isPlaying = false);
-          return;
-        }
+    return Timer.periodic(Duration(milliseconds: (100 ~/ _playbackSpeed)), (
+      timer,
+    ) async {
+      if (!_isPlaying || _currentIndex >= history.length - 1) {
+        timer.cancel();
+        setState(() => _isPlaying = false);
+        return;
+      }
 
-        if (_isAnimatingCamera) return;
+      if (_isAnimatingCamera) return;
 
-        _currentIndex++;
+      _currentIndex++;
 
-        final current = history[_currentIndex];
-        final lat = double.tryParse(current.lt);
-        final lng = double.tryParse(current.lg);
-        if (lat == null || lng == null) {
-          setState(() {});
-          return;
-        }
-
-        await _updateVehicleMarker(_currentIndex, history);
-
-        _isAnimatingCamera = true;
-        try {
-          await _mapboxMap?.flyTo(
-            CameraOptions(
-                center: Point(coordinates: Position(lng, lat))),
-            null,
-          );
-        } catch (e) {
-          debugPrint("Camera animation error: $e");
-        } finally {
-          _isAnimatingCamera = false;
-        }
-
+      final current = history[_currentIndex];
+      final lat = double.tryParse(current.lt);
+      final lng = double.tryParse(current.lg);
+      if (lat == null || lng == null) {
         setState(() {});
-      },
-    );
+        return;
+      }
+
+      await _updateVehicleMarker(_currentIndex, history);
+
+      _isAnimatingCamera = true;
+      try {
+        await _mapboxMap?.flyTo(
+          CameraOptions(center: Point(coordinates: Position(lng, lat))),
+          null,
+        );
+      } catch (e) {
+        debugPrint("Camera animation error: $e");
+      } finally {
+        _isAnimatingCamera = false;
+      }
+
+      setState(() {});
+    });
   }
 
   // ─── DATE PICKERS ────────────────────────────────────────────────────────
@@ -673,8 +740,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             onTap: onTap,
             borderRadius: BorderRadius.circular(kRadiusMD),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(kRadiusMD),
                 border: Border.all(
@@ -686,20 +752,25 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(icon,
-                      color: selectedDate != null ? kBlue : col.textSecondary,
-                      size: 20),
+                  Icon(
+                    icon,
+                    color: selectedDate != null ? kBlue : col.textSecondary,
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(label,
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: col.textSecondary,
-                                fontWeight: FontWeight.w500)),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: col.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         const SizedBox(height: 2),
                         Text(
                           selectedDate != null
@@ -716,8 +787,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                       ],
                     ),
                   ),
-                  Icon(Icons.keyboard_arrow_down,
-                      color: col.border, size: 20),
+                  Icon(Icons.keyboard_arrow_down, color: col.border, size: 20),
                 ],
               ),
             ),
@@ -754,7 +824,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             color: col.surface,
             child: Center(
               child: LoadingAnimationWidget.fourRotatingDots(
-                  color: kBlue, size: 50),
+                color: kBlue,
+                size: 50,
+              ),
             ),
           );
         }
@@ -778,8 +850,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 if (_startDate != null && _endDate != null)
                   Text(
                     "No GPS records found for this range",
-                    style:
-                        TextStyle(fontSize: 14, color: col.textSecondary),
+                    style: TextStyle(fontSize: 14, color: col.textSecondary),
                   ),
                 const SizedBox(height: 30),
                 Padding(
@@ -787,18 +858,20 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                   child: Row(
                     children: [
                       _buildDatePickerButton(
-                          col: col,
-                          label: 'Start Date',
-                          selectedDate: _startDate,
-                          onTap: () => _pickStartDate(context),
-                          icon: Icons.calendar_today),
+                        col: col,
+                        label: 'Start Date',
+                        selectedDate: _startDate,
+                        onTap: () => _pickStartDate(context),
+                        icon: Icons.calendar_today,
+                      ),
                       const SizedBox(width: 12),
                       _buildDatePickerButton(
-                          col: col,
-                          label: 'End Date',
-                          selectedDate: _endDate,
-                          onTap: () => _pickEndDate(context),
-                          icon: Icons.event),
+                        col: col,
+                        label: 'End Date',
+                        selectedDate: _endDate,
+                        onTap: () => _pickEndDate(context),
+                        icon: Icons.event,
+                      ),
                     ],
                   ),
                 ),
@@ -822,10 +895,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
               styleUri: isDark
                   ? MapboxStyles.DARK
                   : MapboxStyles.MAPBOX_STREETS,
-              cameraOptions: CameraOptions(
-                center: currentPoint,
-                zoom: 15.0,
-              ),
+              cameraOptions: CameraOptions(center: currentPoint, zoom: 15.0),
               onMapCreated: (MapboxMap map) async {
                 _mapboxMap = map;
                 _isMapReady = true;
@@ -834,7 +904,8 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 }
                 if (controller.history.isNotEmpty) {
                   await _generateConditionalMarkers(
-                      controller.history.toList());
+                    controller.history.toList(),
+                  );
                 }
               },
             ),
@@ -862,17 +933,20 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                           Text(
                             currentRecord.rg,
                             style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: ignitionStatus == 1
                                   ? kSuccessGreen.withValues(alpha: 0.15)
                                   : col.border.withValues(alpha: 0.4),
-                              borderRadius:
-                                  BorderRadius.circular(kRadiusMD),
+                              borderRadius: BorderRadius.circular(kRadiusMD),
                             ),
                             child: Text(
                               ignitionStatus == 1 ? 'ON' : 'OFF',
@@ -901,7 +975,8 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                             icon: Icons.access_alarms_sharp,
                             label: "Time",
                             value: _utils.formatTime(
-                                currentRecord.createdAt.toString()),
+                              currentRecord.createdAt.toString(),
+                            ),
                           ),
                         ],
                       ),
@@ -921,7 +996,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 borderRadius: BorderRadius.circular(kRadiusLG),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      vertical: kSpaceLG, horizontal: kSpaceXL),
+                    vertical: kSpaceLG,
+                    horizontal: kSpaceXL,
+                  ),
                   decoration: BoxDecoration(
                     color: col.surface,
                     borderRadius: BorderRadius.circular(kRadiusLG),
@@ -932,45 +1009,53 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                       Row(
                         children: [
                           _buildDatePickerButton(
-                              col: col,
-                              label: 'Start Date',
-                              selectedDate: _startDate,
-                              onTap: () => _pickStartDate(context),
-                              icon: Icons.calendar_today),
+                            col: col,
+                            label: 'Start Date',
+                            selectedDate: _startDate,
+                            onTap: () => _pickStartDate(context),
+                            icon: Icons.calendar_today,
+                          ),
                           const SizedBox(width: 12),
                           _buildDatePickerButton(
-                              col: col,
-                              label: 'End Date',
-                              selectedDate: _endDate,
-                              onTap: () => _pickEndDate(context),
-                              icon: Icons.event),
+                            col: col,
+                            label: 'End Date',
+                            selectedDate: _endDate,
+                            onTap: () => _pickEndDate(context),
+                            icon: Icons.event,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: kBlue.withValues(alpha: 0.1),
-                          borderRadius:
-                              BorderRadius.circular(kRadiusSM),
+                          borderRadius: BorderRadius.circular(kRadiusSM),
                         ),
                         child: Text(
                           '${_playbackSpeed.toStringAsFixed(1)}x',
                           style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: kBlue),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: kBlue,
+                          ),
                         ),
                       ),
                       Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.fast_rewind_sharp,
-                                color: kBlue, size: 30),
+                            icon: const Icon(
+                              Icons.fast_rewind_sharp,
+                              color: kBlue,
+                              size: 30,
+                            ),
                             onPressed: () {
                               _updatePlaybackSpeed(
-                                  (_playbackSpeed - 1).clamp(0.5, 5.0));
+                                (_playbackSpeed - 1).clamp(0.5, 5.0),
+                              );
                             },
                           ),
                           Expanded(
@@ -987,18 +1072,21 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                                 min: 0.1,
                                 max: 5.0,
                                 divisions: 9,
-                                label:
-                                    '${_playbackSpeed.toStringAsFixed(1)}x',
+                                label: '${_playbackSpeed.toStringAsFixed(1)}x',
                                 onChanged: _updatePlaybackSpeed,
                               ),
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.fast_forward,
-                                color: kBlue, size: 30),
+                            icon: const Icon(
+                              Icons.fast_forward,
+                              color: kBlue,
+                              size: 30,
+                            ),
                             onPressed: () {
                               _updatePlaybackSpeed(
-                                  (_playbackSpeed + 1).clamp(0.5, 5.0));
+                                (_playbackSpeed + 1).clamp(0.5, 5.0),
+                              );
                             },
                           ),
                         ],
@@ -1008,14 +1096,12 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           _ControlButton(
-                            icon: _isPlaying
-                                ? Icons.pause
-                                : Icons.play_arrow,
+                            icon: _isPlaying ? Icons.pause : Icons.play_arrow,
                             onPressed: () => _isPlaying
                                 ? _pausePlayback()
                                 : (_currentIndex == 0
-                                    ? _startPlayback(history)
-                                    : _resumePlayback(history)),
+                                      ? _startPlayback(history)
+                                      : _resumePlayback(history)),
                             color: kBlue,
                           ),
                           _ControlButton(
@@ -1025,13 +1111,13 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                           ),
                           TextButton.icon(
                             style: TextButton.styleFrom(
-                              backgroundColor:
-                                  kRed.withValues(alpha: 0.1),
+                              backgroundColor: kRed.withValues(alpha: 0.1),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
                               shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(kRadiusMD),
+                                borderRadius: BorderRadius.circular(kRadiusMD),
                               ),
                             ),
                             onPressed: () {
@@ -1040,13 +1126,13 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                                 _endDate = null;
                               });
                             },
-                            icon:
-                                const Icon(Icons.clear, color: kRed),
+                            icon: const Icon(Icons.clear, color: kRed),
                             label: const Text(
                               "Clear Dates",
                               style: TextStyle(
-                                  color: kRed,
-                                  fontWeight: FontWeight.w600),
+                                color: kRed,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
@@ -1086,14 +1172,17 @@ class _InfoItem extends StatelessWidget {
           children: [
             Icon(icon, size: 16, color: col.textSecondary),
             const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(fontSize: 15, color: col.textSecondary)),
+            Text(
+              label,
+              style: TextStyle(fontSize: 15, color: col.textSecondary),
+            ),
           ],
         ),
         const SizedBox(height: 4),
-        Text(value,
-            style:
-                const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
       ],
     );
   }

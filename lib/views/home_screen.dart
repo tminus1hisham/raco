@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -16,7 +15,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle, ByteData;
 import 'package:geolocator/geolocator.dart' hide Position;
 import 'package:get/get.dart';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Size, LocationSettings;
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart'
+    hide Size, LocationSettings;
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 import 'cars/cars_screen.dart';
@@ -89,7 +89,9 @@ class _HomeScreenState extends State<HomeScreen> {
       await _updateVehicleAnnotations(devices);
 
       if (_trackedCarPlate != null) {
-        final tracked = devices.where((d) => d.numberPlate == _trackedCarPlate).firstOrNull;
+        final tracked = devices
+            .where((d) => d.numberPlate == _trackedCarPlate)
+            .firstOrNull;
         if (tracked != null && mapboxMap != null) {
           final lat = double.tryParse(tracked.latitude) ?? -1.2842;
           final lng = double.tryParse(tracked.longitude) ?? 36.8163;
@@ -135,7 +137,9 @@ class _HomeScreenState extends State<HomeScreen> {
       targetWidth: width,
     );
     final ui.FrameInfo fi = await codec.getNextFrame();
-    final ByteData? bytes = await fi.image.toByteData(format: ui.ImageByteFormat.png);
+    final ByteData? bytes = await fi.image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     return bytes!.buffer.asUint8List();
   }
 
@@ -154,7 +158,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Remove stale annotations
     final newPlates = devices.map((d) => d.numberPlate).toSet();
-    final toRemove = _vehicleAnnotations.keys.where((p) => !newPlates.contains(p)).toList();
+    final toRemove = _vehicleAnnotations.keys
+        .where((p) => !newPlates.contains(p))
+        .toList();
     for (final plate in toRemove) {
       final ann = _vehicleAnnotations.remove(plate);
       if (ann != null) await _annotationManager!.delete(ann);
@@ -204,7 +210,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final devLat = double.tryParse(device.latitude) ?? 0;
       final devLng = double.tryParse(device.longitude) ?? 0;
       final dist =
-          (devLat - tapLat) * (devLat - tapLat) + (devLng - tapLng) * (devLng - tapLng);
+          (devLat - tapLat) * (devLat - tapLat) +
+          (devLng - tapLng) * (devLng - tapLng);
       if (dist < minDist) {
         minDist = dist;
         nearest = device;
@@ -223,19 +230,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showNextVehicle() {
     if (_filteredDevices.isEmpty) return;
-    setState(() => selectedVehicleIndex = (selectedVehicleIndex + 1) % _filteredDevices.length);
+    setState(
+      () => selectedVehicleIndex =
+          (selectedVehicleIndex + 1) % _filteredDevices.length,
+    );
     _focusOnVehicle(selectedVehicleIndex);
   }
 
   void _showPreviousVehicle() {
     if (_filteredDevices.isEmpty) return;
-    setState(() => selectedVehicleIndex =
-        (selectedVehicleIndex - 1 + _filteredDevices.length) % _filteredDevices.length);
+    setState(
+      () => selectedVehicleIndex =
+          (selectedVehicleIndex - 1 + _filteredDevices.length) %
+          _filteredDevices.length,
+    );
     _focusOnVehicle(selectedVehicleIndex);
   }
 
   void _focusOnVehicle(int index) {
-    if (index < 0 || index >= _filteredDevices.length || mapboxMap == null) return;
+    if (index < 0 || index >= _filteredDevices.length || mapboxMap == null)
+      return;
     final device = _filteredDevices[index];
     final lat = double.tryParse(device.latitude) ?? -1.2842;
     final lng = double.tryParse(device.longitude) ?? 36.8163;
@@ -248,8 +262,19 @@ class _HomeScreenState extends State<HomeScreen> {
   void _fitAllCarsOnMap(List<Device> devices) {
     if (mapboxMap == null || devices.isEmpty) return;
     final points = devices
-        .where((d) => double.tryParse(d.latitude) != null && double.tryParse(d.longitude) != null)
-        .map((d) => Point(coordinates: Position(double.parse(d.longitude), double.parse(d.latitude))))
+        .where(
+          (d) =>
+              double.tryParse(d.latitude) != null &&
+              double.tryParse(d.longitude) != null,
+        )
+        .map(
+          (d) => Point(
+            coordinates: Position(
+              double.parse(d.longitude),
+              double.parse(d.latitude),
+            ),
+          ),
+        )
         .toList();
     if (points.isEmpty) return;
     double sumLat = 0, sumLng = 0;
@@ -260,7 +285,8 @@ class _HomeScreenState extends State<HomeScreen> {
     mapboxMap!.flyTo(
       CameraOptions(
         center: Point(
-            coordinates: Position(sumLng / points.length, sumLat / points.length)),
+          coordinates: Position(sumLng / points.length, sumLat / points.length),
+        ),
         zoom: 10.0,
       ),
       null,
@@ -268,7 +294,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadCustomIcons() async {
-    customIcons['green'] = await _resizeAndLoadIcon('assets/green_car.png', 140);
+    customIcons['green'] = await _resizeAndLoadIcon(
+      'assets/green_car.png',
+      140,
+    );
     customIcons['blue'] = await _resizeAndLoadIcon('assets/blue_car.png', 70);
     customIcons['red'] = await _resizeAndLoadIcon('assets/red_car.png', 90);
     setState(() {});
@@ -281,7 +310,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!serviceEnabled) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please enable location services')));
+          const SnackBar(content: Text('Please enable location services')),
+        );
         setState(() => isLoadingLocation = false);
         return;
       }
@@ -290,8 +320,9 @@ class _HomeScreenState extends State<HomeScreen> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('Location permission denied')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permission denied')),
+          );
           setState(() => isLoadingLocation = false);
           return;
         }
@@ -299,14 +330,22 @@ class _HomeScreenState extends State<HomeScreen> {
       if (permission == LocationPermission.deniedForever) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permissions are permanently denied')));
+          const SnackBar(
+            content: Text('Location permissions are permanently denied'),
+          ),
+        );
         setState(() => isLoadingLocation = false);
         return;
       }
       final currentPos = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
       setState(() {
-        userLocation = Point(coordinates: Position(currentPos.longitude, currentPos.latitude));
+        userLocation = Point(
+          coordinates: Position(currentPos.longitude, currentPos.latitude),
+        );
         isLoadingLocation = false;
       });
     } catch (e) {
@@ -394,8 +433,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: context.col.surface,
-        borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(kRadiusLG)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(kRadiusLG),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -455,7 +495,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 24,
                       height: 24,
                       decoration: const BoxDecoration(
-                          color: kBlue, shape: BoxShape.circle),
+                        color: kBlue,
+                        shape: BoxShape.circle,
+                      ),
                       child: const Icon(Icons.check, color: kWhite, size: 14),
                     )
                   : null,
@@ -482,7 +524,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final lat = double.tryParse(device.latitude) ?? -1.2842;
     final lng = double.tryParse(device.longitude) ?? 36.8163;
     mapboxMap!.flyTo(
-        CameraOptions(center: Point(coordinates: Position(lng, lat)), zoom: 16.0), null);
+      CameraOptions(center: Point(coordinates: Position(lng, lat)), zoom: 16.0),
+      null,
+    );
     setState(() => _trackedCarPlate = device.numberPlate);
   }
 
@@ -538,9 +582,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   labelColor: kWhite,
                   unselectedLabelColor: context.col.textSecondary,
                   labelStyle: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                   unselectedLabelStyle: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w500),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
                   tabs: const [
                     Tab(
                       child: Row(
@@ -576,7 +624,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (_controller.isLoading.value) {
                       return Center(
                         child: LoadingAnimationWidget.fourRotatingDots(
-                            color: kBlue, size: 50),
+                          color: kBlue,
+                          size: 50,
+                        ),
                       );
                     }
                     return Stack(
@@ -607,7 +657,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   })
                 : Center(
                     child: LoadingAnimationWidget.fourRotatingDots(
-                        color: kBlue, size: 50)),
+                      color: kBlue,
+                      size: 50,
+                    ),
+                  ),
             CarsScreen(),
           ],
         ),
@@ -660,11 +713,22 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildStatChip(
-              'Total', '${model?.totalDevices ?? _filteredDevices.length}', kBlue),
+            'Total',
+            '${model?.totalDevices ?? _filteredDevices.length}',
+            kBlue,
+          ),
           _buildStatDivider(),
-          _buildStatChip('Online', '${model?.onlineDevices ?? 0}', kSuccessGreen),
+          _buildStatChip(
+            'Online',
+            '${model?.onlineDevices ?? 0}',
+            kSuccessGreen,
+          ),
           _buildStatDivider(),
-          _buildStatChip('Moving', '${model?.inMotion ?? 0}', const Color(0xFFF39C12)),
+          _buildStatChip(
+            'Moving',
+            '${model?.inMotion ?? 0}',
+            const Color(0xFFF39C12),
+          ),
           _buildStatDivider(),
           _buildStatChip('Offline', '${model?.offlineDevices ?? 0}', kRed),
         ],
@@ -676,12 +740,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(count,
-            style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-        Text(label,
-            style: TextStyle(
-                fontSize: 10, color: context.col.textSecondary)),
+        Text(
+          count,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: context.col.textSecondary),
+        ),
       ],
     );
   }
@@ -704,7 +774,11 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: kSpaceXL),
-            child: Icon(Icons.search, color: context.col.textSecondary, size: 22),
+            child: Icon(
+              Icons.search,
+              color: context.col.textSecondary,
+              size: 22,
+            ),
           ),
           Expanded(
             child: TextField(
@@ -713,18 +787,24 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: InputDecoration(
                 hintText: 'Search by number plate',
                 hintStyle: TextStyle(
-                    color: context.col.textSecondary, fontSize: 15),
+                  color: context.col.textSecondary,
+                  fontSize: 15,
+                ),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 15),
+                  horizontal: 12,
+                  vertical: 15,
+                ),
               ),
               onChanged: (query) {
                 final all = _controller.devicesModel.value?.devices ?? [];
                 setState(() {
                   _filteredDevices = all
-                      .where((d) => d.numberPlate
-                          .toLowerCase()
-                          .contains(query.toLowerCase()))
+                      .where(
+                        (d) => d.numberPlate.toLowerCase().contains(
+                          query.toLowerCase(),
+                        ),
+                      )
                       .toList();
                 });
                 if (_filteredDevices.length == 1) {
@@ -766,11 +846,17 @@ class _HomeScreenState extends State<HomeScreen> {
           child: isLoadingLocation
               ? const Padding(
                   padding: EdgeInsets.all(12),
-                  child: CircularProgressIndicator(strokeWidth: 2, color: kBlue),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: kBlue,
+                  ),
                 )
               : IconButton(
-                  icon: Icon(Icons.my_location,
-                      color: userLocation != null ? kBlue : kGrey, size: 20),
+                  icon: Icon(
+                    Icons.my_location,
+                    color: userLocation != null ? kBlue : kGrey,
+                    size: 20,
+                  ),
                   onPressed: _moveToUserLocation,
                 ),
         ),
@@ -779,14 +865,20 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 8),
         _iconBtn(Icons.keyboard_arrow_down_outlined, _showNextVehicle),
         const SizedBox(height: 8),
-        _iconBtn(Icons.center_focus_strong, () => _fitAllCarsOnMap(_filteredDevices)),
+        _iconBtn(
+          Icons.center_focus_strong,
+          () => _fitAllCarsOnMap(_filteredDevices),
+        ),
         const SizedBox(height: 8),
         // Countdown / refresh
         _controlContainer(
           child: _isRefreshing
               ? const Padding(
                   padding: EdgeInsets.all(12),
-                  child: CircularProgressIndicator(strokeWidth: 2, color: kBlue),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: kBlue,
+                  ),
                 )
               : IconButton(
                   icon: Text(
@@ -808,39 +900,48 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _iconBtn(IconData icon, VoidCallback onTap) => _controlContainer(
-        child: IconButton(
-          icon: Icon(icon, color: context.col.textSecondary, size: 20),
-          onPressed: onTap,
-        ),
-      );
+    child: IconButton(
+      icon: Icon(icon, color: context.col.textSecondary, size: 20),
+      onPressed: onTap,
+    ),
+  );
 
   Widget _controlContainer({required Widget child}) => Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: context.col.surface,
-          borderRadius: BorderRadius.circular(kRadiusSM),
-          boxShadow: [kShadowSM],
-        ),
-        child: child,
-      );
+    width: 44,
+    height: 44,
+    decoration: BoxDecoration(
+      color: context.col.surface,
+      borderRadius: BorderRadius.circular(kRadiusSM),
+      boxShadow: [kShadowSM],
+    ),
+    child: child,
+  );
 
   // ─── Vehicle bottom sheet ─────────────────────────────────────────────────
 
   Widget _buildVehicleBottomSheet(Device device) {
     final bool isOnline = device.isDeviceOnline;
     final bool isMoving = device.ignitionStatus == 1 && isOnline;
-    final Color statusColor =
-        isMoving ? kSuccessGreen : isOnline ? kBlue : kRed;
-    final String statusLabel = isMoving ? 'Moving' : isOnline ? 'Idle' : 'Offline';
-
+    final Color statusColor = isMoving
+        ? kSuccessGreen
+        : isOnline
+        ? kBlue
+        : kRed;
+    final String statusLabel = isMoving
+        ? 'Moving'
+        : isOnline
+        ? 'Idle'
+        : 'Offline';
 
     return Container(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       decoration: BoxDecoration(
         color: context.col.surface,
-        borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(kRadiusLG)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(kRadiusLG),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -872,27 +973,35 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: statusColor.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(kRadiusMD),
                         border: Border.all(
-                            color: statusColor.withValues(alpha: 0.4), width: 2),
+                          color: statusColor.withValues(alpha: 0.4),
+                          width: 2,
+                        ),
                       ),
-                      child: customIcons[isMoving
-                              ? 'green'
-                              : isOnline
+                      child:
+                          customIcons[isMoving
+                                  ? 'green'
+                                  : isOnline
                                   ? 'blue'
                                   : 'red'] !=
                               null
                           ? ClipRRect(
-                              borderRadius: BorderRadius.circular(kRadiusMD - 2),
+                              borderRadius: BorderRadius.circular(
+                                kRadiusMD - 2,
+                              ),
                               child: Image.memory(
                                 customIcons[isMoving
                                     ? 'green'
                                     : isOnline
-                                        ? 'blue'
-                                        : 'red']!,
+                                    ? 'blue'
+                                    : 'red']!,
                                 fit: BoxFit.contain,
                               ),
                             )
-                          : Icon(Icons.directions_car,
-                              color: statusColor, size: 28),
+                          : Icon(
+                              Icons.directions_car,
+                              color: statusColor,
+                              size: 28,
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -902,17 +1011,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text(
                             device.numberPlate,
                             style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: context.col.textPrimary),
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: context.col.textPrimary,
+                            ),
                           ),
                           Text(
                             '${device.type} ${device.make}'.trim().isEmpty
                                 ? 'Vehicle'
                                 : '${device.type} ${device.make}'.trim(),
                             style: TextStyle(
-                                fontSize: 13,
-                                color: context.col.textSecondary),
+                              fontSize: 13,
+                              color: context.col.textSecondary,
+                            ),
                           ),
                         ],
                       ),
@@ -923,16 +1034,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         GestureDetector(
                           onTap: () => Navigator.pop(context),
-                          child: const Icon(Icons.close, color: kGrey, size: 20),
+                          child: const Icon(
+                            Icons.close,
+                            color: kGrey,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: statusColor.withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(kRadiusPill),
                             border: Border.all(
-                                color: statusColor.withValues(alpha: 0.35)),
+                              color: statusColor.withValues(alpha: 0.35),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -941,14 +1060,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                 width: 6,
                                 height: 6,
                                 decoration: BoxDecoration(
-                                    color: statusColor, shape: BoxShape.circle),
+                                  color: statusColor,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
                               const SizedBox(width: 4),
-                              Text(statusLabel,
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: statusColor)),
+                              Text(
+                                statusLabel,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: statusColor,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -969,13 +1093,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _infoTile(Icons.speed_rounded, '${device.speed} km/h', 'Speed'),
+                      _infoTile(
+                        Icons.speed_rounded,
+                        '${device.speed} km/h',
+                        'Speed',
+                      ),
                       _vDivider(),
-                      _infoTile(Icons.access_time_rounded,
-                          _utils.formatTime(device.updatedAt), 'Updated'),
+                      _infoTile(
+                        Icons.access_time_rounded,
+                        _utils.formatTime(device.updatedAt),
+                        'Updated',
+                      ),
                       _vDivider(),
-                      _infoTile(Icons.signal_cellular_alt,
-                          '${device.signalStrength}%', 'Signal'),
+                      _infoTile(
+                        Icons.signal_cellular_alt,
+                        '${device.signalStrength}%',
+                        'Signal',
+                      ),
                     ],
                   ),
                 ),
@@ -999,7 +1133,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 latitude:
                                     double.tryParse(device.latitude) ?? -1.2842,
                                 longitude:
-                                    double.tryParse(device.longitude) ?? 36.8163,
+                                    double.tryParse(device.longitude) ??
+                                    36.8163,
                                 deviceId: device.deviceId,
                               ),
                             ),
@@ -1019,7 +1154,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (_) => PlaybackScreen(
-                                  numberPlate: device.numberPlate),
+                                numberPlate: device.numberPlate,
+                              ),
                             ),
                           );
                         },
@@ -1058,7 +1194,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (_) => ViolationsScreen(
-                                  numberPlate: device.numberPlate),
+                                numberPlate: device.numberPlate,
+                              ),
                             ),
                           );
                         },
@@ -1079,14 +1216,18 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Icon(icon, color: kBlue, size: 18),
         const SizedBox(height: 4),
-        Text(value,
-            style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: context.col.textPrimary)),
-        Text(label,
-            style: TextStyle(
-                fontSize: 10, color: context.col.textSecondary)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: context.col.textPrimary,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: context.col.textSecondary),
+        ),
       ],
     );
   }
@@ -1113,9 +1254,14 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Icon(icon, color: color, size: 20),
             const SizedBox(height: 4),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 10, color: color, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
