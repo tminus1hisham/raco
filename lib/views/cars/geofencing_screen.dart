@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/fetch_geofence_controller.dart';
 import 'package:atom/controllers/geo_fence_controller.dart';
@@ -6,8 +7,8 @@ import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class GeofencingScreen extends StatefulWidget {
   final String numberPlate;
@@ -19,7 +20,8 @@ class GeofencingScreen extends StatefulWidget {
 }
 
 class _GeofencingScreenState extends State<GeofencingScreen> {
-  GoogleMapController? mapController;
+  MapboxMap? mapboxMap;
+  Point? selectedPoint;
   final GeoFenceController _geoFenceController = GeoFenceController();
   final FetchGeofenceController _fetchGeofenceController =
       FetchGeofenceController();
@@ -29,15 +31,12 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     text: '0.0',
   );
 
-  LatLng? selectedPoint;
-  double radiusKm = 0.0;
-  List<GeofenceModel> existingGeofences = [];
+  List<PointAnnotationOptions> markers = [];
+  List<CircleAnnotationOptions> circles = [];
   GeofenceModel? selectedGeofence;
   bool isAddingGeofence = false;
-
-  Set<Marker> markers = {};
-  Set<Circle> circles = {};
   bool isSaveEnabled = false;
+  double radiusKm = 0.0;
 
   @override
   void initState() {
@@ -49,7 +48,6 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   void dispose() {
     zoneNameController.dispose();
     radiusController.dispose();
-    mapController?.dispose();
     super.dispose();
   }
 
@@ -57,7 +55,6 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     await _fetchGeofenceController.fetchGeofence(widget.numberPlate);
 
     setState(() {
-      existingGeofences = _fetchGeofenceController.geofences;
       _updateMapMarkers();
     });
   }
@@ -66,54 +63,50 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     markers.clear();
     circles.clear();
 
-    // Show only selected geofence
     if (selectedGeofence != null) {
-      final latLng = LatLng(
-        double.parse(selectedGeofence!.latitude),
-        double.parse(selectedGeofence!.longitude),
-      );
-
-      markers.add(
-        Marker(
-          markerId: MarkerId('selected_geofence'),
-          position: latLng,
-          infoWindow: InfoWindow(title: selectedGeofence!.name),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+      final point = Point(
+        coordinates: Position(
+          double.parse(selectedGeofence!.longitude),
+          double.parse(selectedGeofence!.latitude),
         ),
       );
-
+      markers.add(
+        PointAnnotationOptions(
+          geometry: point,
+          iconSize: 1.5,
+          iconImage: "assets/blue_car.png",
+          textField: selectedGeofence!.name,
+          textSize: 12.0,
+        ),
+      );
       circles.add(
-        Circle(
-          circleId: CircleId('selected_circle'),
-          center: latLng,
-          radius: selectedGeofence!.radius.toDouble(),
-          fillColor: kBlue.withValues(alpha: 0.2),
-          strokeColor: kBlue,
-          strokeWidth: 2,
+        CircleAnnotationOptions(
+          geometry: point,
+          circleRadius: selectedGeofence!.radius.toDouble(),
+          circleColor: kBlue.withValues(alpha: 0.2).value,
+          circleStrokeColor: kBlue.value,
+          circleStrokeWidth: 2.0,
         ),
       );
     }
 
-    // Add new pin if adding geofence
     if (isAddingGeofence && selectedPoint != null) {
       markers.add(
-        Marker(
-          markerId: MarkerId('new_point'),
-          position: selectedPoint!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueOrange,
-          ),
+        PointAnnotationOptions(
+          geometry: selectedPoint!,
+          iconSize: 1.5,
+          iconImage: "assets/orange_car.png",
+          textField: "New Point",
+          textSize: 12.0,
         ),
       );
-
       circles.add(
-        Circle(
-          circleId: CircleId('new_circle'),
-          center: selectedPoint!,
-          radius: radiusKm * 1000,
-          fillColor: Colors.orange.withValues(alpha: 0.3),
-          strokeColor: Colors.orange,
-          strokeWidth: 2,
+        CircleAnnotationOptions(
+          geometry: selectedPoint!,
+          circleRadius: radiusKm * 1000,
+          circleColor: Colors.orange.withValues(alpha: 0.3).value,
+          circleStrokeColor: Colors.orange.value,
+          circleStrokeWidth: 2.0,
         ),
       );
     }
@@ -121,7 +114,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     setState(() {});
   }
 
-  void _onMapTap(LatLng point) {
+  void _onMapTap(Point point) {
     if (!isAddingGeofence) return;
 
     setState(() {
@@ -138,12 +131,17 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     });
 
     if (geofence != null) {
-      final latLng = LatLng(
-        double.parse(geofence.latitude),
-        double.parse(geofence.longitude),
+      final point = Point(
+        coordinates: Position(
+          double.parse(geofence.longitude),
+          double.parse(geofence.latitude),
+        ),
       );
 
-      mapController?.animateCamera(CameraUpdate.newLatLngZoom(latLng, 14));
+      mapboxMap?.flyTo(
+        CameraOptions(center: point, zoom: 14.0),
+        null,
+      );
     }
 
     _updateMapMarkers();
@@ -152,7 +150,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   Future<void> _addGeofenceZone() async {
     if (selectedPoint == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Please tap on the map to select a location'),
           backgroundColor: Colors.orange,
         ),
@@ -162,7 +160,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
 
     if (zoneNameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Please enter a zone name'),
           backgroundColor: Colors.orange,
         ),
@@ -172,8 +170,10 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
 
     _geoFenceController.numberPlate.value = widget.numberPlate;
     _geoFenceController.fullName.value = zoneNameController.text.trim();
-    _geoFenceController.latitude.value = selectedPoint!.latitude.toString();
-    _geoFenceController.longitude.value = selectedPoint!.longitude.toString();
+    _geoFenceController.latitude.value =
+        selectedPoint!.coordinates.lat.toString();
+    _geoFenceController.longitude.value =
+        selectedPoint!.coordinates.lng.toString();
     _geoFenceController.radius.value = radiusKm.round() * 1000;
 
     bool success = await _geoFenceController.addGeoFence(context);
@@ -215,25 +215,25 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
+    final isDark = context.isDark;
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: kBgGrey,
+          backgroundColor: col.bg,
           appBar: AppBar(
-            title: Text(
+            title: const Text(
               'Geofencing',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
-            backgroundColor: kWhite,
-            foregroundColor: kBlack,
-            elevation: 0.5,
+            // inherits backgroundColor and foregroundColor from AppBarTheme
           ),
           body: Column(
             children: [
-              if (!isAddingGeofence) _buildGeofenceDropdown(),
+              if (!isAddingGeofence) _buildGeofenceDropdown(col),
               if (isAddingGeofence) _buildZoneNameInput(),
-              Expanded(child: _buildMap()),
-              _buildBottomPanel(),
+              Expanded(child: _buildMap(isDark)),
+              _buildBottomPanel(col),
             ],
           ),
         ),
@@ -242,31 +242,39 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     );
   }
 
-  Widget _buildGeofenceDropdown() {
+  Widget _buildGeofenceDropdown(AppColors col) {
     return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: kWhite,
+        color: col.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: kBlack.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<GeofenceModel>(
           isExpanded: true,
-          hint: Text('Select existing geofence to view'),
+          dropdownColor: col.surface,
+          hint: Text(
+            'Select existing geofence to view',
+            style: TextStyle(color: col.textSecondary),
+          ),
           value: selectedGeofence,
-          icon: Icon(Icons.arrow_drop_down),
-          items: existingGeofences.map((GeofenceModel geofence) {
+          icon: Icon(Icons.arrow_drop_down, color: col.textSecondary),
+          items:
+              _fetchGeofenceController.geofences.map((GeofenceModel geofence) {
             return DropdownMenuItem<GeofenceModel>(
               value: geofence,
-              child: Text('${geofence.name} (${geofence.radius / 1000}km)'),
+              child: Text(
+                '${geofence.name} (${geofence.radius / 1000}km)',
+                style: TextStyle(color: col.textPrimary),
+              ),
             );
           }).toList(),
           onChanged: _onGeofenceSelected,
@@ -277,16 +285,15 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
 
   Widget _buildZoneNameInput() {
     return Container(
-      margin: EdgeInsets.fromLTRB(16, 0, 16, 16),
-
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Row(
         children: [
           Expanded(
             flex: 2,
             child: Column(
               children: [
-                Text("Zone Name"),
-                SizedBox(height: 5),
+                const Text("Zone Name"),
+                const SizedBox(height: 5),
                 TextField(
                   controller: zoneNameController,
                   decoration: InputDecoration(
@@ -294,7 +301,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 8,
                     ),
@@ -304,22 +311,23 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
               ],
             ),
           ),
-          SizedBox(width: 5),
+          const SizedBox(width: 5),
           Expanded(
             flex: 1,
             child: Column(
               children: [
-                Text("Radius ( KM )"),
-                SizedBox(height: 5),
+                const Text("Radius ( KM )"),
+                const SizedBox(height: 5),
                 TextField(
                   controller: radiusController,
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     hintText: '0',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 8,
                     ),
@@ -343,51 +351,61 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     );
   }
 
-  Widget _buildMap() {
+  Widget _buildMap(bool isDark) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: kBlack.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: GoogleMap(
-          onMapCreated: (GoogleMapController controller) {
-            mapController = controller;
-          },
-          initialCameraPosition: CameraPosition(
-            target: LatLng(-1.2842328448615796, 36.816382318562034),
+        child: MapWidget(
+          styleUri: isDark
+              ? MapboxStyles.DARK
+              : MapboxStyles.MAPBOX_STREETS,
+          cameraOptions: CameraOptions(
+            center: selectedPoint ??
+                Point(
+                    coordinates:
+                        Position(36.816382318562034, -1.2842328448615796)),
             zoom: 13.0,
           ),
-          onTap: _onMapTap,
-          markers: markers,
-          circles: circles,
-          myLocationEnabled: true,
-          myLocationButtonEnabled: true,
-          zoomControlsEnabled: true,
-          mapToolbarEnabled: false,
+          onMapCreated: (MapboxMap map) {
+            mapboxMap = map;
+            map.annotations.createPointAnnotationManager().then((manager) {
+              if (markers.isNotEmpty) {
+                manager.createMulti(markers);
+              }
+            });
+            map.annotations.createCircleAnnotationManager().then((manager) {
+              if (circles.isNotEmpty) {
+                manager.createMulti(circles);
+              }
+            });
+          },
+          onTapListener: (context) => _onMapTap(context.point),
         ),
       ),
     );
   }
 
-  Widget _buildBottomPanel() {
+  Widget _buildBottomPanel(AppColors col) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: kWhite,
+        color: col.surface,
         boxShadow: [
           BoxShadow(
-            color: kBlack.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
-            offset: Offset(0, -2),
+            offset: const Offset(0, -2),
           ),
         ],
       ),
@@ -408,7 +426,6 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
                       radiusKm = 0;
                       _updateMapMarkers();
                     } else {
-                      // Start adding
                       isAddingGeofence = true;
                       selectedGeofence = null;
                       markers.clear();
@@ -421,7 +438,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
                 txtColor: kWhite,
               ),
             ),
-            SizedBox(width: 5),
+            const SizedBox(width: 5),
             if (isAddingGeofence)
               Expanded(
                 child: CustomButton(
@@ -431,8 +448,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
                     }
                   },
                   label: "Save",
-                  backgroundColor: isSaveEnabled ? kBlue : kLightGrey,
-                  // grey when inactive
+                  backgroundColor: isSaveEnabled ? kBlue : col.border,
                   txtColor: kWhite,
                 ),
               ),
@@ -446,7 +462,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     return Obx(() {
       if (_geoFenceController.isLoading.value) {
         return Container(
-          color: kBlack.withValues(alpha: 0.3),
+          color: Colors.black.withValues(alpha: 0.3),
           child: Center(
             child: LoadingAnimationWidget.fourRotatingDots(
               color: kBlue,
@@ -455,7 +471,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
           ),
         );
       }
-      return SizedBox.shrink();
+      return const SizedBox.shrink();
     });
   }
 }

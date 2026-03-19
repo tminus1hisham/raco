@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -13,14 +14,15 @@ class DriverBehaviour extends StatefulWidget {
 class _DriverBehaviourState extends State<DriverBehaviour> {
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               customHeader(
                 label: "Driver Behaviour",
                 icon: Icons.directions_car,
@@ -29,46 +31,57 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                   Navigator.pop(context);
                 },
               ),
-              SizedBox(height: 10),
-              _buildSectionHeader("Status"),
+              const SizedBox(height: 10),
+              _buildSectionHeader("Status", col),
               _buildVehicleCard(
+                col: col,
                 child: Column(
                   children: [
                     _buildVehicleItem(
+                      col: col,
                       title: 'Driver Behaviour',
                       subtitle: 'safe',
                     ),
-                    _buildDivider(),
-                    _buildVehicleItem(title: 'Score', subtitle: '78/100'),
+                    _buildDivider(col),
+                    _buildVehicleItem(
+                        col: col, title: 'Score', subtitle: '78/100'),
                   ],
                 ),
               ),
-              SizedBox(height: 10),
-              _buildSectionHeader("Metrics"),
+              const SizedBox(height: 10),
+              _buildSectionHeader("Metrics", col),
               _buildVehicleCard(
+                col: col,
                 child: Column(
                   children: [
-                    _buildVehicleItem(title: 'Overspeed', subtitle: '4 Events'),
-                    _buildDivider(),
                     _buildVehicleItem(
+                        col: col,
+                        title: 'Overspeed',
+                        subtitle: '4 Events'),
+                    _buildDivider(col),
+                    _buildVehicleItem(
+                      col: col,
                       title: 'Harsh Braking',
                       subtitle: '12 Events',
                     ),
-                    _buildDivider(),
+                    _buildDivider(col),
                     _buildVehicleItem(
+                      col: col,
                       title: 'Rapid Acceleration',
                       subtitle: '6 Events',
                     ),
-                    _buildDivider(),
-                    _buildVehicleItem(title: 'Idling', subtitle: '12 mins'),
+                    _buildDivider(col),
+                    _buildVehicleItem(
+                        col: col, title: 'Idling', subtitle: '12 mins'),
                   ],
                 ),
               ),
-              SizedBox(height: 10),
-              _buildSectionHeader("Trend"),
+              const SizedBox(height: 10),
+              _buildSectionHeader("Trend", col),
               _buildVehicleCard(
+                col: col,
                 child: Padding(
-                  padding: EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -77,11 +90,11 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: kGrey,
+                          color: col.textSecondary,
                         ),
                       ),
-                      SizedBox(height: 20),
-                      Container(
+                      const SizedBox(height: 20),
+                      SizedBox(
                         height: 200,
                         child: LineChart(
                           LineChartData(
@@ -91,17 +104,17 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                               horizontalInterval: 20,
                               getDrawingHorizontalLine: (value) {
                                 return FlLine(
-                                  color: kDivider,
+                                  color: col.divider,
                                   strokeWidth: 1,
                                 );
                               },
                             ),
                             titlesData: FlTitlesData(
                               show: true,
-                              rightTitles: AxisTitles(
+                              rightTitles: const AxisTitles(
                                 sideTitles: SideTitles(showTitles: false),
                               ),
-                              topTitles: AxisTitles(
+                              topTitles: const AxisTitles(
                                 sideTitles: SideTitles(showTitles: false),
                               ),
                               bottomTitles: AxisTitles(
@@ -111,8 +124,8 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                   interval: 1,
                                   getTitlesWidget:
                                       (double value, TitleMeta meta) {
-                                        const style = TextStyle(
-                                          color: kGrey,
+                                        final style = TextStyle(
+                                          color: col.textSecondary,
                                           fontWeight: FontWeight.w500,
                                           fontSize: 12,
                                         );
@@ -154,7 +167,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                 axisNameWidget: Text(
                                   'Score',
                                   style: TextStyle(
-                                    color: kGrey,
+                                    color: col.textSecondary,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -168,7 +181,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                         return Text(
                                           value.toInt().toString(),
                                           style: TextStyle(
-                                            color: kGrey,
+                                            color: col.textSecondary,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 12,
                                           ),
@@ -184,17 +197,17 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                             maxY: 100,
                             lineBarsData: [
                               LineChartBarData(
-                                spots: [
-                                  FlSpot(0, 88), // Wed
-                                  FlSpot(1, 84), // Thu
-                                  FlSpot(2, 80), // Fri
-                                  FlSpot(3, 76), // Sat
-                                  FlSpot(4, 78), // Sun
-                                  FlSpot(5, 70), // Mon
-                                  FlSpot(6, 68), // Tue
+                                spots: const [
+                                  FlSpot(0, 88),
+                                  FlSpot(1, 84),
+                                  FlSpot(2, 80),
+                                  FlSpot(3, 76),
+                                  FlSpot(4, 78),
+                                  FlSpot(5, 70),
+                                  FlSpot(6, 68),
                                 ],
                                 isCurved: true,
-                                gradient: LinearGradient(
+                                gradient: const LinearGradient(
                                   colors: [
                                     Color(0xFF4285F4),
                                     Color(0xFF4285F4),
@@ -208,17 +221,17 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                       (spot, percent, barData, index) =>
                                           FlDotCirclePainter(
                                             radius: 4,
-                                            color: Color(0xFF4285F4),
+                                            color: const Color(0xFF4285F4),
                                             strokeWidth: 2,
-                                            strokeColor: kWhite,
+                                            strokeColor: col.surface,
                                           ),
                                 ),
                                 belowBarData: BarAreaData(
                                   show: true,
-                                  gradient: LinearGradient(
+                                  gradient: const LinearGradient(
                                     colors: [
-                                      Color(0xFF4285F4).withValues(alpha: 0.1),
-                                      Color(0xFF4285F4).withValues(alpha: 0.05),
+                                      Color(0x1A4285F4),
+                                      Color(0x0D4285F4),
                                     ],
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
@@ -229,17 +242,17 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 30),
+                      const SizedBox(height: 30),
                       Text(
                         'Risky Events Per Day',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: kGrey,
+                          color: col.textSecondary,
                         ),
                       ),
-                      SizedBox(height: 20),
-                      Container(
+                      const SizedBox(height: 20),
+                      SizedBox(
                         height: 200,
                         child: BarChart(
                           BarChartData(
@@ -248,10 +261,10 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                             barTouchData: BarTouchData(enabled: false),
                             titlesData: FlTitlesData(
                               show: true,
-                              rightTitles: AxisTitles(
+                              rightTitles: const AxisTitles(
                                 sideTitles: SideTitles(showTitles: false),
                               ),
-                              topTitles: AxisTitles(
+                              topTitles: const AxisTitles(
                                 sideTitles: SideTitles(showTitles: false),
                               ),
                               bottomTitles: AxisTitles(
@@ -260,8 +273,8 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                   reservedSize: 30,
                                   getTitlesWidget:
                                       (double value, TitleMeta meta) {
-                                        const style = TextStyle(
-                                          color: kGrey,
+                                        final style = TextStyle(
+                                          color: col.textSecondary,
                                           fontWeight: FontWeight.w500,
                                           fontSize: 12,
                                         );
@@ -303,7 +316,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                 axisNameWidget: Text(
                                   'Events',
                                   style: TextStyle(
-                                    color: kGrey,
+                                    color: col.textSecondary,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -317,7 +330,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                                         return Text(
                                           value.toInt().toString(),
                                           style: TextStyle(
-                                            color: kGrey,
+                                            color: col.textSecondary,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 12,
                                           ),
@@ -333,39 +346,42 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                               horizontalInterval: 2,
                               getDrawingHorizontalLine: (value) {
                                 return FlLine(
-                                  color: kDivider,
+                                  color: col.divider,
                                   strokeWidth: 1,
                                 );
                               },
                             ),
                             barGroups: [
-                              _buildBarGroup(0, 0.5, 0.5, 0), // Wed
-                              _buildBarGroup(1, 1.5, 0.5, 0), // Thu
-                              _buildBarGroup(2, 2, 1, 0.5), // Fri
-                              _buildBarGroup(3, 1, 1, 0.5), // Sat
-                              _buildBarGroup(4, 1.5, 0.5, 0), // Sun
-                              _buildBarGroup(5, 2, 1, 0.5), // Mon
-                              _buildBarGroup(6, 2.5, 1, 0.5), // Tue
+                              _buildBarGroup(0, 0.5, 0.5, 0),
+                              _buildBarGroup(1, 1.5, 0.5, 0),
+                              _buildBarGroup(2, 2, 1, 0.5),
+                              _buildBarGroup(3, 1, 1, 0.5),
+                              _buildBarGroup(4, 1.5, 0.5, 0),
+                              _buildBarGroup(5, 2, 1, 0.5),
+                              _buildBarGroup(6, 2.5, 1, 0.5),
                             ],
                           ),
                         ),
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildLegendItem('Overspeed', Color(0xFFFF5722)),
-                          SizedBox(width: 20),
-                          _buildLegendItem('Harsh Braking', Color(0xFFF57C00)),
-                          SizedBox(width: 20),
-                          _buildLegendItem('Rapid Acc', Color(0xFFFFB74D)),
+                          _buildLegendItem(
+                              'Overspeed', const Color(0xFFFF5722), col),
+                          const SizedBox(width: 20),
+                          _buildLegendItem(
+                              'Harsh Braking', const Color(0xFFF57C00), col),
+                          const SizedBox(width: 20),
+                          _buildLegendItem(
+                              'Rapid Acc', const Color(0xFFFFB74D), col),
                         ],
                       ),
                     ],
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -388,16 +404,16 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
           width: 16,
           borderRadius: BorderRadius.circular(4),
           rodStackItems: [
-            BarChartRodStackItem(0, overspeed, Color(0xFFFF5722)),
+            BarChartRodStackItem(0, overspeed, const Color(0xFFFF5722)),
             BarChartRodStackItem(
               overspeed,
               overspeed + harshBraking,
-              Color(0xFFF57C00),
+              const Color(0xFFF57C00),
             ),
             BarChartRodStackItem(
               overspeed + harshBraking,
               overspeed + harshBraking + rapidAcceleration,
-              Color(0xFFFFB74D),
+              const Color(0xFFFFB74D),
             ),
           ],
         ),
@@ -405,7 +421,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
     );
   }
 
-  Widget _buildLegendItem(String title, Color color) {
+  Widget _buildLegendItem(String title, Color color, AppColors col) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -417,12 +433,12 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        SizedBox(width: 6),
+        const SizedBox(width: 6),
         Text(
           title,
           style: TextStyle(
             fontSize: 12,
-            color: kGrey,
+            color: col.textSecondary,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -430,11 +446,11 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
     );
   }
 
-  Widget _buildVehicleCard({required Widget child, VoidCallback? onTap}) {
+  Widget _buildVehicleCard({required AppColors col, required Widget child}) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: kWhite,
+        color: col.surface,
         borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [kShadowSM],
       ),
@@ -446,9 +462,12 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
     );
   }
 
-  Widget _buildVehicleItem({required String title, required String subtitle}) {
+  Widget _buildVehicleItem(
+      {required AppColors col,
+      required String title,
+      required String subtitle}) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -457,15 +476,15 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: kGrey,
+              color: col.textSecondary,
             ),
           ),
-          SizedBox(height: 2),
+          const SizedBox(height: 2),
           Text(
             subtitle,
             style: TextStyle(
               fontSize: 14,
-              color: kBlack,
+              color: col.textPrimary,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -474,22 +493,22 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, AppColors col) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Text(
         title,
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: kGrey,
+          color: col.textSecondary,
           letterSpacing: 0.5,
         ),
       ),
     );
   }
 
-  Widget _buildDivider() {
-    return Container(height: 1, color: kDivider);
+  Widget _buildDivider(AppColors col) {
+    return Container(height: 1, color: col.divider);
   }
 }

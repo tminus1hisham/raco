@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/update_profile_controller.dart';
 import 'package:atom/controllers/update_user_data.dart';
@@ -109,7 +110,7 @@ class _AccountScreenState extends State<AccountScreen> {
       builder: (context) {
         return SafeArea(
           child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 10),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -162,18 +163,19 @@ class _AccountScreenState extends State<AccountScreen> {
 
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // important
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
+        final col = context.col;
         return Padding(
-          // This moves the sheet up by the keyboard height
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
           child: Container(
-            decoration: const BoxDecoration(
-              color: kWhite,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            decoration: BoxDecoration(
+              color: col.surface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: SafeArea(
               top: false,
@@ -194,7 +196,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           height: 4,
                           margin: const EdgeInsets.only(bottom: 16),
                           decoration: BoxDecoration(
-                            color: kLightGrey,
+                            color: col.border,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -216,19 +218,19 @@ class _AccountScreenState extends State<AccountScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Text(
+                          Text(
                             'Edit Profile',
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              color: kBlack,
+                              color: col.textPrimary,
                             ),
                           ),
                           const Spacer(),
                           IconButton(
                             onPressed: () => Navigator.pop(context),
                             icon: const Icon(Icons.close),
-                            color: kGrey,
+                            color: col.textSecondary,
                           ),
                         ],
                       ),
@@ -329,10 +331,11 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Obx(() {
       if (controller.isLoading.value) {
         return Scaffold(
-          backgroundColor: kBgGrey,
+          backgroundColor: col.bg,
           body: Center(
             child: LoadingAnimationWidget.fourRotatingDots(
               color: kBlue,
@@ -345,18 +348,18 @@ class _AccountScreenState extends State<AccountScreen> {
       final user = controller.user.value;
       if (user == null) {
         return Scaffold(
-          backgroundColor: kBgGrey,
-          body: const Center(
+          backgroundColor: col.bg,
+          body: Center(
             child: Text(
               "No user data found",
-              style: TextStyle(fontSize: 16, color: kBlack),
+              style: TextStyle(fontSize: 16, color: col.textPrimary),
             ),
           ),
         );
       }
 
       return Scaffold(
-        backgroundColor: kBgGrey,
+        backgroundColor: col.bg,
         body: Stack(
           children: [
             SafeArea(
@@ -376,11 +379,11 @@ class _AccountScreenState extends State<AccountScreen> {
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
-                      color: kWhite,
+                      color: col.surface,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: kBlack.withValues(alpha: 0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -397,10 +400,10 @@ class _AccountScreenState extends State<AccountScreen> {
                               width: 130,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: kLightGrey,
+                                color: col.border,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: kBlack.withValues(alpha: 0.1),
+                                    color: Colors.black.withValues(alpha: 0.1),
                                     blurRadius: 6,
                                     offset: const Offset(0, 2),
                                   ),
@@ -420,7 +423,7 @@ class _AccountScreenState extends State<AccountScreen> {
                                               return Icon(
                                                 Icons.person,
                                                 size: 80,
-                                                color: kGrey,
+                                                color: col.textSecondary,
                                               );
                                             },
                                       ),
@@ -428,7 +431,7 @@ class _AccountScreenState extends State<AccountScreen> {
                                   : Icon(
                                       Icons.person,
                                       size: 80,
-                                      color: kGrey,
+                                      color: col.textSecondary,
                                     ),
                             ),
 
@@ -446,7 +449,8 @@ class _AccountScreenState extends State<AccountScreen> {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: kBlack.withValues(alpha: 0.2),
+                                        color:
+                                            Colors.black.withValues(alpha: 0.2),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -465,25 +469,16 @@ class _AccountScreenState extends State<AccountScreen> {
 
                         const SizedBox(height: 24),
 
-                        _buildInfoRow(
-                          Icons.person_outline,
-                          'Full Name',
-                          user.fullName,
-                        ),
+                        _buildInfoRow(col, Icons.person_outline, 'Full Name',
+                            user.fullName),
                         const SizedBox(height: 16),
 
-                        _buildInfoRow(
-                          Icons.email_outlined,
-                          'Email',
-                          user.emailAddress,
-                        ),
+                        _buildInfoRow(col, Icons.email_outlined, 'Email',
+                            user.emailAddress),
                         const SizedBox(height: 16),
 
-                        _buildInfoRow(
-                          Icons.phone_outlined,
-                          'Phone',
-                          user.phoneNumber,
-                        ),
+                        _buildInfoRow(col, Icons.phone_outlined, 'Phone',
+                            user.phoneNumber),
                         const SizedBox(height: 32),
 
                         CustomButton(
@@ -500,8 +495,8 @@ class _AccountScreenState extends State<AccountScreen> {
                             Navigator.pop(context);
                           },
                           label: "Back",
-                          borderColor: kLightGrey,
-                          txtColor: kBlack,
+                          borderColor: col.border,
+                          txtColor: col.textPrimary,
                         ),
                       ],
                     ),
@@ -511,7 +506,7 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             if (isUploadingImage)
               Container(
-                color: kBlack.withValues(alpha: 0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 child: Center(
                   child: LoadingAnimationWidget.fourRotatingDots(
                     color: kBlue,
@@ -525,7 +520,8 @@ class _AccountScreenState extends State<AccountScreen> {
     });
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(
+      AppColors col, IconData icon, String label, String value) {
     return Row(
       children: [
         Container(
@@ -546,15 +542,15 @@ class _AccountScreenState extends State<AccountScreen> {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: kGrey,
+                  color: col.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
-                  color: kBlack,
+                  color: col.textPrimary,
                   fontWeight: FontWeight.w500,
                 ),
               ),

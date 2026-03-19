@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/device_controller.dart';
 import 'package:atom/controllers/renew_certificate_controller.dart';
@@ -24,7 +25,10 @@ class _CarsScreenState extends State<CarsScreen> {
   @override
   void initState() {
     super.initState();
-    _controller.fetchDevices();
+    // Defer to avoid triggering Obx rebuilds during the build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.fetchDevices();
+    });
   }
 
   @override
@@ -35,21 +39,21 @@ class _CarsScreenState extends State<CarsScreen> {
       return Stack(
         children: [
           Scaffold(
-            backgroundColor: kBgGrey,
+            backgroundColor: context.col.bg,
             body: SafeArea(
               child: Column(
                 children: [
                   const SizedBox(height: 10),
                   Container(
                     decoration: BoxDecoration(
-                      color: kBgGrey,
+                      color: context.col.bg,
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(10),
                         bottomRight: Radius.circular(10),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: kBlack.withValues(alpha: 0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 10,
                           spreadRadius: 1,
                           offset: const Offset(0, 9),
@@ -194,7 +198,7 @@ class _CarsScreenState extends State<CarsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: kWhite,
+          color: context.col.surface,
           borderRadius: BorderRadius.circular(kRadiusMD),
           boxShadow: [kShadowSM],
         ),
@@ -216,20 +220,20 @@ class _CarsScreenState extends State<CarsScreen> {
                 children: [
                   Text(
                     count,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: kBlack,
+                      color: context.col.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     title,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: kGrey,
+                      color: context.col.textSecondary,
                     ),
                   ),
                 ],

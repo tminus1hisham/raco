@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:flutter/material.dart';
 
@@ -17,12 +18,13 @@ class CarInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Padding(
-      padding: EdgeInsets.only(left: 20, right: 20, top: 10),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 10),
       child: Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: kWhite,
+          color: col.surface,
           borderRadius: BorderRadius.circular(kRadiusLG),
           boxShadow: [kShadowMD],
         ),
@@ -40,15 +42,15 @@ class CarInfoCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: kBlack,
+                        color: col.textPrimary,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
                       issuedBy,
                       style: TextStyle(
                         fontSize: 14,
-                        color: kGrey,
+                        color: col.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -58,7 +60,7 @@ class CarInfoCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Container(
-                      padding: EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 5,
                       ),
@@ -75,19 +77,15 @@ class CarInfoCard extends StatelessWidget {
                             width: 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: status == "success"
-                                  ? kSuccessGreen
-                                  : kRed,
+                              color: status == "success" ? kSuccessGreen : kRed,
                               shape: BoxShape.circle,
                             ),
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           Text(
                             status,
                             style: TextStyle(
-                              color: status == "success"
-                                  ? kSuccessGreen
-                                  : kRed,
+                              color: status == "success" ? kSuccessGreen : kRed,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -95,12 +93,12 @@ class CarInfoCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
                       date,
                       style: TextStyle(
                         fontSize: 14,
-                        color: kGrey,
+                        color: col.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),

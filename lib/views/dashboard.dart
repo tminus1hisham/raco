@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/notifcations_controller.dart';
 import 'package:atom/services/local_storage_service.dart';
@@ -67,7 +68,7 @@ class _DashboardState extends State<Dashboard> {
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: kWhite,
+        color: context.col.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
@@ -131,17 +132,16 @@ class _DashboardState extends State<Dashboard> {
           children: [
             Icon(
               isSelected ? activeIcon : icon,
-              color: isSelected ? kBlue : kGrey,
+              color: isSelected ? kBlue : context.col.textSecondary,
               size: 24,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? kBlue : kGrey,
+                color: isSelected ? kBlue : context.col.textSecondary,
                 fontSize: 12,
-                fontWeight:
-                    isSelected ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ],
@@ -184,7 +184,7 @@ class _DashboardState extends State<Dashboard> {
                       children: [
                         Icon(
                           isSelected ? activeIcon : icon,
-                          color: isSelected ? kBlue : kGrey,
+                          color: isSelected ? kBlue : context.col.textSecondary,
                           size: 24,
                         ),
                         if (unreadCount > 0)
@@ -220,14 +220,14 @@ class _DashboardState extends State<Dashboard> {
                   })
                 : Icon(
                     isSelected ? activeIcon : icon,
-                    color: isSelected ? kBlue : kGrey,
+                    color: isSelected ? kBlue : context.col.textSecondary,
                     size: 24,
                   ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? kBlue : kGrey,
+                color: isSelected ? kBlue : context.col.textSecondary,
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               ),

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze:*)",
+      "Bash(find /c/Users/PC -path */mapbox_maps_flutter-*/lib/*.dart)",
+      "Bash(find /c/Users/PC -path */mapbox_maps_flutter*/mapbox_maps_flutter.dart)",
+      "Bash(flutter pub:*)"
+    ]
+  }
+}

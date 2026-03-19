@@ -1,5 +1,7 @@
 import 'package:animated_splash_screen/animated_splash_screen.dart';
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/theme_controller.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/services/location_service.dart';
@@ -7,8 +9,7 @@ import 'package:atom/services/mqtt_client.dart';
 import 'package:atom/views/auth/onboarding_screen.dart';
 import 'package:atom/views/dashboard.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:get/get_navigation/src/root/get_material_app.dart';
+import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class MyApp extends StatefulWidget {
@@ -17,8 +18,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  late Future<bool> _isAuthenticated;
-  Future<void>? _mqttConnect;
   late Future<List<dynamic>> _combinedFuture;
 
   Future<bool> _checkIfLoggedIn() async {
@@ -30,9 +29,12 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     LocationService().requestLocationPermission();
-    _mqttConnect = MqttService().initializeMqtt();
-    _isAuthenticated = _checkIfLoggedIn();
-    _combinedFuture = Future.wait([_isAuthenticated, _mqttConnect!]);
+    final mqttConnect = MqttService().initializeMqtt();
+    _combinedFuture = Future.wait([
+      _checkIfLoggedIn(),
+      mqttConnect,
+      StorageService.getThemeMode(), // load persisted theme before first render
+    ]);
   }
 
   @override
@@ -64,111 +66,28 @@ class _MyAppState extends State<MyApp> {
         }
 
         final bool isAuthenticated = snapshot.data![0] as bool;
+        final String? savedThemeStr = snapshot.data![2] as String?;
+        final ThemeMode initialThemeMode =
+            ThemeController.modeFromString(savedThemeStr);
 
-        final nextScreen = isAuthenticated ? Dashboard() : Onboarding();
+        // Register ThemeController with the loaded mode so the settings
+        // screen shows the correct selection immediately (no flash).
+        if (!Get.isRegistered<ThemeController>()) {
+          Get.put(ThemeController(initialMode: initialThemeMode));
+        }
+
+        final nextScreen = isAuthenticated ? const Dashboard() : Onboarding();
 
         return GetMaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            useMaterial3: true,
-            scaffoldBackgroundColor: kBgGrey,
-            colorScheme: ColorScheme.light(
-              primary: kBlue,
-              onPrimary: kWhite,
-              secondary: kSuccessGreen,
-              error: kRed,
-              surface: kWhite,
-              onSurface: kBlack,
-              outline: kLightGrey,
-            ),
-            textTheme: const TextTheme(
-              headlineLarge: TextStyle(fontSize: 25, fontWeight: FontWeight.w700, color: kBlack),
-              headlineMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: kBlack),
-              titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: kBlack),
-              titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kBlack),
-              bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: kBlack),
-              bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: kGrey),
-              bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: kGrey),
-              labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kWhite),
-            ),
-            appBarTheme: const AppBarTheme(
-              elevation: 0,
-              backgroundColor: kBgGrey,
-              foregroundColor: kBlack,
-              systemOverlayStyle: SystemUiOverlayStyle(
-                statusBarIconBrightness: Brightness.dark,
-                systemNavigationBarColor: kWhite,
-                systemNavigationBarIconBrightness: Brightness.light,
-              ),
-            ),
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kBlue,
-                foregroundColor: kWhite,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(kRadiusMD),
-                ),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-            outlinedButtonTheme: OutlinedButtonThemeData(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: kGrey,
-                side: const BorderSide(color: kLightGrey),
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(kRadiusMD),
-                ),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-            inputDecorationTheme: InputDecorationTheme(
-              filled: true,
-              fillColor: kInputBg,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(kRadiusMD),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(kRadiusMD),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(kRadiusMD),
-                borderSide: const BorderSide(color: kBlue, width: 1.5),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              hintStyle: TextStyle(color: kGrey),
-            ),
-            cardTheme: CardThemeData(
-              elevation: 0,
-              color: kWhite,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(kRadiusMD),
-              ),
-            ),
-            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-              backgroundColor: kWhite,
-              selectedItemColor: kBlue,
-              unselectedItemColor: kGrey,
-              type: BottomNavigationBarType.fixed,
-              selectedLabelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              unselectedLabelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
-              elevation: 8,
-            ),
-            dividerTheme: const DividerThemeData(
-              color: kDivider,
-              thickness: 1,
-              space: 0,
-            ),
-          ),
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: initialThemeMode,
           onGenerateRoute: AppRoutes.generateRoute,
           home: AnimatedSplashScreen(
             splash: Center(
               child: Image.asset(
-                "assets/eagle_logo.png",
+                'assets/eagle_logo.png',
                 width: 200,
                 fit: BoxFit.contain,
               ),
@@ -176,7 +95,9 @@ class _MyAppState extends State<MyApp> {
             nextScreen: nextScreen,
             splashTransition: SplashTransition.fadeTransition,
             duration: 2000,
-            backgroundColor: kWhite,
+            backgroundColor: initialThemeMode == ThemeMode.dark
+                ? const Color(0xFF141720)
+                : kWhite,
           ),
         );
       },

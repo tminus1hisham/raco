@@ -1,15 +1,20 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/playback_controller.dart';
+import 'package:atom/models/playback_model.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
@@ -25,7 +30,7 @@ class PlaybackScreen extends StatefulWidget {
 }
 
 class _PlaybackScreenState extends State<PlaybackScreen> {
-  GoogleMapController? _mapController;
+  MapboxMap? _mapboxMap;
   final PlaybackController controller = Get.put(PlaybackController());
 
   Timer? _playbackTimer;
@@ -39,30 +44,34 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   DateTime? _endDate;
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
 
-  // CACHE MARKERS AND POLYLINES
-  BitmapDescriptor? _carMarkerIcon;
-  Set<Polyline> _cachedPolylines = {};
-  Map<double, BitmapDescriptor> _bearingMarkerCache = {};
-  Completer<void> _mapReadyCompleter = Completer<void>();
+  // Marker caches
+  Uint8List? _carMarkerIcon;
+  Map<double, Uint8List> _bearingMarkerCache = {};
+
+  // Map readiness
+  final Completer<void> _mapReadyCompleter = Completer<void>();
   bool _isMapReady = false;
-  Set<Marker> _conditionalMarkers = {};
+
+  // Annotation layer management
+  PointAnnotationManager? _annotationManager;
+  PointAnnotation? _vehicleAnnotation;
+  static const String _routeSourceId = 'route-source';
+  static const String _routeLayerId = 'route-layer';
 
   @override
   void initState() {
     super.initState();
     _loadCarMarker();
-
-    // Start without any selected dates
     _startDate = null;
     _endDate = null;
   }
+
+  // ─── DATA FETCHING ────────────────────────────────────────────────────────
 
   Future<void> _fetchHistoryData() async {
     if (_startDate == null || _endDate == null) return;
 
     setState(() {
-      _cachedPolylines = {};
-      _conditionalMarkers = {};
       _currentIndex = 0;
       _isPlaying = false;
       _playbackTimer?.cancel();
@@ -85,45 +94,222 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     );
 
     if (controller.history.isNotEmpty) {
-      await _mapReadyCompleter.future;
-      await _generateConditionalMarkers(controller.history.toList());
+      if (_isMapReady) {
+        await _generateConditionalMarkers(controller.history.toList());
+      } else {
+        await _mapReadyCompleter.future;
+        await _generateConditionalMarkers(controller.history.toList());
+      }
       _stopPlayback();
     }
   }
 
-  Future<BitmapDescriptor> _createConditionMarker({
-    required Color color,
-    required String label,
-  }) async {
-    const double size = 80;
+  // ─── MAP RENDERING ────────────────────────────────────────────────────────
+
+  Future<void> _drawRoute(List<DeviceRecord> history) async {
+    if (_mapboxMap == null || history.isEmpty) return;
+
+    final coords = history
+        .where((r) =>
+            double.tryParse(r.lg) != null && double.tryParse(r.lt) != null)
+        .map((r) => [double.parse(r.lg), double.parse(r.lt)])
+        .toList();
+
+    if (coords.isEmpty) return;
+
+    final geoJson = jsonEncode({
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {"type": "LineString", "coordinates": coords},
+          "properties": {},
+        }
+      ],
+    });
+
+    final sourceExists =
+        await _mapboxMap!.style.styleSourceExists(_routeSourceId);
+
+    if (sourceExists) {
+      await _mapboxMap!.style
+          .setStyleSourceProperty(_routeSourceId, "data", geoJson);
+    } else {
+      await _mapboxMap!.style
+          .addSource(GeoJsonSource(id: _routeSourceId, data: geoJson));
+
+      await _mapboxMap!.style
+          .addLayer(LineLayer(id: _routeLayerId, sourceId: _routeSourceId));
+
+      await _mapboxMap!.style
+          .setStyleLayerProperty(_routeLayerId, "line-color", "#2563EB");
+      await _mapboxMap!.style
+          .setStyleLayerProperty(_routeLayerId, "line-width", 3.5);
+      await _mapboxMap!.style
+          .setStyleLayerProperty(_routeLayerId, "line-opacity", 0.85);
+      await _mapboxMap!.style
+          .setStyleLayerProperty(_routeLayerId, "line-cap", "round");
+      await _mapboxMap!.style
+          .setStyleLayerProperty(_routeLayerId, "line-join", "round");
+    }
+  }
+
+  Future<void> _generateConditionalMarkers(List<DeviceRecord> history) async {
+    if (_mapboxMap == null || history.isEmpty) return;
+
+    await _drawRoute(history);
+
+    try {
+      _annotationManager?.deleteAll();
+    } catch (_) {}
+    _vehicleAnnotation = null;
+    _annotationManager =
+        await _mapboxMap!.annotations.createPointAnnotationManager();
+
+    final startRec = history.first;
+    final startImg = await _createStartMarker();
+    await _annotationManager!.create(PointAnnotationOptions(
+      geometry: Point(
+        coordinates: Position(
+          double.parse(startRec.lg),
+          double.parse(startRec.lt),
+        ),
+      ),
+      image: startImg,
+      iconSize: 0.5,
+    ));
+
+    final stopRec = history.last;
+    final stopImg = await _createStopMarker();
+    await _annotationManager!.create(PointAnnotationOptions(
+      geometry: Point(
+        coordinates: Position(
+          double.parse(stopRec.lg),
+          double.parse(stopRec.lt),
+        ),
+      ),
+      image: stopImg,
+      iconSize: 0.5,
+    ));
+
+    final bearing = _getCurrentBearing(history, 0);
+    final carImg = await _getCachedMarker(bearing);
+    _vehicleAnnotation = await _annotationManager!.create(PointAnnotationOptions(
+      geometry: Point(
+        coordinates: Position(
+          double.parse(startRec.lg),
+          double.parse(startRec.lt),
+        ),
+      ),
+      image: carImg,
+      iconSize: 0.5,
+    ));
+
+    await _fitCameraToBounds(history);
+
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _updateVehicleMarker(
+      int index, List<DeviceRecord> history) async {
+    if (_vehicleAnnotation == null || _annotationManager == null) return;
+    if (index < 0 || index >= history.length) return;
+
+    final rec = history[index];
+    final lat = double.tryParse(rec.lt);
+    final lng = double.tryParse(rec.lg);
+    if (lat == null || lng == null) return;
+
+    final bearing = _getCurrentBearing(history, index);
+    final img = await _getCachedMarker(bearing);
+
+    _vehicleAnnotation!.geometry =
+        Point(coordinates: Position(lng, lat));
+    _vehicleAnnotation!.image = img;
+    await _annotationManager!.update(_vehicleAnnotation!);
+  }
+
+  Future<void> _fitCameraToBounds(List<DeviceRecord> history) async {
+    if (_mapboxMap == null || history.isEmpty) return;
+
+    double minLat = double.maxFinite, maxLat = -double.maxFinite;
+    double minLng = double.maxFinite, maxLng = -double.maxFinite;
+
+    for (final r in history) {
+      final lat = double.tryParse(r.lt) ?? 0;
+      final lng = double.tryParse(r.lg) ?? 0;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+    }
+
+    if (minLat == maxLat && minLng == maxLng) {
+      await _mapboxMap!.flyTo(
+        CameraOptions(
+          center: Point(coordinates: Position(minLng, minLat)),
+          zoom: 15.0,
+        ),
+        null,
+      );
+      return;
+    }
+
+    final bounds = CoordinateBounds(
+      southwest: Point(coordinates: Position(minLng, minLat)),
+      northeast: Point(coordinates: Position(maxLng, maxLat)),
+      infiniteBounds: false,
+    );
+
+    try {
+      final camera = await _mapboxMap!.cameraForCoordinateBounds(
+        bounds,
+        MbxEdgeInsets(top: 120.0, left: 40.0, bottom: 320.0, right: 40.0),
+        null,
+        null,
+        null,
+        null,
+      );
+      await _mapboxMap!.setCamera(camera);
+    } catch (e) {
+      await _mapboxMap!.flyTo(
+        CameraOptions(
+          center: Point(
+              coordinates: Position(
+                  double.parse(history.first.lg),
+                  double.parse(history.first.lt))),
+          zoom: 14.0,
+        ),
+        null,
+      );
+    }
+  }
+
+  // ─── MARKER CREATION ─────────────────────────────────────────────────────
+  // Note: canvas-drawn markers use kWhite/kSuccessGreen/kRed intentionally —
+  // these render to PNG bitmaps and are not Flutter UI widgets.
+
+  Future<Uint8List> _createStartMarker() async {
+    const double size = 100;
     final ui.PictureRecorder recorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(recorder);
 
-    // Draw colored circle
-    final Paint paint = Paint()..color = color;
-    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, paint);
-
-    // Add white border
-    final Paint borderPaint = Paint()
-      ..color = kWhite
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5;
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2,
+        Paint()..color = kSuccessGreen);
     canvas.drawCircle(
       const Offset(size / 2, size / 2),
-      size / 2 - 2.5,
-      borderPaint,
+      size / 2 - 3,
+      Paint()
+        ..color = kWhite
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6,
     );
 
-    // Draw label text
     final textPainter = TextPainter(
-      text: TextSpan(
-        text: label,
-        style: const TextStyle(
-          color: kWhite,
-          fontSize: 36,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      text: const TextSpan(
+          text: 'START',
+          style: TextStyle(
+              color: kWhite, fontSize: 20, fontWeight: FontWeight.bold)),
       textDirection: ui.TextDirection.ltr,
     );
     textPainter.layout();
@@ -132,39 +318,275 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
     );
 
-    final ui.Image image = await recorder.endRecording().toImage(
-      size.toInt(),
-      size.toInt(),
-    );
-    final ByteData? byteData = await image.toByteData(
-      format: ui.ImageByteFormat.png,
-    );
-    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
+    final ui.Image image =
+        await recorder.endRecording().toImage(size.toInt(), size.toInt());
+    final ByteData? byteData =
+        await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
   }
 
+  Future<Uint8List> _createStopMarker() async {
+    const double size = 100;
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder);
+
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2,
+        Paint()..color = kRed);
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2 - 3,
+      Paint()
+        ..color = kWhite
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6,
+    );
+
+    final textPainter = TextPainter(
+      text: const TextSpan(
+          text: 'STOP',
+          style: TextStyle(
+              color: kWhite, fontSize: 22, fontWeight: FontWeight.bold)),
+      textDirection: ui.TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
+    );
+
+    final ui.Image image =
+        await recorder.endRecording().toImage(size.toInt(), size.toInt());
+    final ByteData? byteData =
+        await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
+  Future<void> _loadCarMarker() async {
+    _carMarkerIcon = await _createRotatedMarker('assets/blue_car.png', 0);
+    await _precacheCommonBearings();
+    setState(() {});
+  }
+
+  Future<void> _precacheCommonBearings() async {
+    final bearings = [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0];
+    for (final bearing in bearings) {
+      _bearingMarkerCache[bearing] =
+          await _createRotatedMarker('assets/blue_car.png', bearing);
+    }
+  }
+
+  Future<Uint8List> _createRotatedMarker(
+      String assetPath, double rotation) async {
+    final ByteData data = await rootBundle.load(assetPath);
+    final ui.Codec codec = await ui.instantiateImageCodec(
+        data.buffer.asUint8List(),
+        targetWidth: 70);
+    final ui.FrameInfo fi = await codec.getNextFrame();
+    final originalImage = fi.image;
+
+    final padding = (originalImage.width * 0.4).round();
+    final canvasSize = originalImage.width + padding * 2;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(
+      recorder,
+      Rect.fromPoints(
+          Offset.zero, Offset(canvasSize.toDouble(), canvasSize.toDouble())),
+    );
+
+    canvas.translate(canvasSize / 2, canvasSize / 2);
+    canvas.rotate((rotation + 180) * math.pi / 180);
+    canvas.drawImage(
+      originalImage,
+      Offset(-originalImage.width / 2, -originalImage.height / 2),
+      Paint(),
+    );
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(canvasSize, canvasSize);
+    final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
+    return bytes!.buffer.asUint8List();
+  }
+
+  Future<Uint8List> _getCachedMarker(double bearing) async {
+    final roundedBearing = (bearing / 45).round() * 45.0;
+    if (_bearingMarkerCache.containsKey(roundedBearing)) {
+      return _bearingMarkerCache[roundedBearing]!;
+    }
+    final marker =
+        await _createRotatedMarker('assets/blue_car.png', roundedBearing);
+    _bearingMarkerCache[roundedBearing] = marker;
+    return marker;
+  }
+
+  // ─── BEARING / IGNITION HELPERS ──────────────────────────────────────────
+
+  double _calculateBearing(LatLng from, LatLng to) {
+    final lat1 = from.latitude * math.pi / 180;
+    final lon1 = from.longitude * math.pi / 180;
+    final lat2 = to.latitude * math.pi / 180;
+    final lon2 = to.longitude * math.pi / 180;
+    final dLon = lon2 - lon1;
+    final y = math.sin(dLon) * math.cos(lat2);
+    final x = math.cos(lat1) * math.sin(lat2) -
+        math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
+    double bearing = math.atan2(y, x) * 180 / math.pi;
+    return (bearing + 360) % 360;
+  }
+
+  double _getCurrentBearing(List<DeviceRecord> history, int currentIndex) {
+    final currentRecord = history[currentIndex];
+    final course = double.tryParse(currentRecord.course.toString());
+    if (course != null && course >= 0 && course <= 360) return course;
+
+    if (currentIndex > 0 && currentIndex < history.length - 1) {
+      return _calculateBearing(
+        LatLng(double.parse(history[currentIndex - 1].lt),
+            double.parse(history[currentIndex - 1].lg)),
+        LatLng(double.parse(history[currentIndex + 1].lt),
+            double.parse(history[currentIndex + 1].lg)),
+      );
+    } else if (currentIndex > 0) {
+      return _calculateBearing(
+        LatLng(double.parse(history[currentIndex - 1].lt),
+            double.parse(history[currentIndex - 1].lg)),
+        LatLng(double.parse(currentRecord.lt), double.parse(currentRecord.lg)),
+      );
+    } else if (currentIndex < history.length - 1) {
+      return _calculateBearing(
+        LatLng(double.parse(currentRecord.lt), double.parse(currentRecord.lg)),
+        LatLng(double.parse(history[currentIndex + 1].lt),
+            double.parse(history[currentIndex + 1].lg)),
+      );
+    }
+    return 0.0;
+  }
+
+  int _getIgnitionStatus(DeviceRecord record) {
+    final speed = double.tryParse(record.spd.toString()) ?? 0.0;
+    return speed > 0 ? 1 : 0;
+  }
+
+  // ─── PLAYBACK CONTROLS ───────────────────────────────────────────────────
+
+  void _startPlayback(List<DeviceRecord> history) {
+    if (_isPlaying || history.isEmpty) return;
+    setState(() {
+      _isPlaying = true;
+      _currentIndex = 0;
+    });
+    _playbackTimer?.cancel();
+    _playbackTimer = _buildPlaybackTimer(history);
+  }
+
+  void _pausePlayback() {
+    _playbackTimer?.cancel();
+    setState(() => _isPlaying = false);
+  }
+
+  void _resumePlayback(List<DeviceRecord> history) {
+    if (_isPlaying || history.isEmpty) return;
+    setState(() => _isPlaying = true);
+    _playbackTimer?.cancel();
+    _playbackTimer = _buildPlaybackTimer(history);
+  }
+
+  void _stopPlayback() {
+    _playbackTimer?.cancel();
+    _playbackTimer = null;
+    setState(() {
+      _isPlaying = false;
+      _currentIndex = 0;
+    });
+    final history = controller.history.toList();
+    if (history.isNotEmpty) {
+      _updateVehicleMarker(0, history);
+    }
+  }
+
+  void _updatePlaybackSpeed(double newSpeed) {
+    setState(() => _playbackSpeed = newSpeed);
+    if (_isPlaying) {
+      _playbackTimer?.cancel();
+      _playbackTimer = _buildPlaybackTimer(controller.history.toList());
+    }
+  }
+
+  Timer _buildPlaybackTimer(List<DeviceRecord> history) {
+    return Timer.periodic(
+      Duration(milliseconds: (100 ~/ _playbackSpeed)),
+      (timer) async {
+        if (!_isPlaying || _currentIndex >= history.length - 1) {
+          timer.cancel();
+          setState(() => _isPlaying = false);
+          return;
+        }
+
+        if (_isAnimatingCamera) return;
+
+        _currentIndex++;
+
+        final current = history[_currentIndex];
+        final lat = double.tryParse(current.lt);
+        final lng = double.tryParse(current.lg);
+        if (lat == null || lng == null) {
+          setState(() {});
+          return;
+        }
+
+        await _updateVehicleMarker(_currentIndex, history);
+
+        _isAnimatingCamera = true;
+        try {
+          await _mapboxMap?.flyTo(
+            CameraOptions(
+                center: Point(coordinates: Position(lng, lat))),
+            null,
+          );
+        } catch (e) {
+          debugPrint("Camera animation error: $e");
+        } finally {
+          _isAnimatingCamera = false;
+        }
+
+        setState(() {});
+      },
+    );
+  }
+
+  // ─── DATE PICKERS ────────────────────────────────────────────────────────
+
   Future<void> _pickStartDate(BuildContext context) async {
+    final col = context.col;
+    final isDark = context.isDark;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _startDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: kBlue,
-              onPrimary: kWhite,
-              surface: kWhite,
-              onSurface: kBlack,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: isDark
+              ? ColorScheme.dark(
+                  primary: kBlue,
+                  onPrimary: kWhite,
+                  surface: col.surface,
+                  onSurface: col.textPrimary,
+                )
+              : ColorScheme.light(
+                  primary: kBlue,
+                  onPrimary: kWhite,
+                  surface: kWhite,
+                  onSurface: Colors.black,
+                ),
+        ),
+        child: child!,
+      ),
     );
 
     if (picked != null) {
       if (_endDate != null && picked.isAfter(_endDate!)) {
+        if (!context.mounted) return;
         showCupertinoDialog(
           context: context,
           builder: (context) => ActionDialog(
@@ -177,39 +599,42 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
         );
         return;
       }
-
       setState(() => _startDate = picked);
-
-      // Fetch only when both dates are selected
-      if (_startDate != null && _endDate != null) {
-        _fetchHistoryData();
-      }
+      if (_startDate != null && _endDate != null) _fetchHistoryData();
     }
   }
 
   Future<void> _pickEndDate(BuildContext context) async {
+    final col = context.col;
+    final isDark = context.isDark;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _endDate ?? DateTime.now(),
       firstDate: _startDate ?? DateTime(2020),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: kBlue,
-              onPrimary: kWhite,
-              surface: kWhite,
-              onSurface: kBlack,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: isDark
+              ? ColorScheme.dark(
+                  primary: kBlue,
+                  onPrimary: kWhite,
+                  surface: col.surface,
+                  onSurface: col.textPrimary,
+                )
+              : ColorScheme.light(
+                  primary: kBlue,
+                  onPrimary: kWhite,
+                  surface: kWhite,
+                  onSurface: Colors.black,
+                ),
+        ),
+        child: child!,
+      ),
     );
 
     if (picked != null) {
       if (_startDate != null && picked.isBefore(_startDate!)) {
+        if (!context.mounted) return;
         showCupertinoDialog(
           context: context,
           builder: (context) => ActionDialog(
@@ -222,65 +647,59 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
         );
         return;
       }
-
       setState(() => _endDate = picked);
-
-      // Fetch only when both dates are selected
-      if (_startDate != null && _endDate != null) {
-        _fetchHistoryData();
-      }
+      if (_startDate != null && _endDate != null) _fetchHistoryData();
     }
   }
 
+  // ─── WIDGETS ─────────────────────────────────────────────────────────────
+
   Widget _buildDatePickerButton({
+    required AppColors col,
     required String label,
     required DateTime? selectedDate,
     required VoidCallback onTap,
     required IconData icon,
   }) {
     return Expanded(
-      child: Container(
+      child: SizedBox(
         height: 80,
         child: Material(
-          color: kWhite,
+          color: col.surface,
           borderRadius: BorderRadius.circular(kRadiusMD),
           elevation: 2,
-          shadowColor: kBlack.withValues(alpha: 0.1),
+          shadowColor: Colors.black.withValues(alpha: 0.1),
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(kRadiusMD),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(kRadiusMD),
                 border: Border.all(
                   color: selectedDate != null
                       ? kBlue.withValues(alpha: 0.3)
-                      : kLightGrey.withValues(alpha: 0.5),
+                      : col.border.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    icon,
-                    color: selectedDate != null ? kBlue : kGrey,
-                    size: 20,
-                  ),
+                  Icon(icon,
+                      color: selectedDate != null ? kBlue : col.textSecondary,
+                      size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: kGrey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        Text(label,
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: col.textSecondary,
+                                fontWeight: FontWeight.w500)),
                         const SizedBox(height: 2),
                         Text(
                           selectedDate != null
@@ -289,19 +708,16 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             color: selectedDate != null
-                                ? kBlack
-                                : kGrey,
+                                ? col.textPrimary
+                                : col.textSecondary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Icon(
-                    Icons.keyboard_arrow_down,
-                    color: kLightGrey,
-                    size: 20,
-                  ),
+                  Icon(Icons.keyboard_arrow_down,
+                      color: col.border, size: 20),
                 ],
               ),
             ),
@@ -311,515 +727,23 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     );
   }
 
-  Future<void> _generateConditionalMarkers(List history) async {
-    _conditionalMarkers.clear();
-
-    // Add START marker for first point
-    if (history.isNotEmpty) {
-      final firstRecord = history.first;
-      final startLat = double.tryParse(firstRecord.lt.toString());
-      final startLng = double.tryParse(firstRecord.lg.toString());
-
-      if (startLat != null && startLng != null) {
-        final startIcon = await _createStartMarker();
-        _conditionalMarkers.add(
-          Marker(
-            markerId: MarkerId('start_point'),
-            position: LatLng(startLat, startLng),
-            icon: startIcon,
-            anchor: const Offset(0.5, 0.5),
-          ),
-        );
-      }
-    }
-
-    // Add STOP marker for last point
-    if (history.length > 1) {
-      final lastRecord = history.last;
-      final stopLat = double.tryParse(lastRecord.lt.toString());
-      final stopLng = double.tryParse(lastRecord.lg.toString());
-
-      if (stopLat != null && stopLng != null) {
-        final stopIcon = await _createStopMarker();
-        _conditionalMarkers.add(
-          Marker(
-            markerId: MarkerId('stop_point'),
-            position: LatLng(stopLat, stopLng),
-            icon: stopIcon,
-            anchor: const Offset(0.5, 0.5),
-          ),
-        );
-      }
-    }
-
-    for (int i = 0; i < history.length; i++) {
-      final record = history[i];
-      final speed = double.tryParse(record.spd.toString()) ?? 0.0;
-      final lat = double.tryParse(record.lt.toString());
-      final lng = double.tryParse(record.lg.toString());
-      final ignition = _getIgnitionStatus(record);
-
-      if (lat == null || lng == null) continue;
-
-      // SPEEDING
-      if (speed > 80) {
-        final icon = await _createConditionMarker(
-          color: kRed,
-          label: 'S',
-        );
-        _conditionalMarkers.add(
-          Marker(
-            markerId: MarkerId('speeding_$i'),
-            position: LatLng(lat, lng),
-            icon: icon,
-            anchor: const Offset(0.5, 0.5),
-          ),
-        );
-      }
-      // PARKED + IGNITION OFF
-      else if (speed == 0 && ignition == 0) {
-        final icon = await _createConditionMarker(
-          color: Colors.orange,
-          label: 'P', // Parked
-        );
-        _conditionalMarkers.add(
-          Marker(
-            markerId: MarkerId('parked_off_$i'),
-            position: LatLng(lat, lng),
-            icon: icon,
-            anchor: const Offset(0.5, 0.5),
-          ),
-        );
-      }
-    }
-
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _loadCarMarker() async {
-    _carMarkerIcon = await _createRotatedMarker('assets/blue_car.png', 0);
-    await _precacheCommonBearings();
-    setState(() {});
-  }
-
-  Future<void> _precacheCommonBearings() async {
-    final bearings = [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0];
-    for (final bearing in bearings) {
-      _bearingMarkerCache[bearing] = await _createRotatedMarker(
-        'assets/blue_car.png',
-        bearing,
-      );
-    }
-  }
-
-  Future<BitmapDescriptor> _createRotatedMarker(
-    String assetPath,
-    double rotation,
-  ) async {
-    final ByteData data = await rootBundle.load(assetPath);
-
-    final ui.Codec codec = await ui.instantiateImageCodec(
-      data.buffer.asUint8List(),
-      targetWidth: 70,
-    );
-    final ui.FrameInfo fi = await codec.getNextFrame();
-    final originalImage = fi.image;
-
-    final padding = (originalImage.width * 0.4).round();
-    final canvasSize = originalImage.width + padding * 2;
-
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(
-      recorder,
-      Rect.fromPoints(
-        Offset.zero,
-        Offset(canvasSize.toDouble(), canvasSize.toDouble()),
-      ),
-    );
-
-    canvas.translate(canvasSize / 2, canvasSize / 2);
-    canvas.rotate((rotation + 180) * math.pi / 180);
-
-    canvas.drawImage(
-      originalImage,
-      Offset(-originalImage.width / 2, -originalImage.height / 2),
-      Paint(),
-    );
-
-    final picture = recorder.endRecording();
-    final img = await picture.toImage(canvasSize, canvasSize);
-    final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
-
-    return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
-  }
-
-  Future<BitmapDescriptor> _getCachedMarker(double bearing) async {
-    final roundedBearing = (bearing / 45).round() * 45.0;
-
-    if (_bearingMarkerCache.containsKey(roundedBearing)) {
-      return _bearingMarkerCache[roundedBearing]!;
-    }
-
-    final marker = await _createRotatedMarker(
-      'assets/blue_car.png',
-      roundedBearing,
-    );
-    _bearingMarkerCache[roundedBearing] = marker;
-    return marker;
-  }
-
-  Set<Polyline> _buildGooglePolylines(List history) {
-    if (_cachedPolylines.isNotEmpty &&
-        history.length == _cachedPolylines.length + 1) {
-      return _cachedPolylines;
-    }
-
-    final polylines = <Polyline>{};
-    final points = <LatLng>[];
-
-    for (int i = 0; i < history.length; i++) {
-      points.add(
-        LatLng(double.parse(history[i].lt), double.parse(history[i].lg)),
-      );
-    }
-
-    if (points.length > 1) {
-      polylines.add(
-        Polyline(
-          polylineId: PolylineId('route'),
-          points: points,
-          width: 6,
-          color: kBlue,
-          geodesic: true,
-        ),
-      );
-    }
-
-    _cachedPolylines = polylines;
-    return polylines;
-  }
-
-  double _calculateBearing(LatLng from, LatLng to) {
-    final lat1 = from.latitude * math.pi / 180;
-    final lon1 = from.longitude * math.pi / 180;
-    final lat2 = to.latitude * math.pi / 180;
-    final lon2 = to.longitude * math.pi / 180;
-
-    final dLon = lon2 - lon1;
-
-    final y = math.sin(dLon) * math.cos(lat2);
-    final x =
-        math.cos(lat1) * math.sin(lat2) -
-        math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
-
-    double bearing = math.atan2(y, x);
-    bearing = bearing * 180 / math.pi;
-    bearing = (bearing + 360) % 360;
-
-    return bearing;
-  }
-
-  double _getCurrentBearing(List history, int currentIndex) {
-    final currentRecord = history[currentIndex];
-    final course = double.tryParse(currentRecord.course.toString());
-
-    if (course != null && course >= 0 && course <= 360) {
-      return course;
-    }
-
-    if (currentIndex > 0 && currentIndex < history.length - 1) {
-      final prevPoint = LatLng(
-        double.parse(history[currentIndex - 1].lt),
-        double.parse(history[currentIndex - 1].lg),
-      );
-      final nextPoint = LatLng(
-        double.parse(history[currentIndex + 1].lt),
-        double.parse(history[currentIndex + 1].lg),
-      );
-      return _calculateBearing(prevPoint, nextPoint);
-    } else if (currentIndex > 0) {
-      final prevPoint = LatLng(
-        double.parse(history[currentIndex - 1].lt),
-        double.parse(history[currentIndex - 1].lg),
-      );
-      final currentPoint = LatLng(
-        double.parse(currentRecord.lt),
-        double.parse(currentRecord.lg),
-      );
-      return _calculateBearing(prevPoint, currentPoint);
-    } else if (currentIndex < history.length - 1) {
-      final currentPoint = LatLng(
-        double.parse(currentRecord.lt),
-        double.parse(currentRecord.lg),
-      );
-      final nextPoint = LatLng(
-        double.parse(history[currentIndex + 1].lt),
-        double.parse(history[currentIndex + 1].lg),
-      );
-      return _calculateBearing(currentPoint, nextPoint);
-    }
-
-    return 0.0;
-  }
-
-  int _getIgnitionStatus(dynamic record) {
-    final speed = double.tryParse(record.spd.toString()) ?? 0.0;
-    return speed > 0 ? 1 : 0;
-  }
-
-  void _startPlayback(List history) {
-    if (_isPlaying || history.isEmpty) return;
-
-    setState(() {
-      _isPlaying = true;
-      _currentIndex = 0;
-    });
-
-    _playbackTimer?.cancel();
-
-    _playbackTimer = Timer.periodic(
-      Duration(milliseconds: (100 ~/ _playbackSpeed)),
-      (timer) async {
-        if (!_isPlaying || _currentIndex >= history.length - 1) {
-          timer.cancel();
-          setState(() => _isPlaying = false);
-          return;
-        }
-
-        if (_isAnimatingCamera) return;
-
-        _currentIndex++;
-
-        final current = history[_currentIndex];
-        final nextPoint = LatLng(
-          double.parse(current.lt),
-          double.parse(current.lg),
-        );
-
-        _isAnimatingCamera = true;
-        try {
-          await _mapController?.animateCamera(
-            CameraUpdate.newLatLng(nextPoint),
-          );
-        } catch (e) {
-          debugPrint("Camera animation error: $e");
-        } finally {
-          _isAnimatingCamera = false;
-        }
-
-        setState(() {});
-      },
-    );
-  }
-
-  void _pausePlayback() {
-    _playbackTimer?.cancel();
-    setState(() => _isPlaying = false);
-  }
-
-  void _resumePlayback(List history) {
-    if (_isPlaying || history.isEmpty) return;
-    setState(() => _isPlaying = true);
-
-    _playbackTimer?.cancel();
-
-    _playbackTimer = Timer.periodic(
-      Duration(milliseconds: (100 ~/ _playbackSpeed)),
-      (timer) async {
-        if (!_isPlaying || _currentIndex >= history.length - 1) {
-          timer.cancel();
-          setState(() => _isPlaying = false);
-          return;
-        }
-
-        if (_isAnimatingCamera) return;
-
-        _currentIndex++;
-
-        final current = history[_currentIndex];
-        final nextPoint = LatLng(
-          double.parse(current.lt),
-          double.parse(current.lg),
-        );
-
-        _isAnimatingCamera = true;
-        try {
-          await _mapController?.animateCamera(
-            CameraUpdate.newLatLng(nextPoint),
-          );
-        } catch (e) {
-          debugPrint("Camera animation error: $e");
-        } finally {
-          _isAnimatingCamera = false;
-        }
-
-        setState(() {});
-      },
-    );
-  }
-
-  Future<BitmapDescriptor> _createStartMarker() async {
-    const double size = 100;
-    final ui.PictureRecorder recorder = ui.PictureRecorder();
-    final Canvas canvas = Canvas(recorder);
-
-    // Draw green circle
-    final Paint paint = Paint()..color = kSuccessGreen;
-    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, paint);
-
-    // Add white border
-    final Paint borderPaint = Paint()
-      ..color = kWhite
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6;
-    canvas.drawCircle(
-      const Offset(size / 2, size / 2),
-      size / 2 - 3,
-      borderPaint,
-    );
-
-    // Draw "START" text
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: 'START',
-        style: const TextStyle(
-          color: kWhite,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: ui.TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
-    );
-
-    final ui.Image image = await recorder.endRecording().toImage(
-      size.toInt(),
-      size.toInt(),
-    );
-    final ByteData? byteData = await image.toByteData(
-      format: ui.ImageByteFormat.png,
-    );
-    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
-  }
-
-  Future<BitmapDescriptor> _createStopMarker() async {
-    const double size = 100;
-    final ui.PictureRecorder recorder = ui.PictureRecorder();
-    final Canvas canvas = Canvas(recorder);
-
-    // Draw red circle
-    final Paint paint = Paint()..color = kRed;
-    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, paint);
-
-    // Add white border
-    final Paint borderPaint = Paint()
-      ..color = kWhite
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6;
-    canvas.drawCircle(
-      const Offset(size / 2, size / 2),
-      size / 2 - 3,
-      borderPaint,
-    );
-
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: 'STOP',
-        style: const TextStyle(
-          color: kWhite,
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: ui.TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
-    );
-
-    final ui.Image image = await recorder.endRecording().toImage(
-      size.toInt(),
-      size.toInt(),
-    );
-    final ByteData? byteData = await image.toByteData(
-      format: ui.ImageByteFormat.png,
-    );
-    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
-  }
-
-  void _updatePlaybackSpeed(double newSpeed) {
-    setState(() => _playbackSpeed = newSpeed);
-
-    if (_isPlaying) {
-      final history = controller.history.toList();
-      _playbackTimer?.cancel();
-
-      // Restart the timer with the new speed
-      _playbackTimer = Timer.periodic(
-        Duration(milliseconds: (200 ~/ _playbackSpeed)),
-        (timer) async {
-          if (!_isPlaying || _currentIndex >= history.length - 1) {
-            timer.cancel();
-            setState(() => _isPlaying = false);
-            return;
-          }
-
-          if (_isAnimatingCamera) return;
-
-          _currentIndex++;
-
-          final current = history[_currentIndex];
-          final nextPoint = LatLng(
-            double.parse(current.lt),
-            double.parse(current.lg),
-          );
-
-          _isAnimatingCamera = true;
-          try {
-            await _mapController?.animateCamera(
-              CameraUpdate.newLatLng(nextPoint),
-            );
-          } catch (e) {
-            debugPrint("Camera animation error: $e");
-          } finally {
-            _isAnimatingCamera = false;
-          }
-
-          setState(() {});
-        },
-      );
-    }
-  }
-
-  void _stopPlayback() {
-    _playbackTimer?.cancel();
-    _playbackTimer = null;
-    setState(() {
-      _isPlaying = false;
-      _currentIndex = 0;
-    });
-  }
-
   @override
   void dispose() {
     _playbackTimer?.cancel();
-    _mapController?.dispose();
     super.dispose();
   }
 
+  // ─── BUILD ────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
+    final isDark = context.isDark;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       appBar: AppBar(
         elevation: 0,
-        title: Text(
+        title: const Text(
           "Playback",
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
@@ -827,89 +751,54 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       body: Obx(() {
         if (controller.isLoading.value) {
           return Container(
-            color: kWhite,
+            color: col.surface,
             child: Center(
               child: LoadingAnimationWidget.fourRotatingDots(
-                color: kBlue,
-                size: 50,
-              ),
+                  color: kBlue, size: 50),
             ),
           );
         }
 
         final history = controller.history.toList();
 
-        if (history.isEmpty && _startDate != null && _endDate != null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.map_outlined, size: 60, color: kLightGrey),
-                SizedBox(height: 20),
-                Text(
-                  "No playback data available",
-                  style: TextStyle(fontSize: 18, color: kGrey),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "Select a date range to view vehicle history",
-                  style: TextStyle(fontSize: 14, color: kGrey),
-                ),
-                SizedBox(height: 30),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      _buildDatePickerButton(
-                        label: 'Start Date',
-                        selectedDate: _startDate,
-                        onTap: () => _pickStartDate(context),
-                        icon: Icons.calendar_today,
-                      ),
-                      SizedBox(width: 12),
-                      _buildDatePickerButton(
-                        label: 'End Date',
-                        selectedDate: _endDate,
-                        onTap: () => _pickEndDate(context),
-                        icon: Icons.event,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
         if (history.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.map_outlined, size: 60, color: kLightGrey),
-                SizedBox(height: 20),
+                Icon(Icons.map_outlined, size: 60, color: col.border),
+                const SizedBox(height: 20),
                 Text(
-                  "Select date range to view playback",
-                  style: TextStyle(fontSize: 18, color: kGrey),
+                  _startDate != null && _endDate != null
+                      ? "No playback data available"
+                      : "Select date range to view playback",
+                  style: TextStyle(fontSize: 18, color: col.textSecondary),
                 ),
-                SizedBox(height: 30),
+                const SizedBox(height: 10),
+                if (_startDate != null && _endDate != null)
+                  Text(
+                    "No GPS records found for this range",
+                    style:
+                        TextStyle(fontSize: 14, color: col.textSecondary),
+                  ),
+                const SizedBox(height: 30),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
                       _buildDatePickerButton(
-                        label: 'Start Date',
-                        selectedDate: _startDate,
-                        onTap: () => _pickStartDate(context),
-                        icon: Icons.calendar_today,
-                      ),
-                      SizedBox(width: 12),
+                          col: col,
+                          label: 'Start Date',
+                          selectedDate: _startDate,
+                          onTap: () => _pickStartDate(context),
+                          icon: Icons.calendar_today),
+                      const SizedBox(width: 12),
                       _buildDatePickerButton(
-                        label: 'End Date',
-                        selectedDate: _endDate,
-                        onTap: () => _pickEndDate(context),
-                        icon: Icons.event,
-                      ),
+                          col: col,
+                          label: 'End Date',
+                          selectedDate: _endDate,
+                          onTap: () => _pickEndDate(context),
+                          icon: Icons.event),
                     ],
                   ),
                 ),
@@ -919,55 +808,38 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
         }
 
         final currentRecord = history[_currentIndex];
-        final currentPoint = LatLng(
-          double.parse(currentRecord.lt),
-          double.parse(currentRecord.lg),
+        final currentPoint = Point(
+          coordinates: Position(
+            double.parse(currentRecord.lg),
+            double.parse(currentRecord.lt),
+          ),
         );
         final ignitionStatus = _getIgnitionStatus(currentRecord);
 
         return Stack(
           children: [
-            GoogleMap(
-              onMapCreated: (GoogleMapController controller) async {
-                _mapController = controller;
+            MapWidget(
+              styleUri: isDark
+                  ? MapboxStyles.DARK
+                  : MapboxStyles.MAPBOX_STREETS,
+              cameraOptions: CameraOptions(
+                center: currentPoint,
+                zoom: 15.0,
+              ),
+              onMapCreated: (MapboxMap map) async {
+                _mapboxMap = map;
                 _isMapReady = true;
-                _mapReadyCompleter.complete();
                 if (!_mapReadyCompleter.isCompleted) {
                   _mapReadyCompleter.complete();
                 }
-                if (this.controller.history.isNotEmpty) {
+                if (controller.history.isNotEmpty) {
                   await _generateConditionalMarkers(
-                    this.controller.history.toList(),
-                  );
+                      controller.history.toList());
                 }
               },
-
-              initialCameraPosition: CameraPosition(
-                target: currentPoint,
-                zoom: 15.0,
-              ),
-              mapType: MapType.normal,
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: false,
-              polylines: _buildGooglePolylines(history),
-
-              markers: _carMarkerIcon != null
-                  ? {
-                      Marker(
-                        markerId: MarkerId('vehicle'),
-                        position: currentPoint,
-                        icon: _carMarkerIcon!,
-                        anchor: Offset(0.5, 0.5),
-                        flat: true,
-                        rotation:
-                            _getCurrentBearing(history, _currentIndex) + 180,
-                      ),
-                      ..._conditionalMarkers,
-                    }
-                  : {},
-              onTap: (LatLng position) {},
             ),
 
+            // ── Info panel ─────────────────────────────────────
             Positioned(
               top: 16,
               left: 16,
@@ -976,9 +848,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 elevation: 4,
                 borderRadius: BorderRadius.circular(kRadiusMD),
                 child: Container(
-                  padding: EdgeInsets.all(kSpaceLG),
+                  padding: const EdgeInsets.all(kSpaceLG),
                   decoration: BoxDecoration(
-                    color: kWhite,
+                    color: col.surface,
                     borderRadius: BorderRadius.circular(kRadiusMD),
                   ),
                   child: Column(
@@ -989,28 +861,25 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                         children: [
                           Text(
                             currentRecord.rg,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: ignitionStatus == 1
                                   ? kSuccessGreen.withValues(alpha: 0.15)
-                                  : kLightGrey.withValues(alpha: 0.4),
-                              borderRadius: BorderRadius.circular(kRadiusMD),
+                                  : col.border.withValues(alpha: 0.4),
+                              borderRadius:
+                                  BorderRadius.circular(kRadiusMD),
                             ),
                             child: Text(
                               ignitionStatus == 1 ? 'ON' : 'OFF',
                               style: TextStyle(
                                 color: ignitionStatus == 1
                                     ? kSuccessGreen
-                                    : kGrey,
+                                    : col.textSecondary,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 12,
                               ),
@@ -1018,7 +887,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
@@ -1032,8 +901,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                             icon: Icons.access_alarms_sharp,
                             label: "Time",
                             value: _utils.formatTime(
-                              currentRecord.createdAt.toString(),
-                            ),
+                                currentRecord.createdAt.toString()),
                           ),
                         ],
                       ),
@@ -1043,6 +911,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
               ),
             ),
 
+            // ── Bottom controls panel ──────────────────────────
             Positioned(
               bottom: 20,
               left: 16,
@@ -1051,77 +920,64 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 elevation: 8,
                 borderRadius: BorderRadius.circular(kRadiusLG),
                 child: Container(
-                  padding: EdgeInsets.symmetric(vertical: kSpaceLG, horizontal: kSpaceXL),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: kSpaceLG, horizontal: kSpaceXL),
                   decoration: BoxDecoration(
-                    color: kWhite,
+                    color: col.surface,
                     borderRadius: BorderRadius.circular(kRadiusLG),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Date Range Pickers
                       Row(
                         children: [
                           _buildDatePickerButton(
-                            label: 'Start Date',
-                            selectedDate: _startDate,
-                            onTap: () => _pickStartDate(context),
-                            icon: Icons.calendar_today,
-                          ),
-                          SizedBox(width: 12),
+                              col: col,
+                              label: 'Start Date',
+                              selectedDate: _startDate,
+                              onTap: () => _pickStartDate(context),
+                              icon: Icons.calendar_today),
+                          const SizedBox(width: 12),
                           _buildDatePickerButton(
-                            label: 'End Date',
-                            selectedDate: _endDate,
-                            onTap: () => _pickEndDate(context),
-                            icon: Icons.event,
-                          ),
+                              col: col,
+                              label: 'End Date',
+                              selectedDate: _endDate,
+                              onTap: () => _pickEndDate(context),
+                              icon: Icons.event),
                         ],
                       ),
-
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: kBlue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(kRadiusSM),
+                          borderRadius:
+                              BorderRadius.circular(kRadiusSM),
                         ),
                         child: Text(
                           '${_playbackSpeed.toStringAsFixed(1)}x',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: kBlue,
-                          ),
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: kBlue),
                         ),
                       ),
-
-                      // Speed Control Slider
                       Row(
                         children: [
                           IconButton(
-                            icon: Icon(
-                              Icons.fast_rewind_sharp,
-                              color: kBlue,
-                              size: 30,
-                            ),
+                            icon: const Icon(Icons.fast_rewind_sharp,
+                                color: kBlue, size: 30),
                             onPressed: () {
-                              setState(() {
-                                _playbackSpeed = (_playbackSpeed - 1).clamp(
-                                  0.5,
-                                  5.0,
-                                );
-                                _updatePlaybackSpeed(_playbackSpeed);
-                              });
+                              _updatePlaybackSpeed(
+                                  (_playbackSpeed - 1).clamp(0.5, 5.0));
                             },
                           ),
                           Expanded(
                             child: SliderTheme(
                               data: SliderTheme.of(context).copyWith(
                                 activeTrackColor: kBlue,
-                                inactiveTrackColor: kLightGrey,
+                                inactiveTrackColor: col.border,
                                 thumbColor: kBlue,
                                 overlayColor: kBlue.withValues(alpha: 0.2),
                                 trackHeight: 3,
@@ -1131,43 +987,35 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                                 min: 0.1,
                                 max: 5.0,
                                 divisions: 9,
-                                label: '${_playbackSpeed.toStringAsFixed(1)}x',
-                                onChanged: (value) =>
-                                    _updatePlaybackSpeed(value),
+                                label:
+                                    '${_playbackSpeed.toStringAsFixed(1)}x',
+                                onChanged: _updatePlaybackSpeed,
                               ),
                             ),
                           ),
                           IconButton(
-                            icon: Icon(
-                              Icons.fast_forward,
-                              color: kBlue,
-                              size: 30,
-                            ),
+                            icon: const Icon(Icons.fast_forward,
+                                color: kBlue, size: 30),
                             onPressed: () {
-                              setState(() {
-                                _playbackSpeed = (_playbackSpeed + 1).clamp(
-                                  0.5,
-                                  5.0,
-                                );
-                                _updatePlaybackSpeed(_playbackSpeed);
-                              });
+                              _updatePlaybackSpeed(
+                                  (_playbackSpeed + 1).clamp(0.5, 5.0));
                             },
                           ),
                         ],
                       ),
-                      SizedBox(height: 12),
-
-                      // Playback Controls
+                      const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           _ControlButton(
-                            icon: _isPlaying ? Icons.pause : Icons.play_arrow,
+                            icon: _isPlaying
+                                ? Icons.pause
+                                : Icons.play_arrow,
                             onPressed: () => _isPlaying
                                 ? _pausePlayback()
                                 : (_currentIndex == 0
-                                      ? _startPlayback(history)
-                                      : _resumePlayback(history)),
+                                    ? _startPlayback(history)
+                                    : _resumePlayback(history)),
                             color: kBlue,
                           ),
                           _ControlButton(
@@ -1177,13 +1025,13 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                           ),
                           TextButton.icon(
                             style: TextButton.styleFrom(
-                              backgroundColor: kRed.withValues(alpha: 0.1),
+                              backgroundColor:
+                                  kRed.withValues(alpha: 0.1),
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
+                                  horizontal: 16, vertical: 10),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(kRadiusMD),
+                                borderRadius:
+                                    BorderRadius.circular(kRadiusMD),
                               ),
                             ),
                             onPressed: () {
@@ -1192,16 +1040,13 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                                 _endDate = null;
                               });
                             },
-                            icon: const Icon(
-                              Icons.clear,
-                              color: kRed,
-                            ),
+                            icon:
+                                const Icon(Icons.clear, color: kRed),
                             label: const Text(
                               "Clear Dates",
                               style: TextStyle(
-                                color: kRed,
-                                fontWeight: FontWeight.w600,
-                              ),
+                                  color: kRed,
+                                  fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
@@ -1218,6 +1063,8 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   }
 }
 
+// ─── Helper widgets ──────────────────────────────────────────────────────────
+
 class _InfoItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1231,24 +1078,22 @@ class _InfoItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icon, size: 16, color: kGrey),
-            SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(fontSize: 15, color: kGrey),
-            ),
+            Icon(icon, size: 16, color: col.textSecondary),
+            const SizedBox(width: 4),
+            Text(label,
+                style: TextStyle(fontSize: 15, color: col.textSecondary)),
           ],
         ),
-        SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
+        const SizedBox(height: 4),
+        Text(value,
+            style:
+                const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
       ],
     );
   }
@@ -1275,7 +1120,7 @@ class _ControlButton extends StatelessWidget {
       child: InkWell(
         onTap: onPressed,
         borderRadius: BorderRadius.circular(isLarge ? 30 : 25),
-        child: Container(
+        child: SizedBox(
           width: isLarge ? 60 : 50,
           height: isLarge ? 60 : 50,
           child: Icon(icon, color: kWhite, size: isLarge ? 32 : 24),

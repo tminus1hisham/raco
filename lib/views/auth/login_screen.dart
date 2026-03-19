@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/routes/routes.dart';
@@ -122,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen>
   Widget build(BuildContext context) {
     return Obx(
       () => Scaffold(
-        backgroundColor: kWhite,
+        backgroundColor: context.col.bg,
         body: Stack(
           children: [
             SafeArea(
@@ -145,22 +146,22 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
 
-                      const Text(
+                      Text(
                         'Welcome to Eagles Eye',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: kBlack,
+                          color: context.col.textPrimary,
                         ),
                       ),
 
                       const SizedBox(height: kSpaceSM),
 
-                      const Text(
+                      Text(
                         'Sign up or login below to be able to track your vehicle',
                         style: TextStyle(
                           fontSize: 16,
-                          color: kGrey,
+                          color: context.col.textSecondary,
                           height: 1.5,
                         ),
                         textAlign: TextAlign.center,
@@ -176,7 +177,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             if (authController.isLoading.value)
               Container(
-                color: kBlack.withValues(alpha: 0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 child: Center(
                   child: LoadingAnimationWidget.fourRotatingDots(
                     color: kBlue,
@@ -269,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen>
           Text.rich(
             TextSpan(
               text: 'By signing up, you agree to our ',
-              style: const TextStyle(color: kGrey, fontSize: 16),
+              style: TextStyle(color: context.col.textSecondary, fontSize: 16),
               children: [
                 TextSpan(
                   text: 'Terms of service',

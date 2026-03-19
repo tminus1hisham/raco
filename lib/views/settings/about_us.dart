@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -7,12 +8,13 @@ class AboutUs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: SafeArea(
         child: Column(
           children: [
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             customHeader(
               label: "About Us",
               icon: Icons.info_outline,
@@ -21,11 +23,11 @@ class AboutUs extends StatelessWidget {
                 Navigator.pop(context);
               },
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -39,7 +41,6 @@ class AboutUs extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
 
-                      // Mission
                       _buildSection(
                         icon: Icons.flag,
                         title: 'Our Mission',
@@ -48,7 +49,6 @@ class AboutUs extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
 
-                      // Features
                       _buildSection(
                         icon: Icons.star,
                         title: 'Key Features',
@@ -69,13 +69,14 @@ class AboutUs extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.contact_mail, color: kBlue),
+                                const Icon(Icons.contact_mail, color: kBlue),
                                 const SizedBox(width: 8),
-                                const Text(
+                                Text(
                                   'Get in Touch',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
+                                    color: col.textPrimary,
                                   ),
                                 ),
                               ],
@@ -84,23 +85,25 @@ class AboutUs extends StatelessWidget {
                             _buildContactItem(
                               Icons.email,
                               'info@atomiot.co.ke',
+                              col,
                             ),
                             const SizedBox(height: 8),
-                            _buildContactItem(Icons.phone, '+254 798 032 158'),
+                            _buildContactItem(
+                                Icons.phone, '+254 798 032 158', col),
                             const SizedBox(height: 8),
-                            _buildContactItem(Icons.pin_drop, 'Nairobi, Kenya'),
+                            _buildContactItem(
+                                Icons.pin_drop, 'Nairobi, Kenya', col),
                           ],
                         ),
                       ),
                       const SizedBox(height: 24),
 
-                      // Copyright
                       Center(
                         child: Text(
                           '© ${DateTime.now().year} Atom. All rights reserved.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: kGrey,
+                            color: col.textSecondary,
                           ),
                         ),
                       ),
@@ -145,12 +148,15 @@ class AboutUs extends StatelessWidget {
     );
   }
 
-  Widget _buildContactItem(IconData icon, String text) {
+  Widget _buildContactItem(IconData icon, String text, AppColors col) {
     return Row(
       children: [
         Icon(icon, size: 16, color: kBlue),
         const SizedBox(width: 8),
-        Text(text, style: const TextStyle(fontSize: 14)),
+        Text(
+          text,
+          style: TextStyle(fontSize: 14, color: col.textPrimary),
+        ),
       ],
     );
   }

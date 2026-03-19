@@ -1,9 +1,11 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
+import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -13,7 +15,6 @@ import 'package:lottie/lottie.dart';
 import '../../controllers/delete_account_controller.dart';
 import '../../services/local_storage_service.dart';
 import '../../widgets/modal/custom_alert.dart';
-import '../../widgets/modal/infomation_modal.dart';
 
 class DeleteAccount extends StatefulWidget {
   @override
@@ -74,16 +75,17 @@ class _DeleteAccountState extends State<DeleteAccount> {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Obx(
       () => Stack(
         children: [
           Scaffold(
-            backgroundColor: kBgGrey,
+            backgroundColor: col.bg,
             body: SafeArea(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   customHeader(
                     label: "Delete Account",
                     icon: Icons.delete_outline_outlined,
@@ -92,11 +94,11 @@ class _DeleteAccountState extends State<DeleteAccount> {
                       Navigator.pop(context);
                     },
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildDeleteForm(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _buildDeleteForm(col),
                     ),
                   ),
                 ],
@@ -105,7 +107,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
           ),
           if (deleteAccountController.isLoading.value)
             Container(
-              color: kBlack.withValues(alpha: 0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               child: Center(
                 child: LoadingAnimationWidget.fourRotatingDots(
                   color: kBlue,
@@ -118,25 +120,25 @@ class _DeleteAccountState extends State<DeleteAccount> {
     );
   }
 
-  Widget _buildDeleteForm() {
+  Widget _buildDeleteForm(AppColors col) {
     return Container(
-      padding: EdgeInsets.all(10),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: kWhite,
+        color: col.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: kBlack.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(height: 10),
-          Container(
+          const SizedBox(height: 10),
+          SizedBox(
             height: 150,
             width: double.infinity,
             child: Lottie.asset(
@@ -144,34 +146,32 @@ class _DeleteAccountState extends State<DeleteAccount> {
               fit: BoxFit.contain,
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
 
           Text(
             'Why are you deleting your account?',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: kBlack,
+              color: col.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
           Text(
             'Help us improve by telling us why you\'re leaving',
-            style: TextStyle(fontSize: 14, color: kGrey),
+            style: TextStyle(fontSize: 14, color: col.textSecondary),
             textAlign: TextAlign.center,
           ),
 
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
 
           Column(
             children: reasons.map((reason) {
               return Container(
-                margin: EdgeInsets.only(bottom: 8),
+                margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: selectedReason == reason
-                        ? kBlue
-                        : kLightGrey,
+                    color: selectedReason == reason ? kBlue : col.border,
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -185,7 +185,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                   },
                   title: Text(
                     reason,
-                    style: TextStyle(fontSize: 14, color: kBlack),
+                    style: TextStyle(fontSize: 14, color: col.textPrimary),
                   ),
                   activeColor: kBlue,
                   dense: true,
@@ -200,9 +200,9 @@ class _DeleteAccountState extends State<DeleteAccount> {
               controller: reasonController,
               maxLines: 5,
             ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Container(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: kRed.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
@@ -210,13 +210,13 @@ class _DeleteAccountState extends State<DeleteAccount> {
             ),
             child: Row(
               children: [
-                Icon(Icons.warning_rounded, color: kRed, size: 24),
-                SizedBox(width: 12),
+                const Icon(Icons.warning_rounded, color: kRed, size: 24),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Warning',
                         style: TextStyle(
                           fontSize: 16,
@@ -224,7 +224,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                           color: kRed,
                         ),
                       ),
-                      Text(
+                      const Text(
                         'This action cannot be undone. All your data will be permanently deleted.',
                         style: TextStyle(fontSize: 14, color: kRed),
                       ),
@@ -234,7 +234,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
               ],
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
 
           CustomButton(
             callBackFunction: () {
@@ -262,22 +262,21 @@ class _DeleteAccountState extends State<DeleteAccount> {
                   ),
                 );
               }
-              ;
             },
             label: "Delete Account",
             backgroundColor: kRed,
             txtColor: kWhite,
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           CustomBorderButton(
             callBackFunction: () {
               Navigator.pop(context);
             },
             label: "Back",
-            borderColor: kLightGrey,
-            txtColor: kBlack,
+            borderColor: col.border,
+            txtColor: col.textPrimary,
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
         ],
       ),
     );

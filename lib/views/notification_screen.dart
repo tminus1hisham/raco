@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/markAsRead_contoller.dart';
 import 'package:atom/controllers/notifcations_controller.dart';
@@ -106,26 +107,28 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
-            _buildTabBar(),
+            _buildHeader(col),
+            _buildTabBar(col),
             Expanded(
               child: Obx(() {
                 if (_controller.isLoading.value) {
-                  return _buildLoadingState();
+                  return _buildLoadingState(col);
                 }
 
                 return TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildList(_controller.notifications.toList()),
+                    _buildList(_controller.notifications.toList(), col),
                     _buildList(
                       _controller.notifications.where((n) => !n.isRead).toList(),
+                      col,
                       emptyLabel: 'All caught up!',
                       emptySubtitle: 'No unread notifications',
                     ),
@@ -139,7 +142,7 @@ class _NotificationScreenState extends State<NotificationScreen>
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppColors col) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 16, 12),
       child: Row(
@@ -148,12 +151,12 @@ class _NotificationScreenState extends State<NotificationScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Notifications',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
-                    color: kBlack,
+                    color: col.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -165,7 +168,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                     unread > 0 ? '$unread unread' : 'All caught up',
                     style: TextStyle(
                       fontSize: 13,
-                      color: unread > 0 ? kBlue : kGrey,
+                      color: unread > 0 ? kBlue : col.textSecondary,
                       fontWeight: unread > 0 ? FontWeight.w500 : FontWeight.w400,
                     ),
                   );
@@ -196,12 +199,12 @@ class _NotificationScreenState extends State<NotificationScreen>
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildTabBar(AppColors col) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       height: 40,
       decoration: BoxDecoration(
-        color: kWhite,
+        color: col.surface,
         borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [kShadowSM],
       ),
@@ -214,7 +217,7 @@ class _NotificationScreenState extends State<NotificationScreen>
         indicatorSize: TabBarIndicatorSize.tab,
         indicatorPadding: const EdgeInsets.all(4),
         labelColor: kWhite,
-        unselectedLabelColor: kGrey,
+        unselectedLabelColor: col.textSecondary,
         labelStyle: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
@@ -263,12 +266,13 @@ class _NotificationScreenState extends State<NotificationScreen>
   }
 
   Widget _buildList(
-    List<NotificationModel> items, {
+    List<NotificationModel> items,
+    AppColors col, {
     String emptyLabel = 'No notifications yet',
     String emptySubtitle = 'You\'re all caught up',
   }) {
     if (items.isEmpty) {
-      return _buildEmptyState(label: emptyLabel, subtitle: emptySubtitle);
+      return _buildEmptyState(col, label: emptyLabel, subtitle: emptySubtitle);
     }
 
     final grouped = _groupByDate(items);
@@ -283,7 +287,7 @@ class _NotificationScreenState extends State<NotificationScreen>
         int cursor = 0;
         for (final entry in grouped.entries) {
           if (index == cursor) {
-            return _buildDateHeader(entry.key);
+            return _buildDateHeader(entry.key, col);
           }
           cursor++;
           for (int i = 0; i < entry.value.length; i++) {
@@ -303,54 +307,54 @@ class _NotificationScreenState extends State<NotificationScreen>
     );
   }
 
-  Widget _buildDateHeader(String label) {
+  Widget _buildDateHeader(String label, AppColors col) {
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 8),
       child: Text(
         label.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: kGrey,
+          color: col.textSecondary,
           letterSpacing: 1.0,
         ),
       ),
     );
   }
 
-  Widget _buildLoadingState() {
+  Widget _buildLoadingState(AppColors col) {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       itemCount: 6,
-      itemBuilder: (_, __) => _buildSkeletonCard(),
+      itemBuilder: (_, __) => _buildSkeletonCard(col),
     );
   }
 
-  Widget _buildSkeletonCard() {
+  Widget _buildSkeletonCard(AppColors col) {
     return Container(
       margin: const EdgeInsets.only(bottom: kSpaceMD),
       padding: const EdgeInsets.all(kSpaceLG),
       decoration: BoxDecoration(
-        color: kWhite,
+        color: col.surface,
         borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [kShadowSM],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _shimmerBox(width: 44, height: 44, radius: kRadiusMD),
+          _shimmerBox(col, width: 44, height: 44, radius: kRadiusMD),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _shimmerBox(width: 160, height: 14, radius: 4),
+                _shimmerBox(col, width: 160, height: 14, radius: 4),
                 const SizedBox(height: 8),
-                _shimmerBox(width: double.infinity, height: 12, radius: 4),
+                _shimmerBox(col, width: double.infinity, height: 12, radius: 4),
                 const SizedBox(height: 6),
-                _shimmerBox(width: 120, height: 12, radius: 4),
+                _shimmerBox(col, width: 120, height: 12, radius: 4),
                 const SizedBox(height: 8),
-                _shimmerBox(width: 80, height: 10, radius: 4),
+                _shimmerBox(col, width: 80, height: 10, radius: 4),
               ],
             ),
           ),
@@ -359,7 +363,8 @@ class _NotificationScreenState extends State<NotificationScreen>
     );
   }
 
-  Widget _shimmerBox({
+  Widget _shimmerBox(
+    AppColors col, {
     required double width,
     required double height,
     required double radius,
@@ -368,13 +373,14 @@ class _NotificationScreenState extends State<NotificationScreen>
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: kBgGrey,
+        color: col.divider,
         borderRadius: BorderRadius.circular(radius),
       ),
     );
   }
 
-  Widget _buildEmptyState({required String label, required String subtitle}) {
+  Widget _buildEmptyState(AppColors col,
+      {required String label, required String subtitle}) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -395,16 +401,16 @@ class _NotificationScreenState extends State<NotificationScreen>
           const SizedBox(height: 20),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: kBlack,
+              color: col.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 14, color: kGrey),
+            style: TextStyle(fontSize: 14, color: col.textSecondary),
           ),
         ],
       ),
@@ -416,12 +422,14 @@ class _NotificationScreenState extends State<NotificationScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildDetailSheet(notification),
+      builder: (context) => _buildDetailSheet(context, notification),
     );
     _markOneAsRead(notification);
   }
 
-  Widget _buildDetailSheet(NotificationModel notification) {
+  Widget _buildDetailSheet(
+      BuildContext context, NotificationModel notification) {
+    final col = context.col;
     final meta = _resolveNotificationMeta(notification.title);
 
     return DraggableScrollableSheet(
@@ -430,9 +438,9 @@ class _NotificationScreenState extends State<NotificationScreen>
       maxChildSize: 0.85,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: kWhite,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: col.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -442,7 +450,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: kLightGrey,
+                  color: col.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -475,19 +483,19 @@ class _NotificationScreenState extends State<NotificationScreen>
                                 const SizedBox(height: 4),
                                 Text(
                                   notification.title,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
-                                    color: kBlack,
+                                    color: col.textPrimary,
                                     height: 1.3,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'From ${notification.createdByName}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
-                                    color: kGrey,
+                                    color: col.textSecondary,
                                   ),
                                 ),
                               ],
@@ -498,26 +506,26 @@ class _NotificationScreenState extends State<NotificationScreen>
                             child: Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: kBgGrey,
+                                color: col.bg,
                                 borderRadius: BorderRadius.circular(kRadiusSM),
                               ),
-                              child: const Icon(Icons.close_rounded,
-                                  color: kGrey, size: 18),
+                              child: Icon(Icons.close_rounded,
+                                  color: col.textSecondary, size: 18),
                             ),
                           ),
                         ],
                       ),
 
                       const SizedBox(height: 20),
-                      const Divider(color: kDivider, height: 1),
+                      Divider(color: col.divider, height: 1),
                       const SizedBox(height: 20),
 
                       // Message body
                       Text(
                         notification.message,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
-                          color: kBlack,
+                          color: col.textPrimary,
                           height: 1.65,
                         ),
                       ),
@@ -528,19 +536,19 @@ class _NotificationScreenState extends State<NotificationScreen>
                       Container(
                         padding: const EdgeInsets.all(kSpaceLG),
                         decoration: BoxDecoration(
-                          color: kBgGrey,
+                          color: col.bg,
                           borderRadius: BorderRadius.circular(kRadiusMD),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.calendar_today_outlined,
-                                size: 14, color: kGrey),
+                            Icon(Icons.calendar_today_outlined,
+                                size: 14, color: col.textSecondary),
                             const SizedBox(width: 8),
                             Text(
                               DateFormat('EEEE, MMM d, yyyy • h:mm a')
                                   .format(notification.createdAt.toLocal()),
-                              style: const TextStyle(
-                                  fontSize: 13, color: kGrey),
+                              style: TextStyle(
+                                  fontSize: 13, color: col.textSecondary),
                             ),
                           ],
                         ),

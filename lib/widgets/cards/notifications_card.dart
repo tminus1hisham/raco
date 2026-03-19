@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/models/notifications_model.dart';
 import 'package:flutter/material.dart';
@@ -37,12 +38,13 @@ class NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     final meta = _resolveMeta(notification.title);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: isRead ? kWhite : kBlue.withValues(alpha: 0.04),
+        color: isRead ? col.surface : kBlue.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(kRadiusMD),
         border: Border(
           left: BorderSide(
@@ -92,7 +94,7 @@ class NotificationCard extends StatelessWidget {
                                 fontWeight: isRead
                                     ? FontWeight.w500
                                     : FontWeight.w700,
-                                color: kBlack,
+                                color: col.textPrimary,
                                 height: 1.3,
                               ),
                             ),
@@ -102,7 +104,7 @@ class NotificationCard extends StatelessWidget {
                             _formatTimestamp(notification.createdAt),
                             style: TextStyle(
                               fontSize: 11,
-                              color: isRead ? kLightGrey : kGrey,
+                              color: isRead ? col.border : col.textSecondary,
                             ),
                           ),
                         ],
@@ -112,7 +114,9 @@ class NotificationCard extends StatelessWidget {
                         notification.message,
                         style: TextStyle(
                           fontSize: 13,
-                          color: isRead ? kGrey : kBlack.withValues(alpha: 0.65),
+                          color: isRead
+                              ? col.textSecondary
+                              : col.textPrimary.withValues(alpha: 0.75),
                           height: 1.45,
                         ),
                         maxLines: 2,

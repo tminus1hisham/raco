@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -12,8 +13,9 @@ class Commands extends StatefulWidget {
 class _CommandsState extends State<Commands> {
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -28,29 +30,34 @@ class _CommandsState extends State<Commands> {
               },
             ),
             SizedBox(height: 10),
-            _buildSectionHeader("Commands"),
+            _buildSectionHeader("Commands", col),
             _buildSettingsCard(
+              col: col,
               child: Column(
                 children: [
                   _buildCommandItem(
+                    col: col,
                     title: 'Check location',
                     subtitle: "View the current's vehicle GPS position.",
                     onTap: () {},
                   ),
-                  _buildDivider(),
+                  _buildDivider(col),
                   _buildCommandItem(
+                    col: col,
                     title: 'Stop Engine',
                     subtitle: "remotely shut down the vehicle's engine",
                     onTap: () {},
                   ),
-                  _buildDivider(),
+                  _buildDivider(col),
                   _buildCommandItem(
+                    col: col,
                     title: 'SOS number',
                     subtitle: "remotely shut down the vehicle's engine",
                     onTap: () {},
                   ),
-                  _buildDivider(),
+                  _buildDivider(col),
                   _buildCommandItem(
+                    col: col,
                     title: 'Set Milage',
                     subtitle: "Input or adjust the vehicle reading",
                     onTap: () {},
@@ -64,7 +71,7 @@ class _CommandsState extends State<Commands> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, AppColors col) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Text(
@@ -72,18 +79,21 @@ class _CommandsState extends State<Commands> {
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: kGrey,
+          color: col.textSecondary,
           letterSpacing: 0.5,
         ),
       ),
     );
   }
 
-  Widget _buildSettingsCard({required Widget child, VoidCallback? onTap}) {
+  Widget _buildSettingsCard(
+      {required AppColors col,
+      required Widget child,
+      VoidCallback? onTap}) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: kWhite,
+        color: col.surface,
         borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [kShadowSM],
       ),
@@ -100,6 +110,7 @@ class _CommandsState extends State<Commands> {
   }
 
   Widget _buildCommandItem({
+    required AppColors col,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
@@ -120,25 +131,25 @@ class _CommandsState extends State<Commands> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: textColor ?? kBlack,
+                      color: textColor ?? col.textPrimary,
                     ),
                   ),
                   SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 14, color: kGrey),
+                    style: TextStyle(fontSize: 14, color: col.textSecondary),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: kLightGrey, size: 20),
+            Icon(Icons.chevron_right, color: col.border, size: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDivider() {
-    return Container(height: 1, color: kDivider);
+  Widget _buildDivider(AppColors col) {
+    return Container(height: 1, color: col.divider);
   }
 }

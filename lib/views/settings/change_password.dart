@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/change_password_controller.dart';
 import 'package:atom/services/local_storage_service.dart';
@@ -45,11 +46,10 @@ class _ChangePasswordState extends State<ChangePassword> {
     }
 
     changePasswordController.phoneNumber.value = phoneNumber;
-    changePasswordController.currentPassword.value = currentPasswordController
-        .text
-        .trim();
-    changePasswordController.newPassword.value = newPasswordController.text
-        .trim();
+    changePasswordController.currentPassword.value =
+        currentPasswordController.text.trim();
+    changePasswordController.newPassword.value =
+        newPasswordController.text.trim();
 
     bool success = await changePasswordController.changePassword(context);
 
@@ -75,15 +75,16 @@ class _ChangePasswordState extends State<ChangePassword> {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: Obx(
         () => Stack(
           children: [
             SafeArea(
               child: Column(
                 children: [
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   customHeader(
                     label: "Change Password",
                     icon: Icons.security,
@@ -92,13 +93,13 @@ class _ChangePasswordState extends State<ChangePassword> {
                       Navigator.pop(context);
                     },
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Form(
                         key: _changePasswordKey,
-                        child: _buildPasswordForm(),
+                        child: _buildPasswordForm(col),
                       ),
                     ),
                   ),
@@ -107,7 +108,7 @@ class _ChangePasswordState extends State<ChangePassword> {
             ),
             if (changePasswordController.isLoading.value)
               Container(
-                color: kBlack.withValues(alpha: 0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 child: Center(
                   child: LoadingAnimationWidget.fourRotatingDots(
                     color: kBlue,
@@ -121,24 +122,24 @@ class _ChangePasswordState extends State<ChangePassword> {
     );
   }
 
-  Widget _buildPasswordForm() {
+  Widget _buildPasswordForm(AppColors col) {
     return Container(
-      padding: EdgeInsets.all(10),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: kWhite,
+        color: col.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: kBlack.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
+          SizedBox(
             height: 150,
             width: double.infinity,
             child: Lottie.asset(
@@ -146,7 +147,7 @@ class _ChangePasswordState extends State<ChangePassword> {
               fit: BoxFit.contain,
             ),
           ),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
 
           InputField(
             hintText: 'Current Password',
@@ -162,7 +163,7 @@ class _ChangePasswordState extends State<ChangePassword> {
             },
           ),
 
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
 
           InputField(
             hintText: 'New Password',
@@ -178,9 +179,8 @@ class _ChangePasswordState extends State<ChangePassword> {
             },
           ),
 
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
 
-          /// Confirm Password
           InputField(
             hintText: 'Confirm New Password',
             password: true,
@@ -198,24 +198,23 @@ class _ChangePasswordState extends State<ChangePassword> {
             },
           ),
 
-          SizedBox(height: 32),
+          const SizedBox(height: 32),
 
-          /// Submit
           CustomButton(
             callBackFunction: _changePassword,
             label: "Update Password",
             backgroundColor: kBlue,
             txtColor: kWhite,
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
 
           CustomBorderButton(
             callBackFunction: () {
               Navigator.pop(context);
             },
             label: "Back",
-            borderColor: kLightGrey,
-            txtColor: kBlack,
+            borderColor: col.border,
+            txtColor: col.textPrimary,
           ),
         ],
       ),

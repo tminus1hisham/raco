@@ -1,4 +1,4 @@
-import 'package:atom/config/constants.dart';
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/widgets/cards/command_card.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -13,8 +13,9 @@ class CommandHistory extends StatefulWidget {
 class _CommandHistoryState extends State<CommandHistory> {
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: SafeArea(
         child: Column(
           children: [

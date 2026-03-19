@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -27,7 +28,7 @@ class _ContactUsState extends State<ContactUs> {
 
     if (!launched) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No email app found on this device')),
+        const SnackBar(content: Text('No email app found on this device')),
       );
     }
   }
@@ -44,7 +45,7 @@ class _ContactUsState extends State<ContactUs> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$label copied to clipboard'),
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -52,12 +53,13 @@ class _ContactUsState extends State<ContactUs> {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: SafeArea(
         child: Column(
           children: [
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             customHeader(
               label: "Contact Us",
               icon: Icons.sensor_occupied_rounded,
@@ -66,8 +68,8 @@ class _ContactUsState extends State<ContactUs> {
                 Navigator.pop(context);
               },
             ),
-            SizedBox(height: 10),
-            Container(
+            const SizedBox(height: 10),
+            SizedBox(
               height: 250,
               width: double.infinity,
               child: Lottie.asset(
@@ -75,7 +77,7 @@ class _ContactUsState extends State<ContactUs> {
                 fit: BoxFit.contain,
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
@@ -88,20 +90,22 @@ class _ContactUsState extends State<ContactUs> {
                       color: kBlue,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                     'We\'d love to hear from you',
-                    style: TextStyle(fontSize: 14, color: kGrey),
+                    style: TextStyle(fontSize: 14, color: col.textSecondary),
                   ),
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
                   _buildContactCard(
+                    col: col,
                     icon: Icons.email_rounded,
                     title: 'Email',
                     content: 'info@atomiot.live',
                     onTap: _launchEmail,
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   _buildContactCard(
+                    col: col,
                     icon: Icons.phone_rounded,
                     title: 'Phone',
                     content: '+254798 032 158',
@@ -117,6 +121,7 @@ class _ContactUsState extends State<ContactUs> {
   }
 
   Widget _buildContactCard({
+    required AppColors col,
     required IconData icon,
     required String title,
     required String content,
@@ -128,30 +133,30 @@ class _ContactUsState extends State<ContactUs> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: kWhite,
+            color: col.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: kBlack.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
-                offset: Offset(0, 4),
+                offset: const Offset(0, 4),
               ),
             ],
-            border: Border.all(color: kGrey.withValues(alpha: 0.1), width: 1),
+            border: Border.all(color: col.border.withValues(alpha: 0.5), width: 1),
           ),
           child: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(12),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: kBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: kBlue, size: 24),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,17 +165,17 @@ class _ContactUsState extends State<ContactUs> {
                       title,
                       style: TextStyle(
                         fontSize: 12,
-                        color: kGrey,
+                        color: col.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       content,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: kBlack,
+                        color: col.textPrimary,
                       ),
                     ),
                   ],
@@ -179,7 +184,7 @@ class _ContactUsState extends State<ContactUs> {
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 16,
-                color: kLightGrey,
+                color: col.border,
               ),
             ],
           ),

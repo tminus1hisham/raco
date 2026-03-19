@@ -1,5 +1,7 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
+import 'package:atom/controllers/theme_controller.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/views/settings/about_us.dart';
 import 'package:atom/views/settings/account_screen.dart';
@@ -54,7 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: context.col.bg,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -65,7 +67,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: 24),
 
-                  // Account section
+                  // ── Appearance ──────────────────────────────────────
+                  _buildSectionLabel('Appearance'),
+                  const SizedBox(height: 8),
+                  _buildAppearanceCard(),
+
+                  const SizedBox(height: 24),
+
+                  // ── Account ─────────────────────────────────────────
                   _buildSectionLabel('Account'),
                   const SizedBox(height: 8),
                   _buildCard([
@@ -107,7 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Legal & About section
+                  // ── Legal & About ────────────────────────────────────
                   _buildSectionLabel('Legal & About'),
                   const SizedBox(height: 8),
                   _buildCard([
@@ -136,7 +145,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Support section
+                  // ── Support ──────────────────────────────────────────
                   _buildSectionLabel('Support'),
                   const SizedBox(height: 8),
                   _buildCard([
@@ -154,7 +163,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Danger zone
+                  // ── Danger zone ──────────────────────────────────────
                   _buildCard([
                     _buildItem(
                       icon: Icons.delete_outline_rounded,
@@ -170,8 +179,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ]),
 
                   const SizedBox(height: 24),
-
-                  // Sign out button
                   _buildSignOutButton(),
                   const SizedBox(height: 40),
                 ]),
@@ -183,10 +190,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // ─── Profile header ──────────────────────────────────────────────────────
+
   Widget _buildProfileHeader() {
     final initials = _getInitials(userName ?? 'User');
     return Container(
-      color: kWhite,
+      color: context.col.surface,
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
       child: Row(
         children: [
@@ -219,17 +228,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Text(
                   userName ?? 'User',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: kBlack,
+                    color: context.col.textPrimary,
                   ),
                 ),
                 if (phone != null && phone!.isNotEmpty) ...[
                   const SizedBox(height: 3),
                   Text(
                     phone!,
-                    style: const TextStyle(fontSize: 14, color: kGrey),
+                    style: TextStyle(
+                        fontSize: 14, color: context.col.textSecondary),
                   ),
                 ],
                 const SizedBox(height: 7),
@@ -259,22 +269,147 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // ─── Appearance card ─────────────────────────────────────────────────────
+
+  Widget _buildAppearanceCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.col.surface,
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        boxShadow: [kShadowSM],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: kBlue.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(kRadiusSM),
+                ),
+                child: const Icon(Icons.brightness_6_rounded,
+                    color: kBlue, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Appearance',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: context.col.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Choose your preferred theme',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: context.col.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Obx(() {
+            final ctrl = ThemeController.to;
+            return Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: context.col.bg,
+                borderRadius: BorderRadius.circular(kRadiusMD),
+              ),
+              child: Row(
+                children: [
+                  _themeOption(
+                      'System', Icons.brightness_auto_rounded,
+                      ThemeMode.system, ctrl),
+                  _themeOption(
+                      'Light', Icons.light_mode_rounded,
+                      ThemeMode.light, ctrl),
+                  _themeOption(
+                      'Dark', Icons.dark_mode_rounded,
+                      ThemeMode.dark, ctrl),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _themeOption(
+    String label,
+    IconData icon,
+    ThemeMode themeMode,
+    ThemeController ctrl,
+  ) {
+    final isActive = ctrl.mode.value == themeMode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => ctrl.setMode(themeMode),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive ? kBlue : Colors.transparent,
+            borderRadius: BorderRadius.circular(kRadiusSM),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isActive ? kWhite : context.col.textSecondary,
+                size: 18,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isActive ? kWhite : context.col.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Section label ───────────────────────────────────────────────────────
+
   Widget _buildSectionLabel(String text) {
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w700,
-        color: kGrey,
+        color: context.col.textSecondary,
         letterSpacing: 1.0,
       ),
     );
   }
 
+  // ─── Card ────────────────────────────────────────────────────────────────
+
   Widget _buildCard(List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: kWhite,
+        color: context.col.surface,
         borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [kShadowSM],
       ),
@@ -320,18 +455,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: textColor ?? kBlack,
+                        color: textColor ?? context.col.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 13, color: kGrey),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: context.col.textSecondary),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: kLightGrey, size: 20),
+              Icon(Icons.chevron_right_rounded,
+                  color: context.col.border, size: 20),
             ],
           ),
         ),
@@ -343,9 +481,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       margin: const EdgeInsets.only(left: 70),
       height: 1,
-      color: kDivider,
+      color: context.col.divider,
     );
   }
+
+  // ─── Sign out ────────────────────────────────────────────────────────────
 
   Widget _buildSignOutButton() {
     return Material(
@@ -357,10 +497,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           showCupertinoDialog(
             context: context,
             builder: (context) => ActionDialog(
-              title: "Sign Out",
-              message: "Are you sure you want to sign out?",
-              confirmText: "Sign Out",
-              cancelText: "Cancel",
+              title: 'Sign Out',
+              message: 'Are you sure you want to sign out?',
+              confirmText: 'Sign Out',
+              cancelText: 'Cancel',
               onConfirm: () => _authController.logout(context),
             ),
           );

@@ -1,43 +1,50 @@
+
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/device_controller.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
+import 'package:atom/views/cars/vehicle_live_location.dart';
 import 'package:atom/views/playback_screen.dart';
 import 'package:atom/views/violations_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle, ByteData;
-import 'package:geolocator/geolocator.dart';
+import 'package:geolocator/geolocator.dart' hide Position;
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Size, LocationSettings;
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 import 'cars/cars_screen.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int selectedVehicleType = 0;
   int selectedVehicleIndex = 0;
-  bool showBottomSheet = false;
   bool isLoadingLocation = false;
 
-  GoogleMapController? mapController;
-  LatLng? userLocation;
+  MapboxMap? mapboxMap;
+  Point? userLocation;
   double currentZoom = 14.0;
-  Set<Marker> markers = {};
-  late final Widget mapWidget;
-  MapType _currentMapType = MapType.normal;
+  String _currentMapStyle = MapboxStyles.MAPBOX_STREETS;
+
+  // Annotation management
+  PointAnnotationManager? _annotationManager;
+  final Map<String, PointAnnotation> _vehicleAnnotations = {};
+  String? _selectedVehiclePlate;
 
   final Utils _utils = Utils();
   final DeviceController _controller = Get.put(DeviceController());
-  Map<String, BitmapDescriptor> customIcons = {};
+  Map<String, Uint8List> customIcons = {};
 
   final TextEditingController _searchController = TextEditingController();
   List<Device> _filteredDevices = [];
@@ -57,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startPolling() {
-    _pollingTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         if (_countdown > 0) {
           _countdown--;
@@ -73,30 +80,26 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isRefreshing = true);
     try {
       await _controller.fetchDevices(silent: true);
-
       final devices = _controller.devicesModel.value?.devices ?? [];
       setState(() {
         _filteredDevices = devices;
         _isRefreshing = false;
       });
 
-      // 🔁 Keep following tracked car
-      if (_trackedCarPlate != null) {
-        final trackedDevice = devices.firstWhereOrNull(
-          (d) => d.numberPlate == _trackedCarPlate,
-        );
+      await _updateVehicleAnnotations(devices);
 
-        if (trackedDevice != null && mapController != null) {
-          final lat = double.tryParse(trackedDevice.latitude) ?? -1.2842;
-          final lng = double.tryParse(trackedDevice.longitude) ?? 36.8163;
-          mapController!.animateCamera(
-            CameraUpdate.newLatLng(LatLng(lat, lng)),
+      if (_trackedCarPlate != null) {
+        final tracked = devices.where((d) => d.numberPlate == _trackedCarPlate).firstOrNull;
+        if (tracked != null && mapboxMap != null) {
+          final lat = double.tryParse(tracked.latitude) ?? -1.2842;
+          final lng = double.tryParse(tracked.longitude) ?? 36.8163;
+          mapboxMap!.flyTo(
+            CameraOptions(center: Point(coordinates: Position(lng, lat))),
+            null,
           );
         }
       }
     } catch (e) {
-      setState(() => _isRefreshing = false);
-    } finally {
       setState(() => _isRefreshing = false);
     }
   }
@@ -105,271 +108,382 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await _loadCustomIcons();
       await _controller.fetchDevices();
-
       final devices = _controller.devicesModel.value?.devices ?? [];
-
       setState(() {
         _filteredDevices = devices;
         _isDataReady = true;
       });
-
       _getUserLocation();
-
-      if (!_hasFitAllCars && devices.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _updateVehicleAnnotations(devices);
+        if (!_hasFitAllCars && devices.isNotEmpty) {
           _fitAllCarsOnMap(devices);
           _hasFitAllCars = true;
-        });
-      }
+        }
+      });
     } catch (e) {
       print('Error initializing data: $e');
     } finally {
-      setState(() {
-        _isDataReady = true;
-      });
+      setState(() => _isDataReady = true);
     }
   }
 
-  Future<BitmapDescriptor> _resizeAndLoadIcon(
-    String assetPath,
-    int width,
-  ) async {
+  Future<Uint8List> _resizeAndLoadIcon(String assetPath, int width) async {
     final ByteData data = await rootBundle.load(assetPath);
     final ui.Codec codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
       targetWidth: width,
     );
     final ui.FrameInfo fi = await codec.getNextFrame();
-    final ByteData? bytes = await fi.image.toByteData(
-      format: ui.ImageByteFormat.png,
-    );
-    return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
+    final ByteData? bytes = await fi.image.toByteData(format: ui.ImageByteFormat.png);
+    return bytes!.buffer.asUint8List();
   }
 
+  // ─── Icon & annotation helpers ───────────────────────────────────────────
+
+  /// Returns the pre-loaded Uint8List icon for a device based on its status.
+  /// green = moving online, blue = idle online, red = offline.
+  Uint8List? _getImageForDevice(Device device) {
+    if (!device.isDeviceOnline) return customIcons['red'];
+    if (device.ignitionStatus == 1) return customIcons['green'];
+    return customIcons['blue'];
+  }
+
+  Future<void> _updateVehicleAnnotations(List<Device> devices) async {
+    if (_annotationManager == null) return;
+
+    // Remove stale annotations
+    final newPlates = devices.map((d) => d.numberPlate).toSet();
+    final toRemove = _vehicleAnnotations.keys.where((p) => !newPlates.contains(p)).toList();
+    for (final plate in toRemove) {
+      final ann = _vehicleAnnotations.remove(plate);
+      if (ann != null) await _annotationManager!.delete(ann);
+    }
+
+    for (final device in devices) {
+      final lat = double.tryParse(device.latitude) ?? -1.2842;
+      final lng = double.tryParse(device.longitude) ?? 36.8163;
+      final rotation = double.tryParse(device.course) ?? 0.0;
+      final iconBytes = _getImageForDevice(device);
+      final isSelected = _selectedVehiclePlate == device.numberPlate;
+      final iconSize = isSelected ? 2.0 : 1.2;
+
+      if (_vehicleAnnotations.containsKey(device.numberPlate)) {
+        final ann = _vehicleAnnotations[device.numberPlate]!;
+        ann.geometry = Point(coordinates: Position(lng, lat));
+        ann.iconRotate = rotation;
+        ann.image = iconBytes;
+        ann.iconSize = iconSize;
+        await _annotationManager!.update(ann);
+      } else {
+        final ann = await _annotationManager!.create(
+          PointAnnotationOptions(
+            geometry: Point(coordinates: Position(lng, lat)),
+            image: iconBytes,
+            iconSize: iconSize,
+            iconRotate: rotation,
+            textField: device.numberPlate,
+            textSize: 10.0,
+            textOffset: [0.0, 2.0],
+          ),
+        );
+        _vehicleAnnotations[device.numberPlate] = ann;
+      }
+    }
+  }
+
+  /// Hit-test the tapped map point against known vehicle positions.
+  void _onMapTapped(Point tappedPoint) {
+    final tapLat = tappedPoint.coordinates.lat.toDouble();
+    final tapLng = tappedPoint.coordinates.lng.toDouble();
+
+    Device? nearest;
+    double minDist = double.infinity;
+
+    for (final device in _filteredDevices) {
+      final devLat = double.tryParse(device.latitude) ?? 0;
+      final devLng = double.tryParse(device.longitude) ?? 0;
+      final dist =
+          (devLat - tapLat) * (devLat - tapLat) + (devLng - tapLng) * (devLng - tapLng);
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = device;
+      }
+    }
+
+    // ~0.0005° ≈ 55 m – reasonable tap target radius at zoom 14-16
+    if (nearest != null && minDist < 0.0005) {
+      setState(() => _selectedVehiclePlate = nearest!.numberPlate);
+      _updateVehicleAnnotations(_filteredDevices);
+      _showVehicleBottomSheet(nearest);
+    }
+  }
+
+  // ─── Vehicle navigation ───────────────────────────────────────────────────
+
   void _showNextVehicle() {
-    final devices = _filteredDevices;
-    if (devices.isEmpty) return;
-
-    setState(() {
-      selectedVehicleIndex =
-          (selectedVehicleIndex + 1) % devices.length; // move to next
-    });
-
+    if (_filteredDevices.isEmpty) return;
+    setState(() => selectedVehicleIndex = (selectedVehicleIndex + 1) % _filteredDevices.length);
     _focusOnVehicle(selectedVehicleIndex);
   }
 
   void _showPreviousVehicle() {
-    final devices = _filteredDevices;
-    if (devices.isEmpty) return;
-
-    setState(() {
-      selectedVehicleIndex =
-          (selectedVehicleIndex - 1 + devices.length) % devices.length;
-    });
-
+    if (_filteredDevices.isEmpty) return;
+    setState(() => selectedVehicleIndex =
+        (selectedVehicleIndex - 1 + _filteredDevices.length) % _filteredDevices.length);
     _focusOnVehicle(selectedVehicleIndex);
   }
 
   void _focusOnVehicle(int index) {
-    final devices = _filteredDevices;
-    if (index < 0 || index >= devices.length || mapController == null) return;
-
-    final device = devices[index];
+    if (index < 0 || index >= _filteredDevices.length || mapboxMap == null) return;
+    final device = _filteredDevices[index];
     final lat = double.tryParse(device.latitude) ?? -1.2842;
     final lng = double.tryParse(device.longitude) ?? 36.8163;
-
-    mapController!.animateCamera(
-      CameraUpdate.newLatLngZoom(LatLng(lat, lng), 15.0),
+    mapboxMap!.flyTo(
+      CameraOptions(center: Point(coordinates: Position(lng, lat)), zoom: 15.0),
+      null,
     );
-
-    _showVehicleInfoWindow(device);
-  }
-
-  void _showVehicleInfoWindow(Device device) {
-    if (mapController != null) {
-      mapController!.showMarkerInfoWindow(MarkerId(device.numberPlate));
-    }
   }
 
   void _fitAllCarsOnMap(List<Device> devices) {
-    if (mapController == null || devices.isEmpty) return;
-
-    double? minLat, maxLat, minLng, maxLng;
-
-    for (var device in devices) {
-      final lat = double.tryParse(device.latitude);
-      final lng = double.tryParse(device.longitude);
-
-      if (lat == null || lng == null) continue;
-
-      if (minLat == null) {
-        minLat = maxLat = lat;
-        minLng = maxLng = lng;
-      } else {
-        if (lat < minLat) minLat = lat;
-        if (lat > maxLat!) maxLat = lat;
-        if (lng < minLng!) minLng = lng;
-        if (lng > maxLng!) maxLng = lng;
-      }
+    if (mapboxMap == null || devices.isEmpty) return;
+    final points = devices
+        .where((d) => double.tryParse(d.latitude) != null && double.tryParse(d.longitude) != null)
+        .map((d) => Point(coordinates: Position(double.parse(d.longitude), double.parse(d.latitude))))
+        .toList();
+    if (points.isEmpty) return;
+    double sumLat = 0, sumLng = 0;
+    for (final p in points) {
+      sumLat += p.coordinates.lat.toDouble();
+      sumLng += p.coordinates.lng.toDouble();
     }
-
-    if (minLat == null || minLng == null || maxLat == null || maxLng == null) {
-      return;
-    }
-
-    final bounds = LatLngBounds(
-      southwest: LatLng(minLat, minLng),
-      northeast: LatLng(maxLat, maxLng),
+    mapboxMap!.flyTo(
+      CameraOptions(
+        center: Point(
+            coordinates: Position(sumLng / points.length, sumLat / points.length)),
+        zoom: 10.0,
+      ),
+      null,
     );
-
-    // Animate camera to show all markers with some padding
-    mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
   }
 
   Future<void> _loadCustomIcons() async {
-    customIcons['green'] = await _resizeAndLoadIcon(
-      'assets/green_car.png',
-      140,
-    );
+    customIcons['green'] = await _resizeAndLoadIcon('assets/green_car.png', 140);
     customIcons['blue'] = await _resizeAndLoadIcon('assets/blue_car.png', 70);
     customIcons['red'] = await _resizeAndLoadIcon('assets/red_car.png', 90);
     setState(() {});
   }
 
   Future<void> _getUserLocation() async {
-    setState(() {
-      isLoadingLocation = true;
-    });
-
+    setState(() => isLoadingLocation = true);
     try {
-      // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        // Location services are not enabled
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please enable location services')),
-        );
-        setState(() {
-          isLoadingLocation = false;
-        });
+            const SnackBar(content: Text('Please enable location services')));
+        setState(() => isLoadingLocation = false);
         return;
       }
-
-      // Check for location permissions
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Location permission denied')));
-          setState(() {
-            isLoadingLocation = false;
-          });
+          if (!mounted) return;
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('Location permission denied')));
+          setState(() => isLoadingLocation = false);
           return;
         }
       }
-
       if (permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Location permissions are permanently denied'),
-          ),
-        );
-        setState(() {
-          isLoadingLocation = false;
-        });
+            const SnackBar(content: Text('Location permissions are permanently denied')));
+        setState(() => isLoadingLocation = false);
         return;
       }
-
-      // Get current position
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
+      final currentPos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
       setState(() {
-        userLocation = LatLng(position.latitude, position.longitude);
+        userLocation = Point(coordinates: Position(currentPos.longitude, currentPos.latitude));
         isLoadingLocation = false;
       });
     } catch (e) {
       print('Error getting location: $e');
-      setState(() {
-        isLoadingLocation = false;
-      });
+      setState(() => isLoadingLocation = false);
     }
   }
 
   void _moveToUserLocation() async {
     if (userLocation == null) await _getUserLocation();
-
-    if (userLocation != null && mapController != null) {
-      mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(userLocation!, 15.0),
-      );
+    if (userLocation != null && mapboxMap != null) {
+      mapboxMap!.flyTo(CameraOptions(center: userLocation, zoom: 15.0), null);
     }
   }
 
-  void _zoomIn() async {
-    if (mapController != null) {
+  void _zoomIn() {
+    if (mapboxMap != null) {
       currentZoom += 1;
-      mapController!.animateCamera(CameraUpdate.zoomTo(currentZoom));
+      mapboxMap!.flyTo(CameraOptions(zoom: currentZoom), null);
     }
   }
 
-  void _zoomOut() async {
-    if (mapController != null) {
+  void _zoomOut() {
+    if (mapboxMap != null) {
       currentZoom -= 1;
-      mapController!.animateCamera(CameraUpdate.zoomTo(currentZoom));
+      mapboxMap!.flyTo(CameraOptions(zoom: currentZoom), null);
     }
   }
 
-  void _selectVehicle(int index) {
-    setState(() {
-      selectedVehicleIndex = index;
-      showBottomSheet = true;
+  void _applyMapStyle(String style) {
+    Navigator.pop(context);
+    setState(() => _currentMapStyle = style);
+    mapboxMap?.loadStyleURI(style).then((_) {
+      _vehicleAnnotations.clear();
+      _annotationManager = null;
+      mapboxMap?.annotations.createPointAnnotationManager().then((manager) {
+        _annotationManager = manager;
+        _updateVehicleAnnotations(_filteredDevices);
+      });
     });
-
-    final devices = _controller.devicesModel.value?.devices ?? [];
-
-    if (devices.isNotEmpty && index < devices.length) {
-      final device = devices[index];
-      final position = LatLng(
-        double.tryParse(device.latitude) ?? -1.2842,
-        double.tryParse(device.longitude) ?? 36.8163,
-      );
-      mapController?.animateCamera(CameraUpdate.newLatLngZoom(position, 15.0));
-
-      _showVehicleBottomSheet(device);
-    }
   }
 
-  Size getMarkerSize(bool isOnline, int ignitionStatus) {
-    if (isOnline && ignitionStatus == 1) {
-      return const Size(55, 55); // online and moving
-    } else if (!isOnline) {
-      return const Size(40, 40); // offline
-    } else {
-      return const Size(47, 47); // online but idle/stopped
-    }
+  void _showMapStyleSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _buildMapStyleSheet(),
+    );
   }
 
-  String getMarkerImage(bool isOnline, int ignitionStatus) {
-    if (isOnline && ignitionStatus == 1) {
-      return "assets/green_car.png";
-    } else if (isOnline && ignitionStatus == 0) {
-      return "assets/blue_car.png";
-    } else {
-      return "assets/red_car.png";
-    }
+  Widget _buildMapStyleSheet() {
+    final styleOptions = [
+      {
+        'label': 'Standard',
+        'icon': Icons.map_outlined,
+        'style': MapboxStyles.MAPBOX_STREETS,
+        'color': kBlue,
+      },
+      {
+        'label': 'Satellite',
+        'icon': Icons.satellite_alt_rounded,
+        'style': MapboxStyles.SATELLITE,
+        'color': const Color(0xFF2C7A4B),
+      },
+      {
+        'label': 'Terrain',
+        'icon': Icons.terrain_rounded,
+        'style': MapboxStyles.OUTDOORS,
+        'color': const Color(0xFF8B5E3C),
+      },
+      {
+        'label': 'Hybrid',
+        'icon': Icons.layers_rounded,
+        'style': MapboxStyles.SATELLITE_STREETS,
+        'color': const Color(0xFF4A7A5C),
+      },
+      {
+        'label': 'Dark Mode',
+        'icon': Icons.dark_mode_rounded,
+        'style': MapboxStyles.DARK,
+        'color': const Color(0xFF2D2D3A),
+      },
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.col.surface,
+        borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(kRadiusLG)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: context.col.border,
+              borderRadius: BorderRadius.circular(kRadiusSM),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: Row(
+              children: [
+                const Icon(Icons.layers_rounded, color: kBlue, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Map Style',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: context.col.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: context.col.divider),
+          ...styleOptions.map((opt) {
+            final isActive = _currentMapStyle == opt['style'] as String;
+            final color = opt['color'] as Color;
+            return ListTile(
+              tileColor: context.col.surface,
+              onTap: () => _applyMapStyle(opt['style'] as String),
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(kRadiusMD),
+                ),
+                child: Icon(opt['icon'] as IconData, color: color, size: 20),
+              ),
+              title: Text(
+                opt['label'] as String,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: isActive ? kBlue : context.col.textPrimary,
+                ),
+              ),
+              trailing: isActive
+                  ? Container(
+                      width: 24,
+                      height: 24,
+                      decoration: const BoxDecoration(
+                          color: kBlue, shape: BoxShape.circle),
+                      child: const Icon(Icons.check, color: kWhite, size: 14),
+                    )
+                  : null,
+            );
+          }),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+        ],
+      ),
+    );
   }
 
   void _showVehicleBottomSheet(Device device) {
+    setState(() => _selectedVehiclePlate = device.numberPlate);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _buildVehicleBottomSheet(device),
     );
+  }
+
+  void _focusOnSearchedCar(Device device) {
+    if (mapboxMap == null) return;
+    final lat = double.tryParse(device.latitude) ?? -1.2842;
+    final lng = double.tryParse(device.longitude) ?? 36.8163;
+    mapboxMap!.flyTo(
+        CameraOptions(center: Point(coordinates: Position(lng, lat)), zoom: 16.0), null);
+    setState(() => _trackedCarPlate = device.numberPlate);
   }
 
   @override
@@ -379,25 +493,27 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  // ─── Build ────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: Size.fromHeight(80),
+          preferredSize: const Size.fromHeight(80),
           child: AppBar(
-            backgroundColor: kBgGrey,
+            backgroundColor: context.col.bg,
             elevation: 0,
             toolbarHeight: 40,
             bottom: PreferredSize(
-              preferredSize: Size.fromHeight(40),
+              preferredSize: const Size.fromHeight(40),
               child: Container(
                 decoration: BoxDecoration(
-                  color: kBgGrey,
+                  color: context.col.bg,
                   boxShadow: [
                     BoxShadow(
-                      color: kBlack.withValues(alpha: 0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       spreadRadius: 1,
                       blurRadius: 4,
                       offset: const Offset(0, 2),
@@ -413,30 +529,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: kBlue.withValues(alpha: 0.3),
                         spreadRadius: 1,
                         blurRadius: 4,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: EdgeInsets.all(4),
+                  indicatorPadding: const EdgeInsets.all(4),
                   labelColor: kWhite,
-                  unselectedLabelColor: kGrey,
-                  labelStyle: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  unselectedLabelStyle: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  tabs: [
+                  unselectedLabelColor: context.col.textSecondary,
+                  labelStyle: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600),
+                  unselectedLabelStyle: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500),
+                  tabs: const [
                     Tab(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.map_outlined, size: 18),
                           SizedBox(width: 6),
-                          Text("Map"),
+                          Text('Map'),
                         ],
                       ),
                     ),
@@ -446,7 +558,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Icon(Icons.list_alt_outlined, size: 18),
                           SizedBox(width: 6),
-                          Text("List"),
+                          Text('List'),
                         ],
                       ),
                     ),
@@ -459,49 +571,43 @@ class _HomeScreenState extends State<HomeScreen> {
         body: TabBarView(
           physics: const NeverScrollableScrollPhysics(),
           children: [
-            // Tab 1: Map view
             _isDataReady
                 ? Obx(() {
                     if (_controller.isLoading.value) {
                       return Center(
                         child: LoadingAnimationWidget.fourRotatingDots(
-                          color: kBlue,
-                          size: 50,
-                        ),
+                            color: kBlue, size: 50),
                       );
                     }
-
-                    final devices =
-                        _controller.devicesModel.value?.devices ?? [];
-
                     return Stack(
                       children: [
-                        _buildFullScreenMap(_filteredDevices),
+                        _buildMap(),
+                        // Search bar
                         Positioned(
                           top: 10,
-                          left: 20,
-                          right: 20,
-                          child: IgnorePointer(
-                            ignoring: false,
-                            child: _buildSearchBar(),
-                          ),
+                          left: 16,
+                          right: 68,
+                          child: _buildSearchBar(),
                         ),
+                        // Map controls (right side)
                         Positioned(
-                          right: 20,
-                          top: 70,
+                          right: 12,
+                          top: 10,
                           child: _buildMapControls(),
+                        ),
+                        // Status bar (bottom)
+                        Positioned(
+                          bottom: 16,
+                          left: 16,
+                          right: 16,
+                          child: _buildStatusBar(),
                         ),
                       ],
                     );
                   })
                 : Center(
                     child: LoadingAnimationWidget.fourRotatingDots(
-                      color: kBlue,
-                      size: 50,
-                    ),
-                  ),
-
-            // Tab 2: CarsScreen
+                        color: kBlue, size: 50)),
             CarsScreen(),
           ],
         ),
@@ -509,157 +615,118 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _toggleMapType() {
-    setState(() {
-      if (_currentMapType == MapType.normal) {
-        _currentMapType = MapType.satellite;
-      } else if (_currentMapType == MapType.satellite) {
-        _currentMapType = MapType.terrain;
-      } else if (_currentMapType == MapType.terrain) {
-        _currentMapType = MapType.hybrid;
-      } else {
-        _currentMapType = MapType.normal;
-      }
-    });
-  }
+  // ─── Map widget ───────────────────────────────────────────────────────────
 
-  Widget _buildFullScreenMap(List<dynamic> devices) {
-    final firstDevice = devices.isNotEmpty ? devices[0] as Device : null;
-    final initialPosition = firstDevice != null
-        ? LatLng(
-            double.tryParse(firstDevice.latitude) ?? -1.2842,
-            double.tryParse(firstDevice.longitude) ?? 36.8163,
+  Widget _buildMap() {
+    final initialPosition = _filteredDevices.isNotEmpty
+        ? Point(
+            coordinates: Position(
+              double.tryParse(_filteredDevices[0].longitude) ?? 36.8163,
+              double.tryParse(_filteredDevices[0].latitude) ?? -1.2842,
+            ),
           )
-        : LatLng(-1.2842, 36.8163);
+        : Point(coordinates: Position(36.8163, -1.2842));
 
-    // build markers
-    final Set<Marker> deviceMarkers = devices.asMap().entries.map((entry) {
-      int index = entry.key;
-      Device device = entry.value as Device;
-
-      final latitude = double.tryParse(device.latitude) ?? -1.2842;
-      final longitude = double.tryParse(device.longitude) ?? 36.8163;
-
-      // final imageKey = getMarkerImage(
-      //   device.isDeviceOnline,
-      //   device.ignitionStatus,
-      // );
-
-      // final imageKey = device.isDeviceOnline
-      //     ? (device.ignitionStatus == 1 ? 'green' : 'blue')
-      //     : 'red';
-
-      final imageKey = device.isDeviceOnline ? 'green' : 'red';
-
-      final markerIcon =
-          customIcons[imageKey] ?? BitmapDescriptor.defaultMarker;
-
-      return Marker(
-        markerId: MarkerId(device.numberPlate),
-        position: LatLng(latitude, longitude),
-        rotation: double.tryParse(device.course) ?? 0.0,
-        icon: markerIcon,
-        onTap: () => _selectVehicle(index),
-        infoWindow: InfoWindow(
-          title: device.numberPlate,
-          snippet: 'Speed: ${device.speed} km/h',
-        ),
-      );
-    }).toSet();
-
-    return GoogleMap(
-      mapType: _currentMapType,
-      initialCameraPosition: CameraPosition(
-        target: initialPosition,
-        zoom: currentZoom,
-      ),
-      myLocationEnabled: true,
-      myLocationButtonEnabled: true,
-      scrollGesturesEnabled: true,
-      // zoomGesturesEnabled: true,
-      // zoomControlsEnabled: false,
-      tiltGesturesEnabled: true,
-      rotateGesturesEnabled: true,
-      markers: deviceMarkers.union(markers),
-
-      onMapCreated: (GoogleMapController controller) {
-        mapController = controller;
-        if (devices.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _fitAllCarsOnMap(devices.cast<Device>());
-          });
-        }
+    return MapWidget(
+      styleUri: _currentMapStyle,
+      cameraOptions: CameraOptions(center: initialPosition, zoom: currentZoom),
+      onMapCreated: (MapboxMap map) {
+        mapboxMap = map;
+        // Clear any stale references from a previous map instance
+        _vehicleAnnotations.clear();
+        map.annotations.createPointAnnotationManager().then((manager) {
+          _annotationManager = manager;
+          _updateVehicleAnnotations(_filteredDevices);
+        });
+      },
+      onTapListener: (MapContentGestureContext context) {
+        _onMapTapped(context.point);
       },
     );
   }
 
-  void _focusOnSearchedCar(Device device) {
-    if (mapController == null) return;
+  // ─── Status bar ───────────────────────────────────────────────────────────
 
-    final lat = double.tryParse(device.latitude) ?? -1.2842;
-    final lng = double.tryParse(device.longitude) ?? 36.8163;
-
-    mapController!.animateCamera(
-      CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16.0),
+  Widget _buildStatusBar() {
+    final model = _controller.devicesModel.value;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: context.col.surface.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(kRadiusPill),
+        boxShadow: [kShadowMD],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildStatChip(
+              'Total', '${model?.totalDevices ?? _filteredDevices.length}', kBlue),
+          _buildStatDivider(),
+          _buildStatChip('Online', '${model?.onlineDevices ?? 0}', kSuccessGreen),
+          _buildStatDivider(),
+          _buildStatChip('Moving', '${model?.inMotion ?? 0}', const Color(0xFFF39C12)),
+          _buildStatDivider(),
+          _buildStatChip('Offline', '${model?.offlineDevices ?? 0}', kRed),
+        ],
+      ),
     );
-
-    // Start tracking this car
-    setState(() {
-      _trackedCarPlate = device.numberPlate;
-    });
   }
 
-  // void _focusOnSearchedCar(Device device) {
-  //   if (mapController == null) return;
-  //
-  //   final lat = double.tryParse(device.latitude) ?? -1.2842;
-  //   final lng = double.tryParse(device.longitude) ?? 36.8163;
-  //   mapController!.animateCamera(
-  //     CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16.0),
-  //   );
-  // }
+  Widget _buildStatChip(String label, String count, Color color) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(count,
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 10, color: context.col.textSecondary)),
+      ],
+    );
+  }
+
+  Widget _buildStatDivider() =>
+      Container(height: 28, width: 1, color: context.col.border);
+
+  // ─── Search bar ───────────────────────────────────────────────────────────
 
   Widget _buildSearchBar() {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: kWhite,
+        color: context.col.surface,
         borderRadius: BorderRadius.circular(kRadiusMD),
-        border: Border.all(color: kLightGrey, width: 1),
+        border: Border.all(color: context.col.border, width: 1),
         boxShadow: [kShadowSM],
       ),
       child: Row(
         children: [
           Padding(
             padding: const EdgeInsets.only(left: kSpaceXL),
-            child: const Icon(Icons.search, color: kGrey, size: 24),
+            child: Icon(Icons.search, color: context.col.textSecondary, size: 22),
           ),
           Expanded(
             child: TextField(
               controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: "Search by number plate",
-                hintStyle: TextStyle(color: kGrey, fontSize: 16),
+              style: TextStyle(color: context.col.textPrimary, fontSize: 15),
+              decoration: InputDecoration(
+                hintText: 'Search by number plate',
+                hintStyle: TextStyle(
+                    color: context.col.textSecondary, fontSize: 15),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 15,
-                ),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 15),
               ),
               onChanged: (query) {
-                final allDevices =
-                    _controller.devicesModel.value?.devices ?? [];
+                final all = _controller.devicesModel.value?.devices ?? [];
                 setState(() {
-                  _filteredDevices = allDevices
-                      .where(
-                        (device) => device.numberPlate.toLowerCase().contains(
-                          query.toLowerCase(),
-                        ),
-                      )
+                  _filteredDevices = all
+                      .where((d) => d.numberPlate
+                          .toLowerCase()
+                          .contains(query.toLowerCase()))
                       .toList();
                 });
-
-                // Automatically focus on car if an exact match is found
                 if (_filteredDevices.length == 1) {
                   _focusOnSearchedCar(_filteredDevices.first);
                 }
@@ -667,11 +734,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.clear, color: kGrey),
+            icon: Icon(Icons.clear, color: context.col.textSecondary, size: 20),
             onPressed: () {
               _searchController.clear();
               FocusScope.of(context).unfocus();
-
               setState(() {
                 _filteredDevices =
                     _controller.devicesModel.value?.devices ?? [];
@@ -684,201 +750,56 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Widget _buildSearchBar() {
-  //   return Container(
-  //     height: 50,
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(5),
-  //       border: Border.all(color: Colors.grey.shade400, width: 1),
-  //       boxShadow: [
-  //         BoxShadow(
-  //           color: Colors.black.withValues(alpha: 0.1),
-  //           blurRadius: 10,
-  //           offset: Offset(0, 2),
-  //         ),
-  //       ],
-  //     ),
-  //     child: Row(
-  //       children: [
-  //         Padding(
-  //           padding: EdgeInsets.only(left: 20),
-  //           child: Icon(Icons.search, color: Colors.grey[600], size: 24),
-  //         ),
-  //         Expanded(
-  //           child: TextField(
-  //             decoration: InputDecoration(
-  //               hintText: "Search",
-  //               hintStyle: TextStyle(color: Colors.grey[600], fontSize: 16),
-  //               border: InputBorder.none,
-  //               contentPadding: EdgeInsets.symmetric(
-  //                 horizontal: 16,
-  //                 vertical: 15,
-  //               ),
-  //             ),
-  //           ),
-  //         ),
-  //         Container(
-  //           color: kGrey.withOpacity(0.1),
-  //           margin: EdgeInsets.only(right: 5),
-  //           padding: EdgeInsets.all(8),
-  //           child: Padding(
-  //             padding: EdgeInsets.only(left: 25),
-  //             child: Icon(Icons.tune, color: Colors.grey[600], size: 20),
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
+  // ─── Map controls ─────────────────────────────────────────────────────────
 
   Widget _buildMapControls() {
     return Column(
       children: [
-        SizedBox(height: 10),
-        Container(
-          width: 45,
-          height: 45,
-          decoration: BoxDecoration(
-            color: kWhite,
-            borderRadius: BorderRadius.circular(kRadiusSM),
-            boxShadow: [kShadowSM],
-          ),
-          child: IconButton(
-            icon: Icon(Icons.add, color: kGrey),
-            onPressed: _zoomIn,
-          ),
-        ),
-        SizedBox(height: 10),
-        Container(
-          width: 45,
-          height: 45,
-          decoration: BoxDecoration(
-            color: kWhite,
-            borderRadius: BorderRadius.circular(kRadiusSM),
-            boxShadow: [kShadowSM],
-          ),
-          child: IconButton(
-            icon: Icon(Icons.remove, color: kGrey),
-            onPressed: _zoomOut,
-          ),
-        ),
-        SizedBox(height: 10),
-        Container(
-          width: 45,
-          height: 45,
-          decoration: BoxDecoration(
-            color: kWhite,
-            borderRadius: BorderRadius.circular(kRadiusSM),
-            boxShadow: [kShadowSM],
-          ),
-          child: IconButton(
-            icon: Icon(Icons.layers, color: kGrey),
-            onPressed: _toggleMapType,
-          ),
-        ),
-        SizedBox(height: 10),
-        Container(
-          width: 45,
-          height: 45,
-          decoration: BoxDecoration(
-            color: kWhite,
-            borderRadius: BorderRadius.circular(kRadiusSM),
-            boxShadow: [kShadowSM],
-          ),
+        _iconBtn(Icons.add, _zoomIn),
+        const SizedBox(height: 8),
+        _iconBtn(Icons.remove, _zoomOut),
+        const SizedBox(height: 8),
+        _iconBtn(Icons.layers_outlined, _showMapStyleSelector),
+        const SizedBox(height: 8),
+        // My location
+        _controlContainer(
           child: isLoadingLocation
-              ? Padding(
+              ? const Padding(
                   padding: EdgeInsets.all(12),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: kBlue,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: kBlue),
                 )
               : IconButton(
-                  icon: Icon(
-                    Icons.my_location,
-                    color: userLocation != null ? kBlue : kGrey,
-                  ),
+                  icon: Icon(Icons.my_location,
+                      color: userLocation != null ? kBlue : kGrey, size: 20),
                   onPressed: _moveToUserLocation,
                 ),
         ),
-        SizedBox(height: 10),
-        Container(
-          width: 45,
-          height: 45,
-          decoration: BoxDecoration(
-            color: kWhite,
-            borderRadius: BorderRadius.circular(kRadiusSM),
-            boxShadow: [kShadowSM],
-          ),
-          child: IconButton(
-            icon: Icon(
-              Icons.keyboard_arrow_up_rounded,
-              color: kGrey,
-            ),
-            onPressed: _showPreviousVehicle,
-          ),
-        ),
-        SizedBox(height: 10),
-        Container(
-          width: 45,
-          height: 45,
-          decoration: BoxDecoration(
-            color: kWhite,
-            borderRadius: BorderRadius.circular(kRadiusSM),
-            boxShadow: [kShadowSM],
-          ),
-          child: IconButton(
-            icon: Icon(
-              Icons.keyboard_arrow_down_outlined,
-              color: kGrey,
-            ),
-            onPressed: _showNextVehicle,
-          ),
-        ),
-        SizedBox(height: 10),
-        Container(
-          width: 45,
-          height: 45,
-          decoration: BoxDecoration(
-            color: kWhite,
-            borderRadius: BorderRadius.circular(kRadiusSM),
-            boxShadow: [kShadowSM],
-          ),
-          child: IconButton(
-            icon: Icon(Icons.center_focus_strong, color: kGrey),
-            onPressed: () => _fitAllCarsOnMap(_filteredDevices),
-          ),
-        ),
-        SizedBox(height: 10),
-        Container(
-          width: 45,
-          height: 45,
-          decoration: BoxDecoration(
-            color: kWhite,
-            borderRadius: BorderRadius.circular(kRadiusSM),
-            boxShadow: [kShadowSM],
-          ),
+        const SizedBox(height: 8),
+        _iconBtn(Icons.keyboard_arrow_up_rounded, _showPreviousVehicle),
+        const SizedBox(height: 8),
+        _iconBtn(Icons.keyboard_arrow_down_outlined, _showNextVehicle),
+        const SizedBox(height: 8),
+        _iconBtn(Icons.center_focus_strong, () => _fitAllCarsOnMap(_filteredDevices)),
+        const SizedBox(height: 8),
+        // Countdown / refresh
+        _controlContainer(
           child: _isRefreshing
-              ? Padding(
+              ? const Padding(
                   padding: EdgeInsets.all(12),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: kBlue,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: kBlue),
                 )
               : IconButton(
                   icon: Text(
                     '$_countdown',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: _countdown <= 3 ? kRed : kBlue,
                     ),
                   ),
                   onPressed: () {
-                    _countdown = 10; // Reset counter
-                    _refreshData(); // Immediate refresh
+                    setState(() => _countdown = 10);
+                    _refreshData();
                   },
                 ),
         ),
@@ -886,244 +807,266 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _iconBtn(IconData icon, VoidCallback onTap) => _controlContainer(
+        child: IconButton(
+          icon: Icon(icon, color: context.col.textSecondary, size: 20),
+          onPressed: onTap,
+        ),
+      );
+
+  Widget _controlContainer({required Widget child}) => Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: context.col.surface,
+          borderRadius: BorderRadius.circular(kRadiusSM),
+          boxShadow: [kShadowSM],
+        ),
+        child: child,
+      );
+
+  // ─── Vehicle bottom sheet ─────────────────────────────────────────────────
+
   Widget _buildVehicleBottomSheet(Device device) {
-    bool isVehicleActive = device.ignitionStatus == 0;
+    final bool isOnline = device.isDeviceOnline;
+    final bool isMoving = device.ignitionStatus == 1 && isOnline;
+    final Color statusColor =
+        isMoving ? kSuccessGreen : isOnline ? kBlue : kRed;
+    final String statusLabel = isMoving ? 'Moving' : isOnline ? 'Idle' : 'Offline';
+
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.43,
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       decoration: BoxDecoration(
-        color: kWhite,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(kRadiusLG),
-          topRight: Radius.circular(kRadiusLG),
-        ),
+        color: context.col.surface,
+        borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(kRadiusLG)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // Drag handle
           Container(
             margin: const EdgeInsets.symmetric(vertical: 10),
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: kLightGrey,
+              color: context.col.border,
               borderRadius: BorderRadius.circular(kRadiusSM),
             ),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SelectedCarScreen(
-                          devices: device,
-                          carModel: "${device.type} ${device.make}",
-                          licensePlate: device.numberPlate,
-                        ),
+                // ── Header ──────────────────────────────────────────
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Vehicle icon ring
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(kRadiusMD),
+                        border: Border.all(
+                            color: statusColor.withValues(alpha: 0.4), width: 2),
                       ),
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 5),
-                    decoration: BoxDecoration(
-                      color: kWhite,
-                      borderRadius: BorderRadius.circular(kRadiusMD),
-                      border: Border.all(
-                        color: kBlue.withValues(alpha: 0.5),
-                        width: 1.5,
-                      ),
-                      boxShadow: [kShadowSM],
+                      child: customIcons[isMoving
+                              ? 'green'
+                              : isOnline
+                                  ? 'blue'
+                                  : 'red'] !=
+                              null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(kRadiusMD - 2),
+                              child: Image.memory(
+                                customIcons[isMoving
+                                    ? 'green'
+                                    : isOnline
+                                        ? 'blue'
+                                        : 'red']!,
+                                fit: BoxFit.contain,
+                              ),
+                            )
+                          : Icon(Icons.directions_car,
+                              color: statusColor, size: 28),
                     ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 10),
-                      child: Row(
-                        children: [
-                          Icon(Icons.more_vert, color: kBlue, size: 20),
-                          SizedBox(width: 5),
-                          Text(
-                            "More Details",
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: kBlue,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Icon(
-                    Icons.close,
-                    color: kGrey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(
-                top: 10,
-                left: 20,
-                right: 20,
-                bottom: 20,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             device.numberPlate,
-                            style: const TextStyle(
-                              fontSize: 25,
-                              fontWeight: FontWeight.bold,
-                              color: kBlack,
-                            ),
+                            style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: context.col.textPrimary),
                           ),
-                          const SizedBox(height: kSpaceXS),
                           Text(
-                            "${device.type} ${device.make}",
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: kGrey,
-                            ),
+                            '${device.type} ${device.make}'.trim().isEmpty
+                                ? 'Vehicle'
+                                : '${device.type} ${device.make}'.trim(),
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: context.col.textSecondary),
                           ),
                         ],
                       ),
-
-                      StatefulBuilder(
-                        builder: (context, setModalState) {
-                          return Row(
+                    ),
+                    // Status badge + close
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: const Icon(Icons.close, color: kGrey, size: 20),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(kRadiusPill),
+                            border: Border.all(
+                                color: statusColor.withValues(alpha: 0.35)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Column(
-                                children: [
-                                  Text(
-                                    'ENGINE',
-                                    style: TextStyle(
-                                      color: isVehicleActive
-                                          ? kSuccessGreen
-                                          : kGrey,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  Text(
-                                    isVehicleActive ? "ON" : "OFF",
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: isVehicleActive
-                                          ? kSuccessGreen
-                                          : kGrey,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                    color: statusColor, shape: BoxShape.circle),
                               ),
-                              const SizedBox(width: kSpaceSM),
-                              Switch(
-                                value: isVehicleActive,
-                                onChanged: (bool value) {},
-                                activeColor: kSuccessGreen,
-                                activeTrackColor: kSuccessGreen.withValues(alpha: 0.3),
-                                inactiveThumbColor: kGrey,
-                                inactiveTrackColor: kGrey.withValues(alpha: 0.3),
-                              ),
+                              const SizedBox(width: 4),
+                              Text(statusLabel,
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: statusColor)),
                             ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── Stats row ────────────────────────────────────────
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: context.col.bg,
+                    borderRadius: BorderRadius.circular(kRadiusMD),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _infoTile(Icons.speed_rounded, '${device.speed} km/h', 'Speed'),
+                      _vDivider(),
+                      _infoTile(Icons.access_time_rounded,
+                          _utils.formatTime(device.updatedAt), 'Updated'),
+                      _vDivider(),
+                      _infoTile(Icons.signal_cellular_alt,
+                          '${device.signalStrength}%', 'Signal'),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── Action buttons ───────────────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: _actionBtn(
+                        icon: Icons.location_on_rounded,
+                        label: 'Live Track',
+                        color: kSuccessGreen,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => VehicleLocationScreen(
+                                latitude:
+                                    double.tryParse(device.latitude) ?? -1.2842,
+                                longitude:
+                                    double.tryParse(device.longitude) ?? 36.8163,
+                                deviceId: device.deviceId,
+                              ),
+                            ),
                           );
                         },
                       ),
-                    ],
-                  ),
-
-                  const SizedBox(height: kSpaceMD),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Driver Behaviour: Safe",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: kGrey,
-                        ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _actionBtn(
+                        icon: Icons.route_rounded,
+                        label: 'Playback',
+                        color: kBlue,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PlaybackScreen(
+                                  numberPlate: device.numberPlate),
+                            ),
+                          );
+                        },
                       ),
-                      Text(
-                        "Time: ${_utils.formatTime(device.updatedAt)} ",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: kGrey,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: kSpaceMD),
-
-                  Row(
-                    children: [
-                      Text(
-                        "Speed: ${device.speed} Km/h",
-                        style: const TextStyle(fontSize: 16, color: kGrey),
-                      ),
-                      const Spacer(),
-                    ],
-                  ),
-
-                  const SizedBox(height: kSpaceXL),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildQuickActionButton(
-                          title: 'Playback',
-                          icon: Icons.route,
-                          color: kBlue,
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PlaybackScreen(
-                                  numberPlate: device.numberPlate,
-                                ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _actionBtn(
+                        icon: Icons.info_outline_rounded,
+                        label: 'Details',
+                        color: kGrey,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SelectedCarScreen(
+                                devices: device,
+                                carModel: '${device.type} ${device.make}',
+                                licensePlate: device.numberPlate,
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        },
                       ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: _buildQuickActionButton(
-                          title: 'Violations',
-                          icon: Icons.warning_amber,
-                          color: kRed,
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ViolationsScreen(
-                                  numberPlate: device.numberPlate,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _actionBtn(
+                        icon: Icons.warning_amber_rounded,
+                        label: 'Violations',
+                        color: kRed,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ViolationsScreen(
+                                  numberPlate: device.numberPlate),
+                            ),
+                          );
+                        },
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -1131,34 +1074,49 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildQuickActionButton({
-    required String title,
+  Widget _infoTile(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: kBlue, size: 18),
+        const SizedBox(height: 4),
+        Text(value,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: context.col.textPrimary)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 10, color: context.col.textSecondary)),
+      ],
+    );
+  }
+
+  Widget _vDivider() =>
+      Container(width: 1, height: 36, color: context.col.divider);
+
+  Widget _actionBtn({
     required IconData icon,
+    required String label,
     required Color color,
-    required VoidCallback onPressed,
+    required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: onPressed,
+      onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: kSpaceLG),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: kWhite,
+          color: color.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(kRadiusMD),
-          border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
-          boxShadow: [kShadowSM],
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: kSpaceSM),
-          child: Column(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(height: kSpaceSM),
-              Text(
-                title,
-                style: const TextStyle(fontSize: 15, color: kBlack),
-              ),
-            ],
-          ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 4),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10, color: color, fontWeight: FontWeight.w600)),
+          ],
         ),
       ),
     );

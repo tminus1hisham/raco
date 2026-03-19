@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/reports_violations.dart';
 import 'package:atom/models/report_model.dart';
@@ -82,7 +83,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       String fileName =
           "$safeName-${DateTime.now().millisecondsSinceEpoch}.pdf";
 
-      // Start downloading
       FileDownloader.downloadFile(
         url: url,
         name: fileName,
@@ -139,47 +139,48 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  Widget _buildDropdownButton() {
-    return Container(
+  Widget _buildDropdownButton(AppColors col) {
+    return SizedBox(
       height: 70,
       width: double.infinity,
       child: Material(
-        color: kWhite,
+        color: col.surface,
         borderRadius: BorderRadius.circular(kRadiusMD),
         elevation: 2,
-        shadowColor: kBlack.withValues(alpha:0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(kRadiusMD),
             border: Border.all(
               color: _selectedReportType != null
-                  ? kBlue.withValues(alpha:0.3)
-                  : kGrey.withValues(alpha:0.2),
+                  ? kBlue.withValues(alpha: 0.3)
+                  : col.border.withValues(alpha: 0.5),
               width: 1.5,
             ),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _selectedReportType,
+              dropdownColor: col.surface,
               hint: Text(
                 "Report Type",
                 style: TextStyle(
                   fontSize: 14,
-                  color: kGrey,
+                  color: col.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               isExpanded: true,
-              icon: Icon(Icons.keyboard_arrow_down, color: kLightGrey),
+              icon: Icon(Icons.keyboard_arrow_down, color: col.border),
               items: _reportOptions.map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(
                     value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: kBlack,
+                      color: col.textPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -197,19 +198,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildReportCard(ReportModel record) {
+  Widget _buildReportCard(ReportModel record, AppColors col) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: (double.tryParse(record.spd ?? '0') ?? 0) > 80 || record.wr == 1
-            ? kRed.withValues(alpha:0.1)
-            : kWhite,
-
+            ? kRed.withValues(alpha: 0.1)
+            : col.surface,
         borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [
           BoxShadow(
-            color: kBlack.withValues(alpha:0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -222,10 +222,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
             record.createdAt != null
                 ? _dateFormat.format(record.createdAt!)
                 : "Unknown Date",
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: kBlack,
+              color: col.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
@@ -240,8 +240,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -258,7 +259,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             // Dropdown
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 15),
-              child: _buildDropdownButton(),
+              child: _buildDropdownButton(col),
             ),
 
             SizedBox(height: 10),
@@ -317,91 +318,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 buttonColor: kRed,
                               );
                             }
-
-                            // showCupertinoDialog(
-                            //   context: context,
-                            //   builder: (context) => ActionDialog(
-                            //     title: "Generate PDF",
-                            //     message:
-                            //         "Do you want to generate and save this report as a PDF file?",
-                            //     confirmText: "Generate",
-                            //     cancelText: "Cancel",
-                            //     onConfirm: () async {
-                            //       setState(() => isDownloading = true);
-                            //       try {
-                            //         final path =
-                            //             await PdfService.generateAndSaveReportPdf(
-                            //               _reportsController.reports,
-                            //               widget.numberPlate,
-                            //               _selectedReportType!,
-                            //             );
-                            //
-                            //         if (!mounted) return;
-                            //         setState(() => isDownloading = false);
-                            //
-                            //         showCupertinoDialog(
-                            //           context: context,
-                            //           builder: (context) => ActionDialog(
-                            //             title: "Success",
-                            //             message:
-                            //                 "PDF saved successfully at:\n$path",
-                            //             confirmText: "Open",
-                            //             cancelText: "Close",
-                            //             onConfirm: () async {
-                            //               await OpenFile.open(path);
-                            //             },
-                            //           ),
-                            //         );
-                            //       } catch (e) {
-                            //         if (!mounted)
-                            //           return; // ✅ prevent using disposed context
-                            //         setState(() => isDownloading = false);
-                            //         CustomAlertDialog(
-                            //           context: context,
-                            //           title: "Error",
-                            //           message:
-                            //               "Failed to generate the PDF file.",
-                            //           icon: "assets/animations/Failed.json",
-                            //           buttonColor: kRed,
-                            //         );
-                            //       }
-                            //     },
-                            //   ),
-                            // );
                           },
                           label: "Donwload PDF",
                           backgroundColor: kBlue,
                           txtColor: kWhite,
                         ),
                       ),
-
-                      // Expanded(
-                      //   child: CustomButton(
-                      //     callBackFunction: () async {
-                      //       bool isLoading = false;
-                      //       showCupertinoDialog(
-                      //         context: context,
-                      //         builder: (context) => ActionDialog(
-                      //           title: "Download Report",
-                      //           message:
-                      //               "Are you sure you want to download this report?",
-                      //           confirmText: "Download",
-                      //           cancelText: "Cancel",
-                      //           onConfirm: () async {
-                      //             await downloadReport(
-                      //               url,
-                      //               _selectedReportType ?? "Report",
-                      //               context,
-                      //             );
-                      //           },
-                      //         ),
-                      //       );
-                      //     },
-                      //     label: "Download",
-                      //     backgroundColor: kBlue,
-                      //     txtColor: kWhite,
-                      //   ),
-                      // ),
                     ],
                   ],
                 );
@@ -424,7 +346,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   return Center(
                     child: Text(
                       "No reports found",
-                      style: TextStyle(color: kGrey),
+                      style: TextStyle(color: col.textSecondary),
                     ),
                   );
                 }
@@ -432,7 +354,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 return ListView.builder(
                   itemCount: _reportsController.reports.length,
                   itemBuilder: (context, index) =>
-                      _buildReportCard(_reportsController.reports[index]),
+                      _buildReportCard(_reportsController.reports[index], col),
                 );
               }),
             ),

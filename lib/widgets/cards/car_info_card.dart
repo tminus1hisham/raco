@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/renew_certificate_controller.dart';
 import 'package:atom/services/local_storage_service.dart';
@@ -76,7 +77,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
 
   void _showPlanBottomSheet(BuildContext context) {
     showModalBottomSheet(
-      backgroundColor: kWhite,
+      backgroundColor: context.col.surface,
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -128,7 +129,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
                             height: 5,
                             width: 40,
                             decoration: BoxDecoration(
-                              color: kLightGrey,
+                              color: context.col.border,
                               borderRadius: BorderRadius.circular(kRadiusPill),
                             ),
                           ),
@@ -171,7 +172,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? kBlue.withValues(alpha: 0.1)
-                                    : kWhite,
+                                    : context.col.surface,
                                 border: Border.all(
                                   color: isSelected ? kBlue : kLightGrey,
                                   width: isSelected ? 2 : 1,
@@ -196,10 +197,10 @@ class _CarInfoCardState extends State<CarInfoCard> {
                                           plan.planName.isNotEmpty
                                               ? plan.planName
                                               : "Unnamed Plan",
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
-                                            color: kBlack,
+                                            color: context.col.textPrimary,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
@@ -207,7 +208,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
                                           "${plan.durationInDays} ${plan.durationInDays > 1 ? 'Years' : 'Year'}",
                                           style: TextStyle(
                                             fontSize: 13,
-                                            color: kGrey,
+                                            color: context.col.textSecondary,
                                           ),
                                         ),
                                       ],
@@ -314,7 +315,7 @@ class _CarInfoCardState extends State<CarInfoCard> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: kSpaceXL, vertical: kSpaceLG),
         decoration: BoxDecoration(
-          color: kWhite,
+          color: context.col.surface,
           borderRadius: BorderRadius.circular(kRadiusLG),
           boxShadow: [kShadowSM],
         ),
@@ -338,28 +339,28 @@ class _CarInfoCardState extends State<CarInfoCard> {
                               children: [
                                 Text(
                                   widget.licensePlate,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
-                                    color: kBlack,
+                                    color: context.col.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(width: kSpaceSM),
                                 Text(
                                   widget.carModel,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
-                                    color: kGrey,
+                                    color: context.col.textSecondary,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
                             ),
                             Text(
-                              '${widget.currentSpeed}',
-                              style: const TextStyle(
+                              widget.currentSpeed,
+                              style: TextStyle(
                                 fontSize: 14,
-                                color: kGrey,
+                                color: context.col.textSecondary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),

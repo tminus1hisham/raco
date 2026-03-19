@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -68,7 +69,7 @@ class _InputFieldState extends State<InputField> {
             obscureText: widget.password ? _obscureText : false,
             readOnly: widget.readOnly,
             enabled: widget.isEnabled,
-            style: const TextStyle(color: kBlack, fontSize: 16),
+            style: TextStyle(color: context.col.textPrimary, fontSize: 16),
             onChanged: widget.onChanged,
             maxLines: widget.maxLines,
             controller: widget.controller,
@@ -79,11 +80,11 @@ class _InputFieldState extends State<InputField> {
                 : null,
             decoration: InputDecoration(
               hintText: widget.hintText,
-              hintStyle: const TextStyle(color: kGrey),
+              hintStyle: TextStyle(color: context.col.textSecondary),
               filled: true,
-              fillColor: kInputBg,
+              fillColor: context.col.inputFill,
               prefixIcon: widget.prefixIcon != null
-                  ? Icon(widget.prefixIcon, color: kGrey)
+                  ? Icon(widget.prefixIcon, color: context.col.textSecondary)
                   : null,
               suffixIcon: widget.password
                   ? IconButton(
@@ -91,7 +92,7 @@ class _InputFieldState extends State<InputField> {
                         _obscureText
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: kGrey,
+                        color: context.col.textSecondary,
                       ),
                       onPressed: () {
                         setState(() {

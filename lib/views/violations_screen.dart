@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/violations_controller.dart';
 import 'package:atom/models/playback_model.dart';
@@ -58,7 +59,6 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
       String fileName =
           "$safeName-${DateTime.now().millisecondsSinceEpoch}.pdf";
 
-      // Start downloading
       FileDownloader.downloadFile(
         url: url,
         name: fileName,
@@ -157,13 +157,14 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
       _selectedViolation ?? '',
     );
 
-    // Cache filtered violations once instead of recalculating in build
     setState(() {
       _filteredViolations = _violationsController.violations;
     });
   }
 
   Future<void> _pickStartDate(BuildContext context) async {
+    final col = context.col;
+    final isDark = context.isDark;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _startDate ?? DateTime.now(),
@@ -172,12 +173,19 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: kBlue,
-              onPrimary: kWhite,
-              surface: kWhite,
-              onSurface: kBlack,
-            ),
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: kBlue,
+                    onPrimary: kWhite,
+                    surface: col.surface,
+                    onSurface: col.textPrimary,
+                  )
+                : ColorScheme.light(
+                    primary: kBlue,
+                    onPrimary: kWhite,
+                    surface: col.surface,
+                    onSurface: col.textPrimary,
+                  ),
           ),
           child: child!,
         );
@@ -203,6 +211,8 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
   }
 
   Future<void> _pickEndDate(BuildContext context) async {
+    final col = context.col;
+    final isDark = context.isDark;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _endDate ?? DateTime.now(),
@@ -211,12 +221,19 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: kBlue,
-              onPrimary: kWhite,
-              surface: kWhite,
-              onSurface: kBlack,
-            ),
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: kBlue,
+                    onPrimary: kWhite,
+                    surface: col.surface,
+                    onSurface: col.textPrimary,
+                  )
+                : ColorScheme.light(
+                    primary: kBlue,
+                    onPrimary: kWhite,
+                    surface: col.surface,
+                    onSurface: col.textPrimary,
+                  ),
           ),
           child: child!,
         );
@@ -240,47 +257,48 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
     }
   }
 
-  Widget _buildDropdownButton() {
-    return Container(
+  Widget _buildDropdownButton(AppColors col) {
+    return SizedBox(
       height: 70,
       width: double.infinity,
       child: Material(
-        color: kWhite,
+        color: col.surface,
         borderRadius: BorderRadius.circular(kRadiusMD),
         elevation: 2,
-        shadowColor: kBlack.withValues(alpha:0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(kRadiusMD),
             border: Border.all(
               color: _selectedViolation != null
-                  ? kBlue.withValues(alpha:0.3)
-                  : kGrey.withValues(alpha:0.2),
+                  ? kBlue.withValues(alpha: 0.3)
+                  : col.border.withValues(alpha: 0.5),
               width: 1.5,
             ),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _selectedViolation,
+              dropdownColor: col.surface,
               hint: Text(
                 "Violation Type",
                 style: TextStyle(
                   fontSize: 14,
-                  color: kGrey,
+                  color: col.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               isExpanded: true,
-              icon: Icon(Icons.keyboard_arrow_down, color: kLightGrey),
+              icon: Icon(Icons.keyboard_arrow_down, color: col.border),
               items: _violationOptions.map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(
                     value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: kBlack,
+                      color: col.textPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -299,19 +317,20 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
   }
 
   Widget _buildDatePickerButton({
+    required AppColors col,
     required String label,
     required DateTime? selectedDate,
     required VoidCallback onTap,
     required IconData icon,
   }) {
     return Expanded(
-      child: Container(
+      child: SizedBox(
         height: 70,
         child: Material(
-          color: kWhite,
+          color: col.surface,
           borderRadius: BorderRadius.circular(kRadiusMD),
           elevation: 2,
-          shadowColor: kBlack.withValues(alpha:0.1),
+          shadowColor: Colors.black.withValues(alpha: 0.1),
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(kRadiusMD),
@@ -321,8 +340,8 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                 borderRadius: BorderRadius.circular(kRadiusMD),
                 border: Border.all(
                   color: selectedDate != null
-                      ? kBlue.withValues(alpha:0.3)
-                      : kGrey.withValues(alpha:0.2),
+                      ? kBlue.withValues(alpha: 0.3)
+                      : col.border.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
               ),
@@ -330,7 +349,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                 children: [
                   Icon(
                     icon,
-                    color: selectedDate != null ? kBlue : kGrey,
+                    color: selectedDate != null ? kBlue : col.textSecondary,
                     size: 20,
                   ),
                   const SizedBox(width: 12),
@@ -343,7 +362,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                           label,
                           style: TextStyle(
                             fontSize: 12,
-                            color: kGrey,
+                            color: col.textSecondary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -355,8 +374,8 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             color: selectedDate != null
-                                ? kBlack
-                                : kGrey,
+                                ? col.textPrimary
+                                : col.textSecondary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -365,7 +384,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                   ),
                   Icon(
                     Icons.keyboard_arrow_down,
-                    color: kLightGrey,
+                    color: col.border,
                     size: 20,
                   ),
                 ],
@@ -377,16 +396,16 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
     );
   }
 
-  Widget _buildViolationCard(DeviceRecord v) {
+  Widget _buildViolationCard(DeviceRecord v, AppColors col) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: kWhite,
+        color: col.surface,
         borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [
           BoxShadow(
-            color: kBlack.withValues(alpha:0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -395,7 +414,6 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Violation date + type + location
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -403,15 +421,14 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                 v.createdAt != null
                     ? _dateFormat.format(v.createdAt!)
                     : "Unknown Date",
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: kBlack,
+                  color: col.textPrimary,
                 ),
               ),
               const SizedBox(height: 4),
 
-              // ✅ Clickable Location
               InkWell(
                 onTap: () async {
                   final lat = v.lt;
@@ -433,7 +450,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                       size: 16,
                     ),
                     const SizedBox(width: 4),
-                    Text(
+                    const Text(
                       "Open Location",
                       style: TextStyle(
                         fontSize: 15,
@@ -448,7 +465,6 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
             ],
           ),
 
-          // Speed if applicable
           if (_selectedViolation == "Speed Violations")
             Text(
               "${v.spd} km/h",
@@ -457,10 +473,8 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                 fontWeight: FontWeight.bold,
                 color:
                     v.spd != null && double.tryParse(v.spd.toString()) != null
-                    ? (double.parse(v.spd.toString()) > 80
-                          ? kRed
-                          : kBlue)
-                    : kGrey,
+                    ? (double.parse(v.spd.toString()) > 80 ? kRed : kBlue)
+                    : col.textSecondary,
               ),
             ),
         ],
@@ -470,8 +484,9 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -489,6 +504,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
               child: Row(
                 children: [
                   _buildDatePickerButton(
+                    col: col,
                     label: 'Start Date',
                     selectedDate: _startDate,
                     onTap: () => _pickStartDate(context),
@@ -496,6 +512,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                   ),
                   const SizedBox(width: 12),
                   _buildDatePickerButton(
+                    col: col,
                     label: 'End Date',
                     selectedDate: _endDate,
                     onTap: () => _pickEndDate(context),
@@ -507,7 +524,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 15),
-              child: _buildDropdownButton(),
+              child: _buildDropdownButton(col),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
@@ -516,7 +533,6 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
 
                 return Row(
                   children: [
-                    // Get Violations Button
                     Expanded(
                       child: CustomButton(
                         callBackFunction: _getViolations,
@@ -527,7 +543,6 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                     ),
                     const SizedBox(width: 8),
 
-                    // Download Button (only show when URL is available)
                     if (url != null && url.isNotEmpty)
                       Expanded(
                         child: CustomButton(
@@ -535,7 +550,8 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                             setState(() => isDownloading = true);
                             try {
                               final path =
-                                  await ViolationsPdfService.generateAndSaveReportPdf(
+                                  await ViolationsPdfService
+                                      .generateAndSaveReportPdf(
                                     _violationsController.violations,
                                     widget.numberPlate,
                                     _selectedViolation!,
@@ -578,7 +594,6 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
               }),
             ),
 
-            // Content area
             Expanded(
               child: Obx(() {
                 if (_violationsController.isLoading.value || isDownloading) {
@@ -594,7 +609,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                   return Center(
                     child: Text(
                       "No violations found",
-                      style: TextStyle(color: kGrey),
+                      style: TextStyle(color: col.textSecondary),
                     ),
                   );
                 }
@@ -609,10 +624,10 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                       ),
                       child: Text(
                         "Total Violations: ${_filteredViolations.length}",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: kBlack,
+                          color: col.textPrimary,
                         ),
                       ),
                     ),
@@ -620,7 +635,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                       child: ListView.builder(
                         itemCount: _filteredViolations.length,
                         itemBuilder: (context, index) =>
-                            _buildViolationCard(_filteredViolations[index]),
+                            _buildViolationCard(_filteredViolations[index], col),
                       ),
                     ),
                   ],

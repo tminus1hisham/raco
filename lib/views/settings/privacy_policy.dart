@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -7,8 +8,9 @@ class PrivacyPolicy extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,23 +34,25 @@ class PrivacyPolicy extends StatelessWidget {
                     children: [
                       const SizedBox(height: 16),
 
-                      const Text(
+                      Text(
                         "Our Privacy Policy",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: col.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         "Effective Date: 30/10/2025\nLast Updated: 10/11/2025",
-                        style: TextStyle(fontSize: 14, color: kGrey),
+                        style: TextStyle(fontSize: 14, color: col.textSecondary),
                       ),
                       const SizedBox(height: 20),
 
-                      const Text(
-                        "ATOMIOT (“we,” “our,” or “us”) operates the Eagles Eye mobile and web application (“the App”) to help fleet managers monitor vehicle speed, performance, and driver behavior. This Privacy Policy explains how we collect, use, protect, and share your information when you use our app and services.",
-                        style: TextStyle(fontSize: 14, height: 1.5),
+                      Text(
+                        "ATOMIOT (\"we,\" \"our,\" or \"us\") operates the Eagles Eye mobile and web application (\"the App\") to help fleet managers monitor vehicle speed, performance, and driver behavior. This Privacy Policy explains how we collect, use, protect, and share your information when you use our app and services.",
+                        style: TextStyle(
+                            fontSize: 14, height: 1.5, color: col.textPrimary),
                       ),
 
                       const SizedBox(height: 24),
@@ -166,44 +170,47 @@ class PrivacyPolicy extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: kDivider,
+                          color: col.divider,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text(
                               "Contact Us",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
+                                color: col.textPrimary,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               "For privacy concerns or questions, contact us at:",
-                              style: TextStyle(fontSize: 16),
+                              style: TextStyle(
+                                  fontSize: 16, color: col.textPrimary),
                             ),
-                            SizedBox(height: 8),
-                            Text(
+                            const SizedBox(height: 8),
+                            const Text(
                               "Email: info@atomiot.live",
                               style: TextStyle(
                                 fontSize: 16,
                                 color: kBlue,
                               ),
                             ),
-                            SizedBox(height: 8),
-                            Text(
+                            const SizedBox(height: 8),
+                            const Text(
                               "Phone: +254 798 032 158",
                               style: TextStyle(
                                 fontSize: 16,
                                 color: kBlue,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               "Nairobi, Kenya",
-                              style: TextStyle(fontSize: 16),
+                              style: TextStyle(
+                                  fontSize: 16, color: col.textPrimary),
                             ),
                           ],
                         ),
