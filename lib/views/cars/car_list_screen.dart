@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/widgets/cards/car_info_card.dart';
@@ -25,8 +26,9 @@ class _CarListScreenState extends State<CarListScreen> {
   Widget build(BuildContext context) {
     final devices = widget.devices;
 
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -43,11 +45,11 @@ class _CarListScreenState extends State<CarListScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.directions_car, color: kGrey, size: 40),
+                          Icon(Icons.directions_car, color: col.textSecondary, size: 40),
                           const SizedBox(height: 10),
                           Text(
                             "No devices found",
-                            style: TextStyle(color: kGrey, fontSize: 18),
+                            style: TextStyle(color: col.textSecondary, fontSize: 18),
                           ),
                         ],
                       ),
@@ -67,7 +69,7 @@ class _CarListScreenState extends State<CarListScreen> {
                               ? kSuccessGreen
                               : kRed,
                           statusBackgroundColor: device.isDeviceOnline
-                              ? const Color(0xFFE8F5E8)
+                              ? kSuccessGreen.withValues(alpha: 0.1)
                               : kRed.withValues(alpha: 0.1),
                           currentSpeed: "${device.speed} km/h",
                           topSpeed: "",

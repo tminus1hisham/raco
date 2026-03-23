@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -22,8 +25,9 @@ class TechnicianHomeScreen extends StatefulWidget {
 class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -68,6 +72,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final col = context.col;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -75,7 +80,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
         borderRadius: BorderRadius.circular(kRadiusPill),
         child: Container(
           decoration: BoxDecoration(
-            color: kWhite,
+            color: col.surface,
             borderRadius: BorderRadius.circular(kRadiusPill),
             boxShadow: [
               BoxShadow(
@@ -103,7 +108,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: kBlack,
+                  color: col.textPrimary,
                 ),
               ),
             ],
@@ -376,10 +381,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   Future<void> _initializeBluetooth() async {
     try {
-      // Initialize both packages
       await _bluetoothClassic.initPermissions();
 
-      // Check Bluetooth status using serial package (more reliable)
       bool isSupported = await _bluetoothSerial.isBluetoothSupported();
       if (!isSupported) {
         _showError('Bluetooth is not supported on this device');
@@ -395,11 +398,120 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         _setupSerialListeners();
         await _loadPairedDevices();
       } else {
-        _showError('Please enable Bluetooth to continue');
+        if (mounted) _showBluetoothDisabledDialog();
       }
     } catch (e) {
       _showError('Initialization error: $e');
     }
+  }
+
+  void _showBluetoothDisabledDialog() {
+    final col = context.col;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadiusLG),
+        ),
+        backgroundColor: col.surface,
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: kBlue.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.bluetooth_disabled_rounded,
+                  size: 36,
+                  color: kBlue,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Bluetooth is Off',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: col.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Turn on Bluetooth to discover and connect to ATOM devices.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: col.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.settings_rounded, size: 18),
+                  label: const Text('Open Settings'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kBlue,
+                    foregroundColor: kWhite,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(kRadiusMD),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _openBluetoothSettings();
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Retry'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: kBlue,
+                    side: const BorderSide(color: kBlue, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(kRadiusMD),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _initializeBluetooth();
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openBluetoothSettings() async {
+    try {
+      final Uri uri;
+      if (Platform.isIOS) {
+        uri = Uri.parse('App-prefs:Bluetooth');
+      } else {
+        // Android: open general wireless/connectivity settings
+        uri = Uri.parse('android.settings.BLUETOOTH_SETTINGS');
+      }
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
   }
 
   Future<void> _saveCompany() async {
@@ -530,6 +642,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   Future<void> _startScanning() async {
     if (_isScanning) return;
+    if (!_isBluetoothEnabled) {
+      _showBluetoothDisabledDialog();
+      return;
+    }
 
     setState(() {
       _isScanning = true;
@@ -930,7 +1046,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         'Calibrated Frequency:',
                         style: TextStyle(
                           fontSize: 12,
-                          color: kGrey,
+                          color: context.col.textSecondary,
                         ),
                       ),
                     ],
@@ -950,7 +1066,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
             SizedBox(height: 8),
             Text(
               'What would you like to do next?',
-              style: TextStyle(fontSize: 12, color: kGrey),
+              style: TextStyle(fontSize: 12, color: context.col.textSecondary),
             ),
           ],
         ),
@@ -968,7 +1084,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         ],
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kRadiusLG)),
         elevation: 8,
-        backgroundColor: kWhite,
+        backgroundColor: context.col.surface,
       ),
     );
   }
@@ -1113,7 +1229,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         Text(
                           'Selected Frequency',
                           style: TextStyle(
-                            color: kGrey,
+                            color: context.col.textSecondary,
                             fontSize: 14,
                           ),
                         ),
@@ -1130,7 +1246,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         Text(
                           'Derived from device data',
                           style: TextStyle(
-                            color: kGrey,
+                            color: context.col.textSecondary,
                             fontSize: 12,
                           ),
                         ),
@@ -1240,7 +1356,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
                   Text(
                     'Adjust frequency (${MIN_FREQUENCY}-${MAX_FREQUENCY}Hz, 1Hz steps)',
-                    style: TextStyle(color: kGrey, fontSize: 12),
+                    style: TextStyle(color: context.col.textSecondary, fontSize: 12),
                   ),
 
                   Padding(
@@ -1355,7 +1471,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         Text(
                           'Speed calibration is complete. You can now calibrate the fuel sensor.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: kGrey),
+                          style: TextStyle(color: context.col.textSecondary),
                         ),
                       ],
                     ),
@@ -1650,11 +1766,12 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   Widget _buildDeviceCard(bt_device.Device device, bool isConnected) {
     final deviceName = device.name ?? 'Unknown Device';
     final isConnecting = _connectingDevices[device.address] == true;
+    final col = context.col;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: kWhite,
+        color: col.surface,
         borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [
           BoxShadow(
@@ -1684,13 +1801,13 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           deviceName,
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: isConnected ? kBlue : kBlack,
+            color: isConnected ? kBlue : col.textPrimary,
           ),
         ),
         subtitle: Text(
           device.address,
           style: TextStyle(
-            color: kGrey,
+            color: col.textSecondary,
             fontSize: 12,
             fontFamily: 'Monospace',
           ),
@@ -1927,9 +2044,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                               _filteredCompanies.isNotEmpty)
                             Container(
                               decoration: BoxDecoration(
-                                color: kWhite,
+                                color: context.col.surface,
                                 borderRadius: BorderRadius.circular(kRadiusSM),
-                                border: Border.all(color: kLightGrey),
+                                border: Border.all(color: context.col.border),
                                 boxShadow: [
                                   BoxShadow(
                                     color: kBlack.withValues(alpha:0.1),
@@ -1986,7 +2103,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                                   company['phone']!,
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    color: kGrey,
+                                                    color: context.col.textSecondary,
                                                   ),
                                                 ),
                                               ),
@@ -2001,7 +2118,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                                   company['email']!,
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    color: kGrey,
+                                                    color: context.col.textSecondary,
                                                   ),
                                                 ),
                                               ),
@@ -2021,16 +2138,16 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                             Container(
                               padding: EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: kBgGrey,
+                                color: context.col.inputFill,
                                 borderRadius: BorderRadius.circular(kRadiusSM),
-                                border: Border.all(color: kDivider),
+                                border: Border.all(color: context.col.divider),
                               ),
                               margin: EdgeInsets.only(top: 4),
                               child: Text(
                                 'No existing company found with "$_companySearchQuery". You can enter a new company.',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: kGrey,
+                                  color: context.col.textSecondary,
                                 ),
                               ),
                             ),
@@ -2304,7 +2421,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           child: Text(
                             'Populated from device data',
                             style: TextStyle(
-                              color: kGrey,
+                              color: context.col.textSecondary,
                               fontSize: 12,
                             ),
                           ),
@@ -2522,56 +2639,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   @override
   @override
   Widget build(BuildContext context) {
-    if (!_isBluetoothEnabled) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text("Connect Device"),
-          backgroundColor: kBlue,
-          foregroundColor: kWhite,
-          elevation: 0,
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.bluetooth_disabled,
-                size: 64,
-                color: kGrey,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Bluetooth Disabled',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: kGrey,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Please enable Bluetooth to scan for devices',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: kGrey),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _initializeBluetooth,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kBlue,
-                  foregroundColor: kWhite,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                ),
-                child: const Text('Enable Bluetooth'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+    final col = context.col;
 
     return Stack(
       children: [
@@ -2687,7 +2755,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: kWhite,
+                          color: col.surface,
                           borderRadius: BorderRadius.circular(kRadiusMD),
                           boxShadow: [
                             BoxShadow(
@@ -2887,7 +2955,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                 Expanded(
                   child: Container(
                     decoration:  BoxDecoration(
-                      color: kWhite,
+                      color: col.surface,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(30),
                         topRight: Radius.circular(30),
@@ -2923,7 +2991,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                     '${_devices.length} device(s) found',
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: kGrey,
+                                      color: col.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -2956,14 +3024,14 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                       Icon(
                                         Icons.bluetooth_disabled,
                                         size: 80,
-                                        color: kLightGrey,
+                                        color: col.textSecondary,
                                       ),
                                       const SizedBox(height: 20),
                                       Text(
                                         'No Atom Speed devices found',
                                         style: TextStyle(
                                           fontSize: 18,
-                                          color: kGrey,
+                                          color: col.textSecondary,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -2972,7 +3040,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                         'Tap the scan button to discover nearby devices',
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: kLightGrey,
+                                          color: col.textSecondary,
                                         ),
                                         textAlign: TextAlign.center,
                                       ),

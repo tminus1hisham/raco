@@ -515,6 +515,24 @@ class ApiService {
     }
   }
 
+  static Future<bool> sendEngineCommand(String numberPlate, bool start) async {
+    try {
+      final String token = await StorageService.getData('access_token');
+      final response = await http.post(
+        Uri.parse('$base_url/devices/engine/${start ? 'start' : 'stop'}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'numberPlate': numberPlate}),
+      );
+      _handleAuthError(response.statusCode);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<Map<String, dynamic>> registerDevice(
     Map<String, dynamic> deviceData,
   ) async {

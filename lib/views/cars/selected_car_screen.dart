@@ -1,5 +1,6 @@
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
+import 'package:atom/services/api_service.dart';
 import 'package:atom/controllers/renew_certificate_controller.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/routes/routes.dart';
@@ -41,6 +42,8 @@ class SelectedCarScreen extends StatefulWidget {
 class _SelectedCarScreenState extends State<SelectedCarScreen> {
   final _utils = Utils();
   final TextEditingController _phoneNumberController = TextEditingController();
+  bool _engineToggling = false;
+  bool? _localEngineOn; // optimistic local state while API request is in flight
 
   @override
   void initState() {
@@ -51,6 +54,12 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
   final RenewCertificateController _controller = Get.put(
     RenewCertificateController(),
   );
+
+  @override
+  void dispose() {
+    _phoneNumberController.dispose();
+    super.dispose();
+  }
 
   void fetchPhoneNumber() async {
     final savedPhone = await StorageService.getData('phone');
@@ -70,6 +79,41 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
       return parsedDate.isBefore(now) || parsedDate.isAtSameMomentAs(now);
     } catch (e) {
       return true;
+    }
+  }
+
+  Future<void> _toggleEngine(bool turnOn) async {
+    if (_engineToggling) return;
+    setState(() {
+      _engineToggling = true;
+      _localEngineOn = turnOn;
+    });
+    try {
+      final success = await ApiService.sendEngineCommand(
+        widget.devices.numberPlate,
+        turnOn,
+      );
+      if (!success && mounted) {
+        setState(() => _localEngineOn = !turnOn);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to ${turnOn ? 'start' : 'stop'} engine. Please try again.'),
+            backgroundColor: kRed,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _localEngineOn = !turnOn);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Network error. Please check your connection.'),
+            backgroundColor: kRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _engineToggling = false);
     }
   }
 
@@ -312,17 +356,27 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
   @override
   Widget build(BuildContext context) {
     final col = context.col;
-    bool isVehicleActive = widget.devices.ignitionStatus == 0;
+    final isVehicleActive = _localEngineOn ?? (widget.devices.ignitionStatus == 0);
+    final isOnline = widget.devices.isDeviceOnline;
+    final isCertificateExpired = _isCertificateExpired(
+      widget.devices.certificateExpirey,
+    );
+    final signalStrength = "${widget.devices.signalStrength}%";
+    final vehicleSpeed = "${widget.devices.speed} km/h";
+    final vehicleLocation = widget.devices.location.trim().isEmpty
+        ? "Location unavailable"
+        : widget.devices.location;
+
     return Obx(
       () => Scaffold(
         backgroundColor: col.bg,
         body: Stack(
           children: [
             SafeArea(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 24),
                 children: [
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   customHeader(
                     label: widget.licensePlate,
                     icon: Icons.drive_eta_rounded,
@@ -331,278 +385,261 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                       Navigator.pop(context);
                     },
                   ),
-                  Expanded(
-                    child: ListView(
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(height: 16),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Quick Actions',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: col.textSecondary,
-                                    ),
-                                  ),
-                                  StatefulBuilder(
-                                    builder: (context, setModalState) {
-                                      return Row(
-                                        children: [
-                                          Text(
-                                            isVehicleActive
-                                                ? "ENGINE ON"
-                                                : " ENGINE OFF",
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              color: isVehicleActive
-                                                  ? kSuccessGreen
-                                                  : col.textSecondary,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          SizedBox(width: 10),
-                                          Switch(
-                                            value: isVehicleActive,
-                                            onChanged: (bool value) {},
-                                            activeColor: kSuccessGreen,
-                                            activeTrackColor: kSuccessGreen
-                                                .withValues(alpha: 0.3),
-                                            inactiveThumbColor:
-                                                col.textSecondary,
-                                            inactiveTrackColor: col.textSecondary
-                                                .withValues(alpha: 0.3),
-                                          ),
-                                        ],
+                        _buildVehicleHeroCard(
+                          isOnline: isOnline,
+                          isVehicleActive: isVehicleActive,
+                          isCertificateExpired: isCertificateExpired,
+                          signalStrength: signalStrength,
+                          vehicleSpeed: vehicleSpeed,
+                          vehicleLocation: vehicleLocation,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildEngineControlCard(col, isVehicleActive),
+                        const SizedBox(height: 24),
+                        _buildSectionHeader(
+                          col: col,
+                          title: 'Quick Actions',
+                          subtitle: 'Shortcuts for the things you use most',
+                        ),
+                        const SizedBox(height: 16),
+                        Column(
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildQuickActionButton(
+                                    col: col,
+                                    title: 'Vehicle Safety',
+                                    description: 'Driving behaviour and safety trends',
+                                    icon: Icons.safety_check_outlined,
+                                    color: kSuccessGreen,
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => DriverBehaviour(),
+                                        ),
                                       );
                                     },
                                   ),
-                                ],
-                              ),
-                              SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildQuickActionButton(
-                                      col: col,
-                                      title: 'Vehicle Safety',
-                                      icon: Icons.safety_check_outlined,
-                                      color: kSuccessGreen,
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                DriverBehaviour(),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-
-                                  SizedBox(width: 12),
-                                  Expanded(
-                                    child: _buildQuickActionButton(
-                                      col: col,
-                                      title: 'Location History',
-                                      icon: Icons.route,
-                                      color: kBlue,
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                PlaybackScreen(
-                                                  numberPlate: widget
-                                                      .devices
-                                                      .numberPlate,
-                                                ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  SizedBox(width: 12),
-                                  Expanded(
-                                    child: _buildQuickActionButton(
-                                      col: col,
-                                      title: 'Violations',
-                                      icon: Icons.warning_amber,
-                                      color: kRed,
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                ViolationsScreen(
-                                                  numberPlate: widget
-                                                      .devices
-                                                      .numberPlate,
-                                                ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'Vehicle Management',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: col.textSecondary,
                                 ),
-                              ),
-                              SizedBox(height: 16),
-                              _buildSettingsCard(
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildQuickActionButton(
+                                    col: col,
+                                    title: 'Location History',
+                                    description: 'Replay routes and recent movement',
+                                    icon: Icons.route,
+                                    color: kBlue,
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => PlaybackScreen(
+                                            numberPlate: widget.devices.numberPlate,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildQuickActionButton(
+                                    col: col,
+                                    title: 'Violations',
+                                    description: 'Review alerts and risk events',
+                                    icon: Icons.warning_amber_rounded,
+                                    color: kRed,
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ViolationsScreen(
+                                            numberPlate: widget.devices.numberPlate,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildQuickActionButton(
+                                    col: col,
+                                    title: 'Live Location',
+                                    description: 'Open the latest position on the map',
+                                    icon: Icons.my_location_rounded,
+                                    color: Colors.orange,
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => VehicleLocationScreen(
+                                            deviceId: widget.devices.deviceId,
+                                            latitude:
+                                                double.tryParse(widget.devices.latitude) ??
+                                                0.0,
+                                            longitude:
+                                                double.tryParse(widget.devices.longitude) ??
+                                                0.0,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        _buildSectionHeader(
+                          col: col,
+                          title: 'Vehicle Management',
+                          subtitle: 'Configuration, monitoring and reporting',
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSettingsCard(
+                          col: col,
+                          child: Column(
+                            children: [
+                              _buildCommandItem(
                                 col: col,
-                                child: Column(
-                                  children: [
-                                    _buildCommandItem(
-                                      col: col,
-                                      showBanner: false,
-                                      title: 'Details',
-                                      subtitle:
-                                          "View detailed information of the vehicle.",
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                VehicleDetails(
-                                                  vehiclePlate:
-                                                      widget.licensePlate,
-                                                  device: widget.devices,
-                                                ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    _buildDivider(col),
-                                    _buildCommandItem(
-                                      col: col,
-                                      showBanner: false,
-                                      title: 'Commands',
-                                      subtitle:
-                                          "View all the commands of a vehicle.",
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => Commands(),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    _buildDivider(col),
-                                    _buildCommandItem(
-                                      col: col,
-                                      showBanner: false,
-                                      title: 'Command History',
-                                      subtitle:
-                                          "View all the commands actioned.",
-                                      onTap: () {
-                                        Navigator.pushNamed(
-                                          context,
-                                          AppRoutes.commandHistory,
-                                        );
-                                      },
-                                    ),
-                                    _buildDivider(col),
-                                    _buildCommandItem(
-                                      col: col,
-                                      showBanner: false,
-                                      title: 'Geo Fence',
-                                      subtitle:
-                                          "Set a radius where your car to operate.",
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                GeofencingScreen(
-                                                  numberPlate:
-                                                      widget.licensePlate,
-                                                ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    _buildDivider(col),
-                                    _buildCommandItem(
-                                      col: col,
-                                      showBanner: false,
-                                      title: 'View Live Location',
-                                      subtitle:
-                                          "See the vehicle live location.",
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                VehicleLocationScreen(
-                                                  deviceId:
-                                                      widget.devices.deviceId,
-                                                  latitude:
-                                                      double.tryParse(
-                                                        widget.devices.latitude,
-                                                      ) ??
-                                                      0.0,
-                                                  longitude:
-                                                      double.tryParse(
-                                                        widget
-                                                            .devices
-                                                            .longitude,
-                                                      ) ??
-                                                      0.0,
-                                                ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    _buildDivider(col),
-                                    _buildCommandItem(
-                                      col: col,
-                                      showBanner: false,
-                                      title: 'Reports',
-                                      subtitle: "See all the reports.",
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => ReportsScreen(
-                                              numberPlate: widget.licensePlate,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    _buildDivider(col),
-                                    _buildCommandItem(
-                                      col: col,
-                                      showBanner: _isCertificateExpired(
-                                        widget.devices.certificateExpirey,
+                                icon: Icons.info_outline_rounded,
+                                showBanner: false,
+                                title: 'Details',
+                                subtitle:
+                                    "View detailed information of the vehicle.",
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => VehicleDetails(
+                                        vehiclePlate: widget.licensePlate,
+                                        device: widget.devices,
                                       ),
-                                      title: 'Certificate',
-                                      subtitle:
-                                          'Expiry: ${_utils.formatDate(widget.devices.certificateExpirey)}',
-                                      onTap: () {
-                                        _showPlanBottomSheet(context);
-                                      },
                                     ),
-                                  ],
-                                ),
+                                  );
+                                },
                               ),
-                              SizedBox(height: 24),
+                              _buildDivider(col),
+                              _buildCommandItem(
+                                col: col,
+                                icon: Icons.tune_rounded,
+                                showBanner: false,
+                                title: 'Commands',
+                                subtitle: "View all the commands of a vehicle.",
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => Commands(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildDivider(col),
+                              _buildCommandItem(
+                                col: col,
+                                icon: Icons.history_toggle_off_rounded,
+                                showBanner: false,
+                                title: 'Command History',
+                                subtitle: "View all the commands actioned.",
+                                onTap: () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    AppRoutes.commandHistory,
+                                  );
+                                },
+                              ),
+                              _buildDivider(col),
+                              _buildCommandItem(
+                                col: col,
+                                icon: Icons.gps_fixed_rounded,
+                                showBanner: false,
+                                title: 'Geo Fence',
+                                subtitle:
+                                    "Set a radius where your car to operate.",
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => GeofencingScreen(
+                                        numberPlate: widget.licensePlate,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildDivider(col),
+                              _buildCommandItem(
+                                col: col,
+                                icon: Icons.place_outlined,
+                                showBanner: false,
+                                title: 'View Live Location',
+                                subtitle: "See the vehicle live location.",
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => VehicleLocationScreen(
+                                        deviceId: widget.devices.deviceId,
+                                        latitude:
+                                            double.tryParse(widget.devices.latitude) ??
+                                            0.0,
+                                        longitude:
+                                            double.tryParse(
+                                                  widget.devices.longitude,
+                                                ) ??
+                                                0.0,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildDivider(col),
+                              _buildCommandItem(
+                                col: col,
+                                icon: Icons.bar_chart_rounded,
+                                showBanner: false,
+                                title: 'Reports',
+                                subtitle: "See all the reports.",
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ReportsScreen(
+                                        numberPlate: widget.licensePlate,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildDivider(col),
+                              _buildCommandItem(
+                                col: col,
+                                icon: Icons.verified_outlined,
+                                showBanner: isCertificateExpired,
+                                title: 'Certificate',
+                                subtitle:
+                                    'Expiry: ${_utils.formatDate(widget.devices.certificateExpirey)}',
+                                onTap: () {
+                                  _showPlanBottomSheet(context);
+                                },
+                              ),
                             ],
                           ),
                         ),
@@ -624,6 +661,72 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEngineControlCard(AppColors col, bool isEngineOn) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: col.surface,
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        boxShadow: [kShadowSM],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: (isEngineOn ? kSuccessGreen : kRed).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isEngineOn ? Icons.power_rounded : Icons.power_off_rounded,
+              color: isEngineOn ? kSuccessGreen : kRed,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Engine Control',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: col.textPrimary,
+                  ),
+                ),
+                Text(
+                  isEngineOn ? 'Engine is currently running' : 'Engine is currently off',
+                  style: TextStyle(fontSize: 13, color: col.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          if (_engineToggling)
+            const SizedBox(
+              width: 36,
+              height: 24,
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            Switch(
+              value: isEngineOn,
+              onChanged: _toggleEngine,
+              activeColor: kSuccessGreen,
+            ),
+        ],
       ),
     );
   }
@@ -650,8 +753,245 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     );
   }
 
+  Widget _buildVehicleHeroCard({
+    required bool isOnline,
+    required bool isVehicleActive,
+    required bool isCertificateExpired,
+    required String signalStrength,
+    required String vehicleSpeed,
+    required String vehicleLocation,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            kBlue,
+            kBlue.withValues(alpha: 0.82),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(kRadiusLG),
+        boxShadow: [kShadowMD],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: kWhite.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Icon(
+                  Icons.directions_car_filled_rounded,
+                  color: kWhite,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.carModel,
+                      style: const TextStyle(
+                        color: kWhite,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.devices.make.isNotEmpty
+                          ? widget.devices.make
+                          : "Tracked vehicle",
+                      style: TextStyle(
+                        color: kWhite.withValues(alpha: 0.82),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildStatusChip(
+                label: isOnline ? 'Online' : 'Offline',
+                color: isOnline ? kSuccessGreen : Colors.orange,
+              ),
+              _buildStatusChip(
+                label: isVehicleActive ? 'Engine On' : 'Engine Off',
+                color: isVehicleActive ? kSuccessGreen : Colors.white70,
+              ),
+              _buildStatusChip(
+                label: isCertificateExpired
+                    ? 'Certificate Expired'
+                    : 'Certificate Active',
+                color: isCertificateExpired ? const Color(0xFFFFC857) : kWhite,
+                textColor: isCertificateExpired ? kBlack : kBlue,
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: _buildInfoStat(
+                  label: 'Speed',
+                  value: vehicleSpeed,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildInfoStat(
+                  label: 'Signal',
+                  value: signalStrength,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: kWhite.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(kRadiusMD),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 2),
+                  child: Icon(
+                    Icons.location_on_outlined,
+                    color: kWhite,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    vehicleLocation,
+                    style: const TextStyle(
+                      color: kWhite,
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required AppColors col,
+    required String title,
+    required String subtitle,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.w700,
+            color: col.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 13,
+            color: col.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusChip({
+    required String label,
+    required Color color,
+    Color textColor = kWhite,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(kRadiusPill),
+        border: Border.all(
+          color: color.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoStat({
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: kWhite.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(kRadiusMD),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: kWhite.withValues(alpha: 0.72),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              color: kWhite,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCommandItem({
     required AppColors col,
+    required IconData icon,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
@@ -661,9 +1001,24 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: kBlue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: kBlue,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -728,6 +1083,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
   Widget _buildQuickActionButton({
     required AppColors col,
     required String title,
+    required String description,
     required IconData icon,
     required Color color,
     required VoidCallback onPressed,
@@ -735,30 +1091,46 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     return GestureDetector(
       onTap: onPressed,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: col.surface,
           borderRadius: BorderRadius.circular(kRadiusMD),
           boxShadow: [kShadowSM],
+          border: Border.all(
+            color: color.withValues(alpha: 0.12),
+          ),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(kRadiusSM),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(icon, color: color, size: 20),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               title,
               style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
                 color: col.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.35,
+                color: col.textSecondary,
               ),
             ),
           ],

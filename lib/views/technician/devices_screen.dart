@@ -1,3 +1,4 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/technician_device_controller.dart';
 import 'package:atom/views/cars/car_list_screen.dart';
@@ -23,8 +24,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
     return Obx(() {
       final devices = _controller.devicesModel.value?.devices ?? [];
 
+      final col = context.col;
       return Scaffold(
-        backgroundColor: kBgGrey,
+        backgroundColor: col.bg,
         body: SafeArea(
           child: Column(
             children: [
@@ -33,7 +35,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
               const SizedBox(height: 10),
               Container(
                 decoration: BoxDecoration(
-                  color: kBgGrey,
+                  color: col.bg,
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(10),
                     bottomRight: Radius.circular(10),
@@ -125,7 +127,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       status: device.isDeviceOnline ? "Online" : "Offline",
                       statusColor: device.isDeviceOnline ? kSuccessGreen : kRed,
                       statusBackgroundColor: device.isDeviceOnline
-                          ? const Color(0xFFE8F5E8)
+                          ? kSuccessGreen.withValues(alpha: 0.1)
                           : kRed.withValues(alpha: 0.1),
                       currentSpeed: "${device.speed} km/h",
                       topSpeed: "",
@@ -159,12 +161,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
     required Color color,
     required VoidCallback onPressed,
   }) {
+    final col = context.col;
     return GestureDetector(
       onTap: onPressed,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: kWhite,
+          color: col.surface,
           borderRadius: BorderRadius.circular(kRadiusMD),
           boxShadow: [kShadowSM],
         ),
@@ -189,7 +192,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: kBlack.withValues(alpha: 0.87),
+                      color: col.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -199,7 +202,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: kBlack.withValues(alpha: 0.54),
+                      color: col.textSecondary,
                     ),
                   ),
                 ],

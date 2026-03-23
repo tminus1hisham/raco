@@ -44,9 +44,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   DateTime? _endDate;
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
 
-  // Marker caches
+  // Marker
   Uint8List? _carMarkerIcon;
-  Map<double, Uint8List> _bearingMarkerCache = {};
+  double _currentBearing = 0.0;
 
   // Map readiness
   final Completer<void> _mapReadyCompleter = Completer<void>();
@@ -219,7 +219,8 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     );
 
     final bearing = _getCurrentBearing(history, 0);
-    final carImg = await _getCachedMarker(bearing);
+    _currentBearing = bearing;
+    _carMarkerIcon ??= await _createRotatedMarker('assets/blue_car.png', 0);
     _vehicleAnnotation = await _annotationManager!.create(
       PointAnnotationOptions(
         geometry: Point(
@@ -228,8 +229,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             double.parse(startRec.lt),
           ),
         ),
-        image: carImg,
-        iconSize: 0.5,
+        image: _carMarkerIcon!,
+        iconSize: 1.5,
+        iconRotate: bearing,
       ),
     );
 
@@ -250,11 +252,15 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     final lng = double.tryParse(rec.lg);
     if (lat == null || lng == null) return;
 
-    final bearing = _getCurrentBearing(history, index);
-    final img = await _getCachedMarker(bearing);
+    final targetBearing = _getCurrentBearing(history, index);
+
+    // Smooth shortest-path angular interpolation so the icon rotates
+    // gradually at corners rather than snapping to the new heading.
+    final diff = ((targetBearing - _currentBearing + 180) % 360) - 180;
+    _currentBearing = (_currentBearing + diff * 0.4 + 360) % 360;
 
     _vehicleAnnotation!.geometry = Point(coordinates: Position(lng, lat));
-    _vehicleAnnotation!.image = img;
+    _vehicleAnnotation!.iconRotate = _currentBearing;
     await _annotationManager!.update(_vehicleAnnotation!);
   }
 
@@ -413,19 +419,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   }
 
   Future<void> _loadCarMarker() async {
+    // Load a single north-facing bitmap; rotation is applied via iconRotate.
     _carMarkerIcon = await _createRotatedMarker('assets/blue_car.png', 0);
-    await _precacheCommonBearings();
     setState(() {});
-  }
-
-  Future<void> _precacheCommonBearings() async {
-    final bearings = [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0];
-    for (final bearing in bearings) {
-      _bearingMarkerCache[bearing] = await _createRotatedMarker(
-        'assets/blue_car.png',
-        bearing,
-      );
-    }
   }
 
   Future<Uint8List> _createRotatedMarker(
@@ -435,7 +431,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     final ByteData data = await rootBundle.load(assetPath);
     final ui.Codec codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
-      targetWidth: 70,
+      targetWidth: 120,
     );
     final ui.FrameInfo fi = await codec.getNextFrame();
     final originalImage = fi.image;
@@ -464,19 +460,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     final img = await picture.toImage(canvasSize, canvasSize);
     final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
     return bytes!.buffer.asUint8List();
-  }
-
-  Future<Uint8List> _getCachedMarker(double bearing) async {
-    final roundedBearing = (bearing / 45).round() * 45.0;
-    if (_bearingMarkerCache.containsKey(roundedBearing)) {
-      return _bearingMarkerCache[roundedBearing]!;
-    }
-    final marker = await _createRotatedMarker(
-      'assets/blue_car.png',
-      roundedBearing,
-    );
-    _bearingMarkerCache[roundedBearing] = marker;
-    return marker;
   }
 
   // ─── BEARING / IGNITION HELPERS ──────────────────────────────────────────
