@@ -4,6 +4,7 @@ import 'package:atom/controllers/fetch_geofence_controller.dart';
 import 'package:atom/controllers/geo_fence_controller.dart';
 import 'package:atom/models/geofence_model.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
+import 'package:atom/widgets/map/map_style_switcher.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -21,6 +22,7 @@ class GeofencingScreen extends StatefulWidget {
 
 class _GeofencingScreenState extends State<GeofencingScreen> {
   MapboxMap? mapboxMap;
+  String? _mapStyleUri;
   Point? selectedPoint;
   final GeoFenceController _geoFenceController = GeoFenceController();
   final FetchGeofenceController _fetchGeofenceController =
@@ -351,7 +353,11 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   }
 
   Widget _buildMap(bool isDark) {
-    return Container(
+    final styleUri =
+        _mapStyleUri ?? (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS);
+    return Stack(
+      children: [
+        Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -366,7 +372,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: MapWidget(
-          styleUri: isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS,
+          styleUri: styleUri,
           cameraOptions: CameraOptions(
             center:
                 selectedPoint ??
@@ -394,6 +400,17 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
           onTapListener: (context) => _onMapTap(context.point),
         ),
       ),
+        ),
+        Positioned(
+          top: 16,
+          right: 32,
+          child: MapStyleSwitcherButton(
+            mapboxMap: mapboxMap,
+            currentStyleUri: styleUri,
+            onStyleChanged: (uri) => setState(() => _mapStyleUri = uri),
+          ),
+        ),
+      ],
     );
   }
 

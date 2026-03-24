@@ -546,7 +546,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => Commands(),
+                                      builder: (context) => Commands(device: widget.devices),
                                     ),
                                   );
                                 },

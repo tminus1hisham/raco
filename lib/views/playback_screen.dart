@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:atom/config/app_theme.dart';
@@ -18,23 +16,27 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
+import '../widgets/map/map_style_switcher.dart';
 import '../widgets/modal/custom_alert.dart';
 
 class PlaybackScreen extends StatefulWidget {
   final String numberPlate;
 
-  PlaybackScreen({required this.numberPlate});
+  const PlaybackScreen({super.key, required this.numberPlate});
 
   @override
-  _PlaybackScreenState createState() => _PlaybackScreenState();
+  PlaybackScreenState createState() => PlaybackScreenState();
 }
 
-class _PlaybackScreenState extends State<PlaybackScreen> {
+class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderStateMixin {
   MapboxMap? _mapboxMap;
   final PlaybackController controller = Get.put(PlaybackController());
 
   Timer? _playbackTimer;
-  bool _isAnimatingCamera = false;
+  AnimationController? _markerAnimController;
+  Animation<double>? _markerAnimation;
+  Position? _lastPosition;
+  double _startLng = 0, _startLat = 0, _endLng = 0, _endLat = 0, _startBearing = 0, _endBearing = 0;
   int _currentIndex = 0;
   bool _isPlaying = false;
   double _playbackSpeed = 0.5;
@@ -59,8 +61,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   // Annotation layer management
   PointAnnotationManager? _annotationManager;
   PointAnnotation? _vehicleAnnotation;
-  static const String _routeSourceId = 'route-source';
-  static const String _routeLayerId = 'route-layer';
+  PolylineAnnotationManager? _polylineAnnotationManager;
 
   @override
   void initState() {
@@ -113,71 +114,30 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   Future<void> _drawRoute(List<DeviceRecord> history) async {
     if (_mapboxMap == null || history.isEmpty) return;
 
-    final coords = history
+    final lineCoords = history
         .where(
           (r) => double.tryParse(r.lg) != null && double.tryParse(r.lt) != null,
         )
-        .map((r) => [double.parse(r.lg), double.parse(r.lt)])
+        .map((r) => Position(double.parse(r.lg), double.parse(r.lt)))
         .toList();
 
-    if (coords.isEmpty) return;
+    if (lineCoords.isEmpty) return;
 
-    final geoJson = jsonEncode({
-      "type": "FeatureCollection",
-      "features": [
-        {
-          "type": "Feature",
-          "geometry": {"type": "LineString", "coordinates": coords},
-          "properties": {},
-        },
-      ],
-    });
+    _polylineAnnotationManager ??=
+        await _mapboxMap!.annotations.createPolylineAnnotationManager();
 
-    final sourceExists = await _mapboxMap!.style.styleSourceExists(
-      _routeSourceId,
+    try {
+      _polylineAnnotationManager?.deleteAll();
+    } catch (_) {}
+
+    await _polylineAnnotationManager!.create(
+      PolylineAnnotationOptions(
+        geometry: LineString(coordinates: lineCoords),
+        lineColor: 0xFF2563EB,
+        lineWidth: 3.5,
+        lineOpacity: 0.85,
+      ),
     );
-
-    if (sourceExists) {
-      await _mapboxMap!.style.setStyleSourceProperty(
-        _routeSourceId,
-        "data",
-        geoJson,
-      );
-    } else {
-      await _mapboxMap!.style.addSource(
-        GeoJsonSource(id: _routeSourceId, data: geoJson),
-      );
-
-      await _mapboxMap!.style.addLayer(
-        LineLayer(id: _routeLayerId, sourceId: _routeSourceId),
-      );
-
-      await _mapboxMap!.style.setStyleLayerProperty(
-        _routeLayerId,
-        "line-color",
-        "#2563EB",
-      );
-      await _mapboxMap!.style.setStyleLayerProperty(
-        _routeLayerId,
-        "line-width",
-        3.5,
-      );
-      await _mapboxMap!.style.setStyleLayerProperty(
-        _routeLayerId,
-        "line-opacity",
-        0.85,
-      );
-      await _mapboxMap!.style.setStyleLayerProperty(
-        _routeLayerId,
-        "line-cap",
-        "round",
-      );
-      await _mapboxMap!.style.setStyleLayerProperty(
-        _routeLayerId,
-        "line-join",
-        "round",
-      );
-    }
   }
 
   Future<void> _generateConditionalMarkers(List<DeviceRecord> history) async {
@@ -191,6 +151,8 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     _vehicleAnnotation = null;
     _annotationManager = await _mapboxMap!.annotations
         .createPointAnnotationManager();
+    await _annotationManager!.setIconRotationAlignment(IconRotationAlignment.MAP);
+    await _annotationManager!.setIconPitchAlignment(IconPitchAlignment.MAP);
 
     final startRec = history.first;
     final startImg = await _createStartMarker();
@@ -224,6 +186,10 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
     final bearing = _getCurrentBearing(history, 0);
     _currentBearing = bearing;
+    _lastPosition = Position(
+      double.parse(startRec.lg),
+      double.parse(startRec.lt),
+    );
     _carMarkerIcon ??= await _createRotatedMarker('assets/blue_car.png', 0);
     _vehicleAnnotation = await _annotationManager!.create(
       PointAnnotationOptions(
@@ -265,121 +231,98 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     }
   }
 
-  void _showStylePicker(BuildContext context, AppColors col) {
-    final activeUri = _mapStyleUri ??
-        (context.isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS);
-
-    final styleLabels = ['Streets', 'Satellite', 'Sat+Streets', 'Light', 'Dark'];
-    final styleUris = [
-      MapboxStyles.MAPBOX_STREETS,
-      MapboxStyles.SATELLITE,
-      MapboxStyles.SATELLITE_STREETS,
-      MapboxStyles.LIGHT,
-      MapboxStyles.DARK,
-    ];
-    final styleIcons = [
-      Icons.map_outlined,
-      Icons.satellite_alt_outlined,
-      Icons.layers_outlined,
-      Icons.light_mode_outlined,
-      Icons.dark_mode_outlined,
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: col.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (sheetCtx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Map Style',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: col.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(styleLabels.length, (i) {
-                final isActive = activeUri == styleUris[i];
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.pop(sheetCtx);
-                    _switchMapStyle(styleUris[i]);
-                  },
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? kBlue.withValues(alpha: 0.12)
-                              : col.inputFill,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isActive ? kBlue : col.border,
-                            width: isActive ? 2 : 1,
-                          ),
-                        ),
-                        child: Icon(
-                          styleIcons[i],
-                          color: isActive ? kBlue : col.textSecondary,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        styleLabels[i],
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isActive ? kBlue : col.textSecondary,
-                          fontWeight: isActive
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _updateVehicleMarker(
+  void _updateVehicleMarker(
     int index,
     List<DeviceRecord> history,
-  ) async {
+  ) {
     if (_vehicleAnnotation == null || _annotationManager == null) return;
     if (index < 0 || index >= history.length) return;
 
     final rec = history[index];
     final lat = double.tryParse(rec.lt);
     final lng = double.tryParse(rec.lg);
-    if (lat == null || lng == null) return;
+    if (lat == null || lng == null) {
+      if (_isPlaying) Future.microtask(() => _playNextSegment(history));
+      return;
+    }
 
     final targetBearing = _getCurrentBearing(history, index);
+    final newPosition = Position(lng, lat);
 
     // Smooth shortest-path angular interpolation so the icon rotates
     // gradually at corners rather than snapping to the new heading.
     final diff = ((targetBearing - _currentBearing + 180) % 360) - 180;
-    _currentBearing = (_currentBearing + diff * 0.4 + 360) % 360;
+    final newBearing = (_currentBearing + diff * 0.4 + 360) % 360;
 
-    _vehicleAnnotation!.geometry = Point(coordinates: Position(lng, lat));
-    _vehicleAnnotation!.iconRotate = _currentBearing;
-    await _annotationManager!.update(_vehicleAnnotation!);
+    if (_lastPosition == null) {
+      _lastPosition = newPosition;
+      _currentBearing = newBearing;
+      _vehicleAnnotation!.geometry = Point(coordinates: newPosition);
+      _vehicleAnnotation!.iconRotate = _currentBearing;
+      _annotationManager!.update(_vehicleAnnotation!);
+      if (_isPlaying) Future.microtask(() => _playNextSegment(history));
+      return;
+    }
+
+    final startPosition = _lastPosition!;
+    final startBearing = _currentBearing;
+    
+    _lastPosition = newPosition;
+    _currentBearing = newBearing;
+
+    final double dist = _haversineDistance(
+       startPosition.lat.toDouble(), startPosition.lng.toDouble(),
+       newPosition.lat.toDouble(), newPosition.lng.toDouble()
+    );
+    // Dynamic duration based on physical distance (10 ms per meter at 1.0x speed)
+    final int targetDurationMs = (dist * 10 ~/ _playbackSpeed).toInt();
+    final int durationMs = targetDurationMs.clamp(50, 3000);
+    
+    if (_markerAnimController == null) {
+      _markerAnimController = AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: durationMs),
+      );
+      _markerAnimation = CurvedAnimation(
+        parent: _markerAnimController!,
+        curve: Curves.linear,
+      );
+      int lastFrameTime = 0;
+      _markerAnimation!.addListener(() {
+        if (_vehicleAnnotation == null || _annotationManager == null) return;
+        
+        final now = DateTime.now().millisecondsSinceEpoch;
+        if (now - lastFrameTime < 32) return; // Throttle to ~30 FPS to stabilize Mapbox renderer
+        lastFrameTime = now;
+
+        final t = _markerAnimation!.value;
+        
+        final currentLng = _startLng + (_endLng - _startLng) * t;
+        final currentLat = _startLat + (_endLat - _startLat) * t;
+        
+        final bearingDiff = ((_endBearing - _startBearing + 180) % 360) - 180;
+        final interpolatedBearing = (_startBearing + bearingDiff * t + 360) % 360;
+
+        _vehicleAnnotation!.geometry = Point(coordinates: Position(currentLng, currentLat));
+        _vehicleAnnotation!.iconRotate = interpolatedBearing;
+        _annotationManager!.update(_vehicleAnnotation!);
+      });
+      _markerAnimation!.addStatusListener((status) {
+        if (status == AnimationStatus.completed && _isPlaying) {
+          _playNextSegment(controller.history.toList());
+        }
+      });
+    }
+
+    _markerAnimController!.duration = Duration(milliseconds: durationMs);
+    _startLng = startPosition.lng.toDouble();
+    _startLat = startPosition.lat.toDouble();
+    _endLng = newPosition.lng.toDouble();
+    _endLat = newPosition.lat.toDouble();
+    _startBearing = startBearing;
+    _endBearing = newBearing;
+
+    _markerAnimController!.forward(from: 0.0);
   }
 
   Future<void> _fitCameraToBounds(List<DeviceRecord> history) async {
@@ -567,7 +510,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     );
 
     canvas.translate(canvasSize / 2, canvasSize / 2);
-    canvas.rotate((rotation + 180) * math.pi / 180);
+    canvas.rotate(rotation * math.pi / 180);
     canvas.drawImage(
       originalImage,
       Offset(-originalImage.width / 2, -originalImage.height / 2),
@@ -581,6 +524,19 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   }
 
   // ─── BEARING / IGNITION HELPERS ──────────────────────────────────────────
+
+  double _haversineDistance(double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371e3; // metres
+    final phi1 = lat1 * math.pi / 180;
+    final phi2 = lat2 * math.pi / 180;
+    final deltaPhi = (lat2 - lat1) * math.pi / 180;
+    final deltaLambda = (lon2 - lon1) * math.pi / 180;
+    final a = math.sin(deltaPhi / 2) * math.sin(deltaPhi / 2) +
+        math.cos(phi1) * math.cos(phi2) *
+            math.sin(deltaLambda / 2) * math.sin(deltaLambda / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return R * c;
+  }
 
   double _calculateBearing(LatLng from, LatLng to) {
     final lat1 = from.latitude * math.pi / 180;
@@ -646,24 +602,29 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       _currentIndex = 0;
     });
     _playbackTimer?.cancel();
-    _playbackTimer = _buildPlaybackTimer(history);
+    _playNextSegment(history);
   }
 
   void _pausePlayback() {
-    _playbackTimer?.cancel();
     setState(() => _isPlaying = false);
+    _markerAnimController?.stop();
   }
 
   void _resumePlayback(List<DeviceRecord> history) {
     if (_isPlaying || history.isEmpty) return;
     setState(() => _isPlaying = true);
-    _playbackTimer?.cancel();
-    _playbackTimer = _buildPlaybackTimer(history);
+    if (_markerAnimController != null && !_markerAnimController!.isAnimating) {
+      _markerAnimController!.forward();
+    } else {
+      _playNextSegment(history);
+    }
   }
 
   void _stopPlayback() {
     _playbackTimer?.cancel();
     _playbackTimer = null;
+    _markerAnimController?.stop();
+    _lastPosition = null;
     setState(() {
       _isPlaying = false;
       _currentIndex = 0;
@@ -676,50 +637,37 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
   void _updatePlaybackSpeed(double newSpeed) {
     setState(() => _playbackSpeed = newSpeed);
-    if (_isPlaying) {
-      _playbackTimer?.cancel();
-      _playbackTimer = _buildPlaybackTimer(controller.history.toList());
-    }
   }
 
-  Timer _buildPlaybackTimer(List<DeviceRecord> history) {
-    return Timer.periodic(Duration(milliseconds: (100 ~/ _playbackSpeed)), (
-      timer,
-    ) async {
-      if (!_isPlaying || _currentIndex >= history.length - 1) {
-        timer.cancel();
-        setState(() => _isPlaying = false);
-        return;
-      }
+  void _playNextSegment(List<DeviceRecord> history) {
+    if (!_isPlaying || _currentIndex >= history.length - 1) {
+      setState(() => _isPlaying = false);
+      return;
+    }
 
-      if (_isAnimatingCamera) return;
+    _currentIndex++;
 
-      _currentIndex++;
+    final current = history[_currentIndex];
+    final lat = double.tryParse(current.lt);
+    final lng = double.tryParse(current.lg);
+    if (lat == null || lng == null) {
+      _updateVehicleMarker(_currentIndex, history);
+      return;
+    }
 
-      final current = history[_currentIndex];
-      final lat = double.tryParse(current.lt);
-      final lng = double.tryParse(current.lg);
-      if (lat == null || lng == null) {
-        setState(() {});
-        return;
-      }
+    _updateVehicleMarker(_currentIndex, history);
 
-      await _updateVehicleMarker(_currentIndex, history);
+    final int cameraDurationMs = (200 ~/ _playbackSpeed).clamp(50, 2000);
+    try {
+      _mapboxMap?.easeTo(
+        CameraOptions(center: Point(coordinates: Position(lng, lat))),
+        MapAnimationOptions(duration: cameraDurationMs),
+      );
+    } catch (e) {
+      debugPrint("Camera animation error: $e");
+    }
 
-      _isAnimatingCamera = true;
-      try {
-        await _mapboxMap?.flyTo(
-          CameraOptions(center: Point(coordinates: Position(lng, lat))),
-          null,
-        );
-      } catch (e) {
-        debugPrint("Camera animation error: $e");
-      } finally {
-        _isAnimatingCamera = false;
-      }
-
-      setState(() {});
-    });
+    setState(() {});
   }
 
   // ─── DATE PICKERS ────────────────────────────────────────────────────────
@@ -901,6 +849,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   @override
   void dispose() {
     _playbackTimer?.cancel();
+    _markerAnimController?.dispose();
     super.dispose();
   }
 
@@ -1020,28 +969,18 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             // ── Map style switcher ─────────────────────────────
             Positioned(
               right: 16,
-              bottom: 240,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(12),
-                shadowColor: Colors.black.withValues(alpha: 0.2),
-                child: InkWell(
-                  onTap: () => _showStylePicker(context, col),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: col.surface,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.layers_outlined,
-                      color: col.textPrimary,
-                      size: 22,
-                    ),
-                  ),
-                ),
+              top: 110,
+              child: MapStyleSwitcherButton(
+                mapboxMap: _mapboxMap,
+                currentStyleUri: _mapStyleUri ??
+                    (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS),
+                onStyleChanged: (uri) async {
+                  setState(() => _mapStyleUri = uri);
+                  if (controller.history.isNotEmpty) {
+                    await _generateConditionalMarkers(
+                        controller.history.toList());
+                  }
+                },
               ),
             ),
 
@@ -1327,27 +1266,25 @@ class _ControlButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
   final Color color;
-  final bool isLarge;
 
   const _ControlButton({
     required this.icon,
     required this.onPressed,
     required this.color,
-    this.isLarge = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: color,
-      borderRadius: BorderRadius.circular(isLarge ? 30 : 25),
+      borderRadius: BorderRadius.circular(25),
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(isLarge ? 30 : 25),
+        borderRadius: BorderRadius.circular(25),
         child: SizedBox(
-          width: isLarge ? 60 : 50,
-          height: isLarge ? 60 : 50,
-          child: Icon(icon, color: kWhite, size: isLarge ? 32 : 24),
+          width: 50,
+          height: 50,
+          child: Icon(icon, color: kWhite, size: 24),
         ),
       ),
     );

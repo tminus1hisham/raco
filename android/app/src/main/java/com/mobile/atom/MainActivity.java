@@ -1,4 +1,4 @@
-package com.mobile.atom;
+package com.mobile.orca;
 
 import io.flutter.embedding.android.FlutterActivity;
 

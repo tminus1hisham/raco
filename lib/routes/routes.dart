@@ -2,7 +2,6 @@ import 'package:atom/views/auth/forgot_password_screen.dart';
 import 'package:atom/views/auth/login_screen.dart';
 import 'package:atom/views/auth/onboarding_screen.dart';
 import 'package:atom/views/auth/register_screen.dart';
-import 'package:atom/views/cars/commands.dart';
 import 'package:atom/views/cars/driver_behaviour.dart';
 import 'package:atom/views/dashboard.dart';
 import 'package:atom/views/notification_screen.dart';
@@ -50,8 +49,6 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => AccountScreen());
       case driver_behaviour:
         return MaterialPageRoute(builder: (_) => DriverBehaviour());
-      case commands:
-        return MaterialPageRoute(builder: (_) => Commands());
       case commandHistory:
         return MaterialPageRoute(builder: (_) => CommandHistory());
       default:

@@ -4,6 +4,8 @@ import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class VehicleDetails extends StatefulWidget {
   final String vehiclePlate;
@@ -109,10 +111,10 @@ class _VehicleDetailsState extends State<VehicleDetails> {
                           subtitle: widget.device.certNo,
                         ),
                         _buildDivider(col),
-                        _buildVehicleItem(
+                        _buildUrlItem(
                           col: col,
                           title: 'Certificate URL',
-                          subtitle: widget.device.certificateUrl,
+                          url: widget.device.certificateUrl,
                         ),
                         _buildDivider(col),
                         _buildVehicleItem(
@@ -197,8 +199,11 @@ class _VehicleDetailsState extends State<VehicleDetails> {
     );
   }
 
-  Widget _buildVehicleCard(
-      {required AppColors col, required Widget child, VoidCallback? onTap}) {
+  Widget _buildVehicleCard({
+    required AppColors col,
+    required Widget child,
+    VoidCallback? onTap,
+  }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
@@ -214,10 +219,11 @@ class _VehicleDetailsState extends State<VehicleDetails> {
     );
   }
 
-  Widget _buildVehicleItem(
-      {required AppColors col,
-      required String title,
-      required String subtitle}) {
+  Widget _buildVehicleItem({
+    required AppColors col,
+    required String title,
+    required String subtitle,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
@@ -267,5 +273,76 @@ class _VehicleDetailsState extends State<VehicleDetails> {
 
   Widget _buildDivider(AppColors col) {
     return Container(height: 1, color: col.divider);
+  }
+
+  Widget _buildUrlItem({
+    required AppColors col,
+    required String title,
+    required String url,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: col.textSecondary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _openUrl(url),
+              child: Text(
+                url,
+                textAlign: TextAlign.right,
+                softWrap: true,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => _copyToClipboard(url),
+            child: Icon(Icons.copy, color: col.textPrimary, size: 20),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openUrl(String url) async {
+    if (url.isEmpty) return;
+
+    final Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not open URL: $url')));
+      }
+    }
+  }
+
+  void _copyToClipboard(String text) {
+    if (text.isEmpty) return;
+
+    Clipboard.setData(ClipboardData(text: text));
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('URL copied to clipboard')));
+    }
   }
 }

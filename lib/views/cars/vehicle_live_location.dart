@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/services/mqtt_client.dart';
+import 'package:atom/widgets/map/map_style_switcher.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle, ByteData;
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -31,6 +32,7 @@ class VehicleLocationScreen extends StatefulWidget {
 class _VehicleLocationScreenState extends State<VehicleLocationScreen>
     with SingleTickerProviderStateMixin {
   MapboxMap? mapboxMap;
+  String? _mapStyleUri;
   bool isLoading = true;
   final MqttService _mqttService = MqttService();
 
@@ -206,9 +208,10 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
                 // ── Map ────────────────────────────────────────────
                 Positioned.fill(
                   child: MapWidget(
-                    styleUri: isDark
-                        ? MapboxStyles.DARK
-                        : MapboxStyles.MAPBOX_STREETS,
+                    styleUri: _mapStyleUri ??
+                        (isDark
+                            ? MapboxStyles.DARK
+                            : MapboxStyles.MAPBOX_STREETS),
                     cameraOptions: CameraOptions(
                       center: Point(
                         coordinates: Position(
@@ -253,6 +256,21 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
                   left: 0,
                   right: 0,
                   child: _buildHeader(col),
+                ),
+
+                // ── Map style switcher ─────────────────────────────
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 70,
+                  right: 16,
+                  child: MapStyleSwitcherButton(
+                    mapboxMap: mapboxMap,
+                    currentStyleUri: _mapStyleUri ??
+                        (isDark
+                            ? MapboxStyles.DARK
+                            : MapboxStyles.MAPBOX_STREETS),
+                    onStyleChanged: (uri) =>
+                        setState(() => _mapStyleUri = uri),
+                  ),
                 ),
 
                 // ── Speed / status card ────────────────────────────
