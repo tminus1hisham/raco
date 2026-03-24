@@ -87,7 +87,7 @@ class _MyAppState extends State<MyApp> {
           home: AnimatedSplashScreen(
             splash: Center(
               child: Image.asset(
-                'assets/eagle_logo.png',
+                'assets/orca_logo.png',
                 width: 200,
                 fit: BoxFit.contain,
               ),

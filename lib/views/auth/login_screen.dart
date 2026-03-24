@@ -139,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen>
                         child: Hero(
                           tag: "logo",
                           child: Image(
-                            image: const AssetImage('assets/eagle_logo.png'),
+                            image: const AssetImage('assets/orca_logo.png'),
                             height: 130,
                             width: 130,
                           ),
@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
 
                       Text(
-                        'Welcome to Eagles Eye',
+                        'Welcome to Orca',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,

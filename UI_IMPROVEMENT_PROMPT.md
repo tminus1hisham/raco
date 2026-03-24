@@ -1,4 +1,4 @@
-# Improved UI Prompt for Eagles Eye Mobile App
+# Improved UI Prompt for Orca Mobile App
 
 ## Original Prompt
 > "improve the ui for the entire app while being careful not change any functionality"
@@ -7,10 +7,10 @@
 
 ---
 
-Improve the UI/UX of the Eagles Eye Flutter vehicle tracking app. **Do not change any functionality, business logic, navigation flows, API calls, state management, or data handling.** Only modify visual presentation, styling, layout, and component appearance.
+Improve the UI/UX of the Orca Flutter vehicle tracking app. **Do not change any functionality, business logic, navigation flows, API calls, state management, or data handling.** Only modify visual presentation, styling, layout, and component appearance.
 
 ### App Context
-This is a Flutter vehicle tracking app ("Eagles Eye") using GetX for state management. It has:
+This is a Flutter vehicle tracking app ("Orca") using GetX for state management. It has:
 - **Auth flow:** Onboarding carousel, Login (phone + password + biometrics), Register, Forgot Password
 - **Main shell:** Bottom nav with Home (Map/List tabs), Notifications, Settings
 - **Vehicle screens:** Car list, Car detail with quick actions (Playback, Violations, Commands, Geofence, Live Location, Reports), Certificate renewal via plan selection bottom sheet

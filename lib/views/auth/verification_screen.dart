@@ -38,7 +38,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   child: Hero(
                     tag: "logo",
                     child: Image(
-                      image: AssetImage('assets/eagle_logo.png'),
+                      image: AssetImage('assets/orca_logo.png'),
                       height: 180,
                       width: 180,
                     ),

@@ -56,7 +56,7 @@ class _OnboardingState extends State<Onboarding> {
               child: Hero(
                 tag: "logo",
                 child: Image(
-                  image: const AssetImage('assets/eagle_logo.png'),
+                  image: const AssetImage('assets/orca_logo.png'),
                   height: 140,
                   width: 140,
                 ),

@@ -17,8 +17,8 @@
 
     <application
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:label="Eagle's Eye">
+        android:icon="@mipmap/launcher_icon"
+        android:label="Orca">
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"

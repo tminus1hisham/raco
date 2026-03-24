@@ -1,7 +1,7 @@
-# Eagles Eye - UI Improvement Tracker
+# Orca - UI Improvement Tracker
 
 ## App Overview
-**Name:** Eagles Eye (Vehicle Tracking App)
+**Name:** Orca (Vehicle Tracking App)
 **Framework:** Flutter with GetX state management
 **Primary Color:** Blue (#287ec3) | **Accent:** Green (#2dda94), Red (#E62727)
 **Background:** Light Grey (#F2F2F2) | **Cards:** White with soft shadows

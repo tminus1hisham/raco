@@ -49,7 +49,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         child: Hero(
                           tag: "logo",
                           child: Image(
-                            image: AssetImage('assets/eagle_logo.png'),
+                            image: AssetImage('assets/orca_logo.png'),
                             height: 80,
                             width: 100,
                           ),

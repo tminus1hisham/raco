@@ -46,7 +46,7 @@ class TermsAndConditions extends StatelessWidget {
                       const SizedBox(height: 20),
 
                       const Text(
-                        "Welcome to Eagles Eye, a fleet management and speed monitoring solution developed and operated by ATOMIOT (“we,” “our,” “us”). By downloading, installing, or using the Eagles Eye mobile or web application (“App”), you agree to comply with these Terms and Conditions (“Terms”). Please read them carefully before using the App.",
+                        "Welcome to Orca, a fleet management and speed monitoring solution developed and operated by ATOMIOT (“we,” “our,” “us”). By downloading, installing, or using the Orca mobile or web application (“App”), you agree to comply with these Terms and Conditions (“Terms”). Please read them carefully before using the App.",
                         style: TextStyle(fontSize: 14, height: 1.5),
                       ),
 
@@ -56,7 +56,7 @@ class TermsAndConditions extends StatelessWidget {
                         icon: Icons.check_circle_outline,
                         title: "1. Acceptance of Terms",
                         content: [
-                          "By accessing or using the Eagles Eye App, you acknowledge that you have read, understood, and agree to be bound by these Terms. If you do not agree, you must discontinue use of the App immediately.",
+                          "By accessing or using the Orca App, you acknowledge that you have read, understood, and agree to be bound by these Terms. If you do not agree, you must discontinue use of the App immediately.",
                         ],
                       ),
 
@@ -66,7 +66,7 @@ class TermsAndConditions extends StatelessWidget {
                         icon: Icons.info_outline,
                         title: "2. Service Description",
                         content: [
-                          "Eagles Eye is an IoT-powered fleet management system designed to monitor vehicle speed, driver behavior, and performance in real time.",
+                          "Orca is an IoT-powered fleet management system designed to monitor vehicle speed, driver behavior, and performance in real time.",
                           "The App provides analytics, alerts, and reports through connected devices installed in vehicles.",
                           "We may update, modify, or enhance the features of the App at any time to improve performance or comply with regulations.",
                         ],
@@ -108,7 +108,7 @@ class TermsAndConditions extends StatelessWidget {
                         icon: Icons.privacy_tip_outlined,
                         title: "5. Data & Privacy",
                         content: [
-                          "By using the App, you consent to our collection and processing of data as described in the Eagles Eye Privacy Policy.",
+                          "By using the App, you consent to our collection and processing of data as described in the Orca Privacy Policy.",
                           "Data collected includes GPS location, vehicle telemetry, and account information — used strictly for service delivery, compliance, and performance insights.",
                         ],
                       ),
@@ -119,7 +119,7 @@ class TermsAndConditions extends StatelessWidget {
                         icon: Icons.copyright_outlined,
                         title: "6. Ownership & Intellectual Property",
                         content: [
-                          "All content, software, logos, and technology in Eagles Eye are the exclusive property of ATOMIOT.",
+                          "All content, software, logos, and technology in Orca are the exclusive property of ATOMIOT.",
                           "You are granted a limited, non-transferable, non-exclusive license to use the App for fleet management purposes only.",
                           "Unauthorized copying or resale is strictly prohibited.",
                         ],

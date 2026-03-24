@@ -47,6 +47,10 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   // Marker
   Uint8List? _carMarkerIcon;
   double _currentBearing = 0.0;
+  double _currentZoom = 15.0;
+
+  // Map style
+  String? _mapStyleUri;
 
   // Map readiness
   final Completer<void> _mapReadyCompleter = Completer<void>();
@@ -230,7 +234,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           ),
         ),
         image: _carMarkerIcon!,
-        iconSize: 1.5,
+        iconSize: _iconSizeForZoom(_currentZoom),
         iconRotate: bearing,
       ),
     );
@@ -238,6 +242,120 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     await _fitCameraToBounds(history);
 
     if (mounted) setState(() {});
+  }
+
+  /// Exponential zoom-to-iconSize, anchored so zoom 15 → 1.5 (original size).
+  /// Doubles every 3 zoom levels in; halves every 3 levels out.
+  /// zoom 9 → 0.38 | zoom 12 → 0.75 | zoom 15 → 1.5 | zoom 18 → 3.0 (capped)
+  double _iconSizeForZoom(double zoom) =>
+      (1.5 * math.pow(2.0, (zoom - 15.0) / 3.0)).clamp(0.3, 2.5);
+
+  Future<void> _updateVehicleIconSize() async {
+    if (_vehicleAnnotation == null || _annotationManager == null) return;
+    _vehicleAnnotation!.iconSize = _iconSizeForZoom(_currentZoom);
+    await _annotationManager!.update(_vehicleAnnotation!);
+  }
+
+  Future<void> _switchMapStyle(String styleUri) async {
+    setState(() => _mapStyleUri = styleUri);
+    if (_mapboxMap == null) return;
+    await _mapboxMap!.loadStyleURI(styleUri);
+    if (controller.history.isNotEmpty) {
+      await _generateConditionalMarkers(controller.history.toList());
+    }
+  }
+
+  void _showStylePicker(BuildContext context, AppColors col) {
+    final activeUri = _mapStyleUri ??
+        (context.isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS);
+
+    final styleLabels = ['Streets', 'Satellite', 'Sat+Streets', 'Light', 'Dark'];
+    final styleUris = [
+      MapboxStyles.MAPBOX_STREETS,
+      MapboxStyles.SATELLITE,
+      MapboxStyles.SATELLITE_STREETS,
+      MapboxStyles.LIGHT,
+      MapboxStyles.DARK,
+    ];
+    final styleIcons = [
+      Icons.map_outlined,
+      Icons.satellite_alt_outlined,
+      Icons.layers_outlined,
+      Icons.light_mode_outlined,
+      Icons.dark_mode_outlined,
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: col.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Map Style',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: col.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(styleLabels.length, (i) {
+                final isActive = activeUri == styleUris[i];
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.pop(sheetCtx);
+                    _switchMapStyle(styleUris[i]);
+                  },
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? kBlue.withValues(alpha: 0.12)
+                              : col.inputFill,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isActive ? kBlue : col.border,
+                            width: isActive ? 2 : 1,
+                          ),
+                        ),
+                        child: Icon(
+                          styleIcons[i],
+                          color: isActive ? kBlue : col.textSecondary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        styleLabels[i],
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isActive ? kBlue : col.textSecondary,
+                          fontWeight: isActive
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _updateVehicleMarker(
@@ -875,10 +993,16 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
         return Stack(
           children: [
             MapWidget(
-              styleUri: isDark
-                  ? MapboxStyles.DARK
-                  : MapboxStyles.MAPBOX_STREETS,
+              styleUri: _mapStyleUri ??
+                  (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS),
               cameraOptions: CameraOptions(center: currentPoint, zoom: 15.0),
+              onCameraChangeListener: (CameraChangedEventData data) async {
+                final newZoom = data.cameraState.zoom;
+                if ((newZoom - _currentZoom).abs() >= 0.3) {
+                  _currentZoom = newZoom;
+                  await _updateVehicleIconSize();
+                }
+              },
               onMapCreated: (MapboxMap map) async {
                 _mapboxMap = map;
                 _isMapReady = true;
@@ -891,6 +1015,34 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                   );
                 }
               },
+            ),
+
+            // ── Map style switcher ─────────────────────────────
+            Positioned(
+              right: 16,
+              bottom: 240,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(12),
+                shadowColor: Colors.black.withValues(alpha: 0.2),
+                child: InkWell(
+                  onTap: () => _showStylePicker(context, col),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: col.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.layers_outlined,
+                      color: col.textPrimary,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
             ),
 
             // ── Info panel ─────────────────────────────────────

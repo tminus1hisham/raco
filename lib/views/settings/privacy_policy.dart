@@ -50,7 +50,7 @@ class PrivacyPolicy extends StatelessWidget {
                       const SizedBox(height: 20),
 
                       Text(
-                        "ATOMIOT (\"we,\" \"our,\" or \"us\") operates the Eagles Eye mobile and web application (\"the App\") to help fleet managers monitor vehicle speed, performance, and driver behavior. This Privacy Policy explains how we collect, use, protect, and share your information when you use our app and services.",
+                        "ATOMIOT (\"we,\" \"our,\" or \"us\") operates the Orca mobile and web application (\"the App\") to help fleet managers monitor vehicle speed, performance, and driver behavior. This Privacy Policy explains how we collect, use, protect, and share your information when you use our app and services.",
                         style: TextStyle(
                             fontSize: 14, height: 1.5, color: col.textPrimary),
                       ),
@@ -62,7 +62,7 @@ class PrivacyPolicy extends StatelessWidget {
                         title: "1. Information We Collect",
                         content: [
                           "• Personal Information: Name, phone number, email address, and account login details when you register or contact us.",
-                          "• Device & Vehicle Data: GPS location, speed, diagnostic data (OBD-II), and driving behavior collected through the Eagles Eye device.",
+                          "• Device & Vehicle Data: GPS location, speed, diagnostic data (OBD-II), and driving behavior collected through the Orca device.",
                           "• Usage Data: Log data, device identifiers, IP addresses, and app performance analytics.",
                           "• Communication Data: Messages, support requests, or feedback sent through the app.",
                         ],
@@ -149,7 +149,7 @@ class PrivacyPolicy extends StatelessWidget {
                         icon: Icons.integration_instructions,
                         title: "8. Third-Party Services",
                         content: [
-                          "• Eagles Eye may integrate third-party APIs (e.g., Google Maps, Firebase) for enhanced functionality.",
+                          "• Orca may integrate third-party APIs (e.g., Google Maps, Firebase) for enhanced functionality.",
                           "• These services have their own privacy policies governing data use.",
                         ],
                       ),
