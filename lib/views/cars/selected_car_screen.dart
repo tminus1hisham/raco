@@ -20,7 +20,9 @@ import 'package:atom/widgets/modal/custom_alert.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class SelectedCarScreen extends StatefulWidget {
@@ -117,10 +119,156 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     }
   }
 
-  void _showPlanBottomSheet(BuildContext context) {
-    final col = context.col;
+  void _showCertificateDialog(BuildContext context, String certUrl) {
     showModalBottomSheet(
-      backgroundColor: col.surface,
+      context: context,
+      backgroundColor: context.col.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(kRadiusLG)),
+      ),
+      builder: (context) {
+        final sheetCol = context.col;
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 28,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                height: 5,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: sheetCol.border,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Icon badge + title
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: kSuccessGreen.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: kSuccessGreen.withValues(alpha: 0.22),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.verified_rounded,
+                  color: kSuccessGreen,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Certificate Active',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: sheetCol.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Your certificate is valid. You can view or copy the URL below.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: sheetCol.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 22),
+              // URL display box
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: sheetCol.inputFill,
+                  borderRadius: BorderRadius.circular(kRadiusMD),
+                  border: Border.all(color: sheetCol.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.link_rounded, size: 16, color: kBlue),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        certUrl,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: sheetCol.textSecondary,
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: certUrl));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('URL copied to clipboard'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: kBlue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.copy_rounded, size: 16, color: kBlue),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Open button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kBlue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(kRadiusMD),
+                    ),
+                    elevation: 0,
+                  ),
+                  icon: const Icon(Icons.open_in_browser_rounded, color: kWhite, size: 18),
+                  label: const Text(
+                    'Open Certificate',
+                    style: TextStyle(fontSize: 15, color: kWhite, fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () async {
+                    final uri = Uri.tryParse(certUrl);
+                    if (uri != null && await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showPlanBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      backgroundColor: context.col.surface,
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -141,151 +289,227 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
           final plans = _controller.plans;
 
           if (plans.isEmpty) {
-            return const Padding(
-              padding: EdgeInsets.all(40.0),
-              child: Center(child: Text("No plans available.")),
+            return Padding(
+              padding: const EdgeInsets.all(40.0),
+              child: Center(
+                child: Text(
+                  "No plans available.",
+                  style: TextStyle(color: sheetCol.textSecondary),
+                ),
+              ),
             );
           }
 
           return DraggableScrollableSheet(
             expand: false,
-            initialChildSize: 0.5,
+            initialChildSize: 0.55,
             minChildSize: 0.5,
-            maxChildSize: 0.9,
+            maxChildSize: 0.92,
             builder: (context, scrollController) {
               return StatefulBuilder(
                 builder: (context, setState) {
-                  return Padding(
+                  return ListView(
+                    controller: scrollController,
                     padding: EdgeInsets.only(
-                      left: 16,
-                      right: 16,
+                      left: 20,
+                      right: 20,
                       top: 20,
-                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                      bottom: MediaQuery.of(context).viewInsets.bottom + 28,
                     ),
-                    child: ListView(
-                      controller: scrollController,
-                      children: [
-                        Center(
-                          child: Container(
-                            height: 5,
-                            width: 40,
+                    children: [
+                      // Drag handle
+                      Center(
+                        child: Container(
+                          height: 5,
+                          width: 40,
+                          decoration: BoxDecoration(
+                            color: sheetCol.border,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
-                              color: sheetCol.border,
-                              borderRadius: BorderRadius.circular(20),
+                              color: kRed.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: kRed.withValues(alpha: 0.2)),
                             ),
+                            child: const Icon(Icons.autorenew_rounded, color: kRed, size: 24),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          "Select a Plan",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        InputField(
-                          hintText: 'Phone number',
-                          prefixIcon: Icons.phone,
-                          controller: _phoneNumberController,
-                          isRequired: true,
-                          integerOnly: true,
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return "This field is required";
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: 10),
-
-                        ...List.generate(plans.length, (index) {
-                          final plan = plans[index];
-                          final isSelected = selectedIndex == index;
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() => selectedIndex = index);
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? kBlue.withValues(alpha: 0.1)
-                                    : sheetCol.surface,
-                                border: Border.all(
-                                  color: isSelected ? kBlue : sheetCol.border,
-                                  width: isSelected ? 2 : 1,
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Renew Certificate',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: sheetCol.textPrimary,
+                                  ),
                                 ),
-                                borderRadius:
-                                    BorderRadius.circular(kRadiusMD),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    isSelected
-                                        ? Icons.radio_button_checked
-                                        : Icons.radio_button_off,
-                                    color:
-                                        isSelected ? kBlue : sheetCol.textSecondary,
+                                const SizedBox(height: 3),
+                                Text(
+                                  'Choose a plan to renew your certificate',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: sheetCol.textSecondary,
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          plan.planName.isNotEmpty
-                                              ? plan.planName
-                                              : "Unnamed Plan",
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: sheetCol.textPrimary,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          "${plan.durationInDays} ${plan.durationInDays > 1 ? 'Years' : 'Year'}",
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: sheetCol.textSecondary,
-                                          ),
-                                        ),
-                                      ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      InputField(
+                        hintText: 'Phone number',
+                        prefixIcon: Icons.phone,
+                        controller: _phoneNumberController,
+                        isRequired: true,
+                        integerOnly: true,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return "This field is required";
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Available Plans',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: sheetCol.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ...List.generate(plans.length, (index) {
+                        final plan = plans[index];
+                        final isSelected = selectedIndex == index;
+                        return GestureDetector(
+                          onTap: () => setState(() => selectedIndex = index),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? kBlue.withValues(alpha: 0.06)
+                                  : sheetCol.inputFill,
+                              border: Border.all(
+                                color: isSelected ? kBlue : sheetCol.border,
+                                width: isSelected ? 1.5 : 1,
+                              ),
+                              borderRadius: BorderRadius.circular(kRadiusMD),
+                            ),
+                            child: Row(
+                              children: [
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  width: 22,
+                                  height: 22,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isSelected
+                                        ? kBlue
+                                        : Colors.transparent,
+                                    border: Border.all(
+                                      color: isSelected ? kBlue : sheetCol.border,
+                                      width: 2,
                                     ),
                                   ),
-                                  Text(
+                                  child: isSelected
+                                      ? const Icon(Icons.check, size: 13, color: kWhite)
+                                      : null,
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        plan.planName.isNotEmpty
+                                            ? plan.planName
+                                            : "Unnamed Plan",
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: sheetCol.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.calendar_today_outlined,
+                                              size: 11,
+                                              color: sheetCol.textSecondary),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            "${plan.durationInDays} ${plan.durationInDays > 1 ? 'Years' : 'Year'}",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: sheetCol.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? kBlue.withValues(alpha: 0.12)
+                                        : sheetCol.surface,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? kBlue.withValues(alpha: 0.3)
+                                          : sheetCol.border,
+                                    ),
+                                  ),
+                                  child: Text(
                                     "KES ${plan.price}",
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                      color: isSelected ? kBlue : sheetCol.textPrimary,
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          );
-                        }),
-
-                        const SizedBox(height: 10),
-                        ElevatedButton(
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        height: 50,
+                        child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: kBlue,
+                            backgroundColor: selectedIndex != null ? kBlue : sheetCol.border,
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(kRadiusSM),
+                              borderRadius: BorderRadius.circular(kRadiusMD),
                             ),
-                            minimumSize: const Size(double.infinity, 50),
+                            elevation: 0,
                           ),
                           onPressed: selectedIndex != null
                               ? () async {
                                   Navigator.pop(context);
-
                                   final parentContext = this.context;
-
                                   showCupertinoDialog(
                                     context: parentContext,
                                     builder: (context) => ActionDialog(
@@ -299,33 +523,26 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                             .renewCertificate(
                                               parentContext,
                                               widget.licensePlate,
-                                              _phoneNumberController.text
-                                                  .trim(),
-                                              plans[selectedIndex!].price
-                                                  .toInt(),
+                                              _phoneNumberController.text.trim(),
+                                              plans[selectedIndex!].price.toInt(),
                                               plans[selectedIndex!].id.toInt(),
                                             );
-
                                         if (!mounted) return;
-
                                         if (success) {
                                           CustomAlertDialog(
                                             context: parentContext,
                                             title: "Success",
                                             message:
                                                 "Payment request successful, please pay to renew your certificate",
-                                            icon:
-                                                "assets/animations/Success.json",
+                                            icon: "assets/animations/Success.json",
                                             buttonColor: kSuccessGreen,
                                           );
                                         } else {
                                           CustomAlertDialog(
                                             context: parentContext,
                                             title: "Error",
-                                            message:
-                                                "Payment request failed.",
-                                            icon:
-                                                "assets/animations/Failed.json",
+                                            message: "Payment request failed.",
+                                            icon: "assets/animations/Failed.json",
                                             buttonColor: kRed,
                                           );
                                         }
@@ -334,15 +551,17 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                   );
                                 }
                               : null,
-
                           child: const Text(
-                            "Renew",
-                            style: TextStyle(fontSize: 16, color: kWhite),
+                            "Renew Certificate",
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: kWhite,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
+                      ),
+                    ],
                   );
                 },
               );
@@ -519,6 +738,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               _buildCommandItem(
                                 col: col,
                                 icon: Icons.info_outline_rounded,
+                                iconColor: kBlue,
                                 showBanner: false,
                                 title: 'Details',
                                 subtitle:
@@ -539,6 +759,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               _buildCommandItem(
                                 col: col,
                                 icon: Icons.tune_rounded,
+                                iconColor: const Color(0xFF7C3AED),
                                 showBanner: false,
                                 title: 'Commands',
                                 subtitle: "View all the commands of a vehicle.",
@@ -555,6 +776,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               _buildCommandItem(
                                 col: col,
                                 icon: Icons.history_toggle_off_rounded,
+                                iconColor: const Color(0xFFF59E0B),
                                 showBanner: false,
                                 title: 'Command History',
                                 subtitle: "View all the commands actioned.",
@@ -569,6 +791,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               _buildCommandItem(
                                 col: col,
                                 icon: Icons.gps_fixed_rounded,
+                                iconColor: const Color(0xFF059669),
                                 showBanner: false,
                                 title: 'Geo Fence',
                                 subtitle:
@@ -588,6 +811,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               _buildCommandItem(
                                 col: col,
                                 icon: Icons.place_outlined,
+                                iconColor: Colors.orange,
                                 showBanner: false,
                                 title: 'View Live Location',
                                 subtitle: "See the vehicle live location.",
@@ -614,6 +838,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               _buildCommandItem(
                                 col: col,
                                 icon: Icons.bar_chart_rounded,
+                                iconColor: const Color(0xFF6366F1),
                                 showBanner: false,
                                 title: 'Reports',
                                 subtitle: "See all the reports.",
@@ -632,12 +857,20 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               _buildCommandItem(
                                 col: col,
                                 icon: Icons.verified_outlined,
+                                iconColor: isCertificateExpired ? kRed : kSuccessGreen,
                                 showBanner: isCertificateExpired,
                                 title: 'Certificate',
                                 subtitle:
                                     'Expiry: ${_utils.formatDate(widget.devices.certificateExpirey)}',
                                 onTap: () {
-                                  _showPlanBottomSheet(context);
+                                  final certUrl = widget.devices.certificateUrl;
+                                  if (!isCertificateExpired &&
+                                      widget.devices.certificateActiveStatus &&
+                                      certUrl.isNotEmpty) {
+                                    _showCertificateDialog(context, certUrl);
+                                  } else {
+                                    _showPlanBottomSheet(context);
+                                  }
                                 },
                               ),
                             ],
@@ -996,6 +1229,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     required String subtitle,
     required VoidCallback onTap,
     required bool showBanner,
+    Color iconColor = kBlue,
     Color? textColor,
   }) {
     return InkWell(
@@ -1003,20 +1237,20 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: kBlue.withValues(alpha: 0.08),
+                color: iconColor.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: iconColor.withValues(alpha: 0.18),
+                  width: 1,
+                ),
               ),
-              child: Icon(
-                icon,
-                color: kBlue,
-                size: 20,
-              ),
+              child: Icon(icon, color: iconColor, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1026,15 +1260,15 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: textColor ?? col.textPrimary,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 14, color: col.textSecondary),
+                    style: TextStyle(fontSize: 12, color: col.textSecondary),
                   ),
                 ],
               ),
@@ -1051,21 +1285,20 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                       horizontal: 10,
                       vertical: 4,
                     ),
-                    child: Text(
+                    child: const Text(
                       "Expired",
                       style: TextStyle(
                         color: kRed,
                         fontWeight: FontWeight.bold,
+                        fontSize: 12,
                       ),
                     ),
                   ),
-
-                  SizedBox(width: 5),
+                  const SizedBox(width: 5),
                 ],
-
                 Icon(
-                  Icons.chevron_right,
-                  color: col.border,
+                  Icons.chevron_right_rounded,
+                  color: iconColor.withValues(alpha: 0.45),
                   size: 20,
                 ),
               ],

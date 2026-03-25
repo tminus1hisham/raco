@@ -397,87 +397,169 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
   }
 
   Widget _buildViolationCard(DeviceRecord v, AppColors col) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: col.surface,
-        borderRadius: BorderRadius.circular(kRadiusMD),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                v.createdAt != null
-                    ? _dateFormat.format(v.createdAt!)
-                    : "Unknown Date",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: col.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
+    final isSpeedViolation = _selectedViolation == "Speed Violations";
+    final speed = double.tryParse(v.spd.toString()) ?? 0;
+    final isOverSpeed = isSpeedViolation && speed > 80;
+    final speedColor = isOverSpeed ? kRed : kSuccessGreen;
 
-              InkWell(
-                onTap: () async {
-                  final lat = v.lt;
-                  final lng = v.lg;
-                  final url = Uri.parse(
-                    'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
-                  );
-                  if (await canLaunchUrl(url)) {
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
-                  } else {
-                    debugPrint('Could not open Google Maps');
-                  }
-                },
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.location_on,
-                      color: kBlue,
-                      size: 16,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+      child: Container(
+        decoration: BoxDecoration(
+          color: col.surface,
+          borderRadius: BorderRadius.circular(kRadiusMD),
+          boxShadow: [kShadowSM],
+          border: Border.all(color: kRed.withValues(alpha: 0.15)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(kRadiusMD),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(width: 4, color: kRed),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
                     ),
-                    const SizedBox(width: 4),
-                    const Text(
-                      "Open Location",
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: kBlue,
-                        fontWeight: FontWeight.w500,
-                        decoration: TextDecoration.underline,
-                      ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: kRed.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.warning_amber_rounded,
+                            color: kRed,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.access_time_rounded,
+                                    size: 12,
+                                    color: col.textSecondary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      _dateFormat.format(v.createdAt),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: col.textSecondary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSpeedViolation) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: speedColor.withValues(alpha: 0.10),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: speedColor.withValues(alpha: 0.25),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.speed_rounded,
+                                            size: 12,
+                                            color: speedColor,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${v.spd} km/h',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: speedColor,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              GestureDetector(
+                                onTap: () async {
+                                  final lat = v.lt;
+                                  final lng = v.lg;
+                                  final url = Uri.parse(
+                                    'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+                                  );
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(
+                                      url,
+                                      mode: LaunchMode.externalApplication,
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: kBlue.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: kBlue.withValues(alpha: 0.20),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.location_on_rounded,
+                                        size: 12,
+                                        color: kBlue,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Open Location',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: kBlue,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-
-          if (_selectedViolation == "Speed Violations")
-            Text(
-              "${v.spd} km/h",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color:
-                    v.spd != null && double.tryParse(v.spd.toString()) != null
-                    ? (double.parse(v.spd.toString()) > 80 ? kRed : kBlue)
-                    : col.textSecondary,
-              ),
+              ],
             ),
-        ],
+          ),
+        ),
       ),
     );
   }

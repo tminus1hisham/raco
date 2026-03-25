@@ -199,40 +199,127 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildReportCard(ReportModel record, AppColors col) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: (double.tryParse(record.spd ?? '0') ?? 0) > 80 || record.wr == 1
-            ? kRed.withValues(alpha: 0.1)
-            : col.surface,
-        borderRadius: BorderRadius.circular(kRadiusMD),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            record.createdAt != null
-                ? _dateFormat.format(record.createdAt!)
-                : "Unknown Date",
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: col.textPrimary,
+    final speed = double.tryParse(record.spd ?? '0') ?? 0;
+    final isAlert = speed > 80 || record.wr == 1;
+    final accentColor = isAlert ? kRed : kBlue;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+      child: Container(
+        decoration: BoxDecoration(
+          color: col.surface,
+          borderRadius: BorderRadius.circular(kRadiusMD),
+          boxShadow: [kShadowSM],
+          border: Border.all(color: accentColor.withValues(alpha: 0.15)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(kRadiusMD),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(width: 4, color: accentColor),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time_rounded,
+                              size: 12,
+                              color: col.textSecondary,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              record.createdAt != null
+                                  ? _dateFormat.format(record.createdAt!)
+                                  : "Unknown Date",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: col.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (record.imei != null)
+                              Text(
+                                'IMEI: ${record.imei}',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: col.textSecondary,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _buildChip(
+                              icon: Icons.speed_rounded,
+                              label: '${record.spd ?? "--"} km/h',
+                              color: speed > 80 ? kRed : kSuccessGreen,
+                            ),
+                            _buildChip(
+                              icon: Icons.battery_charging_full_rounded,
+                              label: record.bt == 1
+                                  ? 'Disconnected'
+                                  : 'Connected',
+                              color: record.bt == 1 ? kRed : kSuccessGreen,
+                            ),
+                            _buildChip(
+                              icon: Icons.cable_rounded,
+                              label: record.wr == 1
+                                  ? 'Signal Issue'
+                                  : 'Signal OK',
+                              color: record.wr == 1 ? kRed : kSuccessGreen,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text("Speed: ${record.spd ?? "--"} km/h"),
-          Text("Speed Signal: ${record.wr == 1 ? "Yes" : "No"}"),
-          Text("Battery: ${record.bt == 1 ? "Disconnected" : "Connected"}"),
-          Text("IMEI: ${record.imei ?? "--"}"),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
         ],
       ),
     );

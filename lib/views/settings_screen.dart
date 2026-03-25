@@ -2,6 +2,7 @@ import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/controllers/theme_controller.dart';
+import 'package:atom/controllers/user_data_controller.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/views/settings/about_us.dart';
 import 'package:atom/views/settings/account_screen.dart';
@@ -22,6 +23,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final AuthController _authController = Get.put(AuthController());
+  final UserResourceController _userController = Get.put(UserResourceController());
   String? role;
   String? userName;
   String? phone;
@@ -34,13 +36,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _fetchUserData() async {
     final fetchedRole = await StorageService.getData('userRole');
-    final fetchedName = await StorageService.getData('userName');
     final fetchedPhone = await StorageService.getData('phone');
+
+    // Prefer full name from the API profile; fall back to stored userName
+    final fullName = _userController.user.value?.fullName;
+    final fetchedName = (fullName != null && fullName.isNotEmpty)
+        ? fullName
+        : await StorageService.getData('userName');
+
     setState(() {
       role = fetchedRole;
       userName = fetchedName;
       phone = fetchedPhone;
     });
+
+    // Re-render once the controller finishes loading if it was still in-flight
+    if (_userController.isLoading.value) {
+      ever(_userController.isLoading, (loading) {
+        if (!loading && mounted) {
+          final name = _userController.user.value?.fullName;
+          if (name != null && name.isNotEmpty) {
+            setState(() => userName = name);
+          }
+        }
+      });
+    }
   }
 
   String _getInitials(String name) {
@@ -62,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           slivers: [
             SliverToBoxAdapter(child: _buildProfileHeader()),
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20 ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: 24),
@@ -193,73 +213,168 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ─── Profile header ──────────────────────────────────────────────────────
 
   Widget _buildProfileHeader() {
-    final initials = _getInitials(userName ?? 'User');
+    final fullName = userName ?? 'User';
+    final parts = fullName.trim().split(' ');
+    final firstName = parts.isNotEmpty ? parts[0] : 'User';
+    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    final initials = _getInitials(fullName);
+
     return Container(
-      color: context.col.surface,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-      child: Row(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(36),
+          bottomRight: Radius.circular(36),
+        ),
+      ),
+      child: Stack(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF287ec3), Color(0xFF1a5a8a)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Center(
-              child: Text(
-                initials,
-                style: const TextStyle(
-                  color: kWhite,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+          // Decorative circles
+          Positioned(
+            top: -30,
+            right: -20,
+            child: Container(
+              width: 130,
+              height: 130,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: kWhite.withValues(alpha: 0.05),
               ),
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
+          Positioned(
+            bottom: -40,
+            right: 60,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: kWhite.withValues(alpha: 0.04),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  userName ?? 'User',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: context.col.textPrimary,
-                  ),
-                ),
-                if (phone != null && phone!.isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  Text(
-                    phone!,
-                    style: TextStyle(
-                        fontSize: 14, color: context.col.textSecondary),
-                  ),
-                ],
-                const SizedBox(height: 7),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: kBlue.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(kRadiusPill),
-                  ),
-                  child: Text(
-                    role ?? 'User',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: kBlue,
-                      fontWeight: FontWeight.w600,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 76,
+                      height: 76,
+                      decoration: BoxDecoration(
+                        color: kWhite.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: kWhite.withValues(alpha: 0.30),
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          initials,
+                          style: const TextStyle(
+                            color: kWhite,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            firstName,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: kWhite,
+                              height: 1.1,
+                            ),
+                          ),
+                          if (lastName.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              lastName,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                                color: kWhite.withValues(alpha: 0.75),
+                                height: 1.1,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                // Divider
+                Container(
+                  height: 1,
+                  color: kWhite.withValues(alpha: 0.15),
+                ),
+                const SizedBox(height: 16),
+                // Role + Phone row
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: kWhite.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(kRadiusPill),
+                        border: Border.all(
+                            color: kWhite.withValues(alpha: 0.25)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.shield_outlined,
+                              size: 12,
+                              color: kWhite.withValues(alpha: 0.90)),
+                          const SizedBox(width: 5),
+                          Text(
+                            role ?? 'User',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: kWhite.withValues(alpha: 0.95),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (phone != null && phone!.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      Icon(Icons.phone_outlined,
+                          size: 14,
+                          color: kWhite.withValues(alpha: 0.65)),
+                      const SizedBox(width: 5),
+                      Text(
+                        phone!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: kWhite.withValues(alpha: 0.75),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),

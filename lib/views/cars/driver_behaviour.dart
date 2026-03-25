@@ -32,55 +32,90 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                 },
               ),
               const SizedBox(height: 10),
-              _buildSectionHeader("Status", col),
-              _buildVehicleCard(
+              _buildSectionHeader(
                 col: col,
-                child: Column(
-                  children: [
-                    _buildVehicleItem(
-                      col: col,
-                      title: 'Driver Behaviour',
-                      subtitle: 'safe',
-                    ),
-                    _buildDivider(col),
-                    _buildVehicleItem(
-                        col: col, title: 'Score', subtitle: '78/100'),
-                  ],
-                ),
+                title: 'Status',
+                icon: Icons.shield_outlined,
+                color: kSuccessGreen,
+              ),
+              _buildCard(
+                col: col,
+                children: [
+                  _buildItem(
+                    col: col,
+                    icon: Icons.sentiment_satisfied_alt_rounded,
+                    iconColor: kSuccessGreen,
+                    label: 'Driver Behaviour',
+                    value: 'Safe',
+                    valueColor: kSuccessGreen,
+                  ),
+                  _buildDivider(col),
+                  _buildItem(
+                    col: col,
+                    icon: Icons.star_rounded,
+                    iconColor: const Color(0xFFF59E0B),
+                    label: 'Safety Score',
+                    value: '78 / 100',
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-              _buildSectionHeader("Metrics", col),
-              _buildVehicleCard(
+              _buildSectionHeader(
                 col: col,
-                child: Column(
-                  children: [
-                    _buildVehicleItem(
-                        col: col,
-                        title: 'Overspeed',
-                        subtitle: '4 Events'),
-                    _buildDivider(col),
-                    _buildVehicleItem(
-                      col: col,
-                      title: 'Harsh Braking',
-                      subtitle: '12 Events',
-                    ),
-                    _buildDivider(col),
-                    _buildVehicleItem(
-                      col: col,
-                      title: 'Rapid Acceleration',
-                      subtitle: '6 Events',
-                    ),
-                    _buildDivider(col),
-                    _buildVehicleItem(
-                        col: col, title: 'Idling', subtitle: '12 mins'),
-                  ],
-                ),
+                title: 'Metrics',
+                icon: Icons.analytics_outlined,
+                color: kBlue,
+              ),
+              _buildCard(
+                col: col,
+                children: [
+                  _buildItem(
+                    col: col,
+                    icon: Icons.speed_rounded,
+                    iconColor: kRed,
+                    label: 'Overspeed',
+                    value: '4 Events',
+                    valueColor: kRed,
+                  ),
+                  _buildDivider(col),
+                  _buildItem(
+                    col: col,
+                    icon: Icons.warning_amber_rounded,
+                    iconColor: Colors.orange,
+                    label: 'Harsh Braking',
+                    value: '12 Events',
+                    valueColor: Colors.orange,
+                  ),
+                  _buildDivider(col),
+                  _buildItem(
+                    col: col,
+                    icon: Icons.bolt_rounded,
+                    iconColor: const Color(0xFFF59E0B),
+                    label: 'Rapid Acceleration',
+                    value: '6 Events',
+                    valueColor: const Color(0xFFF59E0B),
+                  ),
+                  _buildDivider(col),
+                  _buildItem(
+                    col: col,
+                    icon: Icons.hourglass_empty_rounded,
+                    iconColor: kBlue,
+                    label: 'Idling',
+                    value: '12 mins',
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-              _buildSectionHeader("Trend", col),
-              _buildVehicleCard(
+              _buildSectionHeader(
                 col: col,
-                child: Padding(
+                title: 'Trend',
+                icon: Icons.show_chart_rounded,
+                color: const Color(0xFF6366F1),
+              ),
+              _buildCard(
+                col: col,
+                children: [
+                  Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,9 +123,9 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                       Text(
                         'Driver Behaviour Score (Last 7 Days)',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: col.textSecondary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: col.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -246,9 +281,9 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                       Text(
                         'Risky Events Per Day',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: col.textSecondary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: col.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -380,6 +415,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                     ],
                   ),
                 ),
+                ],
               ),
               const SizedBox(height: 20),
             ],
@@ -446,46 +482,32 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
     );
   }
 
-  Widget _buildVehicleCard({required AppColors col, required Widget child}) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: col.surface,
-        borderRadius: BorderRadius.circular(kRadiusMD),
-        boxShadow: [kShadowSM],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(kRadiusMD),
-        child: child,
-      ),
-    );
-  }
-
-  Widget _buildVehicleItem(
-      {required AppColors col,
-      required String title,
-      required String subtitle}) {
+  Widget _buildSectionHeader({
+    required AppColors col,
+    required String title,
+    required IconData icon,
+    required Color color,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(width: 10),
           Text(
             title,
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: col.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 14,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
               color: col.textPrimary,
-              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -493,22 +515,105 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
     );
   }
 
-  Widget _buildSectionHeader(String title, AppColors col) {
+  Widget _buildCard({
+    required AppColors col,
+    required List<Widget> children,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: col.surface,
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        boxShadow: [kShadowSM],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        child: Column(children: children),
+      ),
+    );
+  }
+
+  Widget _buildItem({
+    required AppColors col,
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+    Color? valueColor,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: col.textSecondary,
-          letterSpacing: 0.5,
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: col.textSecondary,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                if (valueColor != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: valueColor.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: valueColor.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: valueColor,
+                      ),
+                    ),
+                  )
+                else
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: col.textPrimary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildDivider(AppColors col) {
-    return Container(height: 1, color: col.divider);
+    return Container(
+      height: 1,
+      margin: const EdgeInsets.only(left: 70),
+      color: col.divider,
+    );
   }
 }

@@ -23,6 +23,9 @@ class _VehicleDetailsState extends State<VehicleDetails> {
   @override
   Widget build(BuildContext context) {
     final col = context.col;
+    final isCertActive = widget.device.certificateActiveStatus;
+    final isOnline = widget.device.isDeviceOnline;
+
     return Scaffold(
       backgroundColor: col.bg,
       body: SafeArea(
@@ -32,164 +35,121 @@ class _VehicleDetailsState extends State<VehicleDetails> {
             const SizedBox(height: 10),
             customHeader(
               showBackButton: true,
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
               label: widget.vehiclePlate,
               icon: Icons.directions_car,
             ),
             Expanded(
               child: ListView(
+                padding: const EdgeInsets.only(bottom: 32),
                 children: [
-                  const SizedBox(height: 10),
-                  _buildSectionHeader("Vehicle Details", col),
-                  _buildVehicleCard(
+                  // ── Vehicle Details ────────────────────────────────
+                  _buildSectionHeader(
                     col: col,
-                    child: Column(
-                      children: [
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Make',
-                          subtitle: widget.device.make,
-                        ),
-                        _buildDivider(col),
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Registration Number',
-                          subtitle: widget.device.numberPlate,
-                        ),
-                        _buildDivider(col),
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Make',
-                          subtitle: widget.device.make,
-                        ),
-                      ],
-                    ),
+                    title: 'Vehicle Details',
+                    icon: Icons.directions_car_rounded,
+                    color: kBlue,
                   ),
-                  const SizedBox(height: 10),
-                  _buildSectionHeader("Ownership & Contact", col),
-                  _buildVehicleCard(
+                  _buildCard(
                     col: col,
-                    child: Column(
-                      children: [
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Owner ID',
-                          subtitle: widget.device.ownerId,
-                        ),
-                        _buildDivider(col),
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Phone',
-                          subtitle: widget.device.phone,
-                        ),
-                        _buildDivider(col),
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Email',
-                          subtitle: widget.device.email,
-                        ),
-                        _buildDivider(col),
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Business Reg',
-                          subtitle: widget.device.businessReg,
-                        ),
-                      ],
-                    ),
+                    children: [
+                      _buildRow(col: col, icon: Icons.car_repair_rounded, iconColor: kBlue, label: 'Make', value: widget.device.make),
+                      _buildDivider(col),
+                      _buildRow(col: col, icon: Icons.confirmation_number_outlined, iconColor: kBlue, label: 'Chassis Number', value: widget.device.chassis),
+                      _buildDivider(col),
+                      _buildRow(col: col, icon: Icons.pin_outlined, iconColor: kBlue, label: 'Registration Number', value: widget.device.numberPlate),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  _buildSectionHeader("Certificate & Compliance", col),
-                  _buildVehicleCard(
+
+                  // ── Ownership & Contact ────────────────────────────
+                  _buildSectionHeader(
                     col: col,
-                    child: Column(
-                      children: [
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Certificate Number',
-                          subtitle: widget.device.certNo,
-                        ),
-                        _buildDivider(col),
-                        _buildUrlItem(
-                          col: col,
-                          title: 'Certificate URL',
-                          url: widget.device.certificateUrl,
-                        ),
-                        _buildDivider(col),
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Certificate Status',
-                          subtitle: widget.device.certificateActiveStatus
-                              ? "Active"
-                              : "Inactive",
-                        ),
-                        _buildDivider(col),
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Certificate Expiry',
-                          subtitle: _utils.formatDate(
-                            widget.device.certificateExpirey,
-                          ),
-                        ),
-                      ],
-                    ),
+                    title: 'Ownership & Contact',
+                    icon: Icons.person_rounded,
+                    color: const Color(0xFF7C3AED),
                   ),
-                  const SizedBox(height: 10),
-                  _buildSectionHeader("Installation & Device", col),
-                  _buildVehicleCard(
+                  _buildCard(
                     col: col,
-                    child: Column(
-                      children: [
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Technician Name',
-                          subtitle: widget.device.technicianName,
-                        ),
-                        _buildDivider(col),
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Device Type',
-                          subtitle: widget.device.deviceType,
-                        ),
-                        _buildDivider(col),
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Device Status',
-                          subtitle: widget.device.isDeviceOnline
-                              ? "Online"
-                              : "Offline",
-                        ),
-                      ],
-                    ),
+                    children: [
+                      _buildRow(col: col, icon: Icons.badge_outlined, iconColor: const Color(0xFF7C3AED), label: 'Owner ID', value: widget.device.ownerId),
+                      _buildDivider(col),
+                      _buildRow(col: col, icon: Icons.phone_outlined, iconColor: const Color(0xFF7C3AED), label: 'Phone', value: widget.device.phone),
+                      _buildDivider(col),
+                      _buildRow(col: col, icon: Icons.email_outlined, iconColor: const Color(0xFF7C3AED), label: 'Email', value: widget.device.email),
+                      _buildDivider(col),
+                      _buildRow(col: col, icon: Icons.business_outlined, iconColor: const Color(0xFF7C3AED), label: 'Business Reg', value: widget.device.businessReg),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  _buildSectionHeader("Agent & Details", col),
-                  _buildVehicleCard(
+
+                  // ── Certificate & Compliance ───────────────────────
+                  _buildSectionHeader(
                     col: col,
-                    child: Column(
-                      children: [
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Agent',
-                          subtitle: widget.device.agent,
-                        ),
-                        _buildDivider(col),
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Agent ID',
-                          subtitle: widget.device.agentID,
-                        ),
-                        _buildDivider(col),
-                        _buildVehicleItem(
-                          col: col,
-                          title: 'Agent Phone',
-                          subtitle: widget.device.agentPhone,
-                        ),
-                      ],
-                    ),
+                    title: 'Certificate & Compliance',
+                    icon: Icons.verified_rounded,
+                    color: isCertActive ? kSuccessGreen : kRed,
                   ),
-                  const SizedBox(height: 30),
+                  _buildCard(
+                    col: col,
+                    children: [
+                      _buildRow(col: col, icon: Icons.numbers_outlined, iconColor: isCertActive ? kSuccessGreen : kRed, label: 'Certificate Number', value: widget.device.certNo),
+                      _buildDivider(col),
+                      _buildUrlRow(col: col, label: 'Certificate URL', url: widget.device.certificateUrl, color: isCertActive ? kSuccessGreen : kRed),
+                      _buildDivider(col),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.shield_outlined,
+                        iconColor: isCertActive ? kSuccessGreen : kRed,
+                        label: 'Certificate Status',
+                        value: isCertActive ? 'Active' : 'Inactive',
+                        statusColor: isCertActive ? kSuccessGreen : kRed,
+                      ),
+                      _buildDivider(col),
+                      _buildRow(col: col, icon: Icons.calendar_today_outlined, iconColor: isCertActive ? kSuccessGreen : kRed, label: 'Certificate Expiry', value: _utils.formatDate(widget.device.certificateExpirey)),
+                    ],
+                  ),
+
+                  // ── Installation & Device ──────────────────────────
+                  _buildSectionHeader(
+                    col: col,
+                    title: 'Installation & Device',
+                    icon: Icons.settings_input_antenna_rounded,
+                    color: const Color(0xFFF59E0B),
+                  ),
+                  _buildCard(
+                    col: col,
+                    children: [
+                      _buildRow(col: col, icon: Icons.engineering_rounded, iconColor: const Color(0xFFF59E0B), label: 'Technician Name', value: widget.device.technicianName),
+                      _buildDivider(col),
+                      _buildRow(col: col, icon: Icons.router_rounded, iconColor: const Color(0xFFF59E0B), label: 'Device Type', value: widget.device.deviceType),
+                      _buildDivider(col),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.wifi_tethering_rounded,
+                        iconColor: isOnline ? kSuccessGreen : kRed,
+                        label: 'Device Status',
+                        value: isOnline ? 'Online' : 'Offline',
+                        statusColor: isOnline ? kSuccessGreen : kRed,
+                      ),
+                    ],
+                  ),
+
+                  // ── Agent & Details ────────────────────────────────
+                  _buildSectionHeader(
+                    col: col,
+                    title: 'Agent & Details',
+                    icon: Icons.support_agent_rounded,
+                    color: const Color(0xFF6366F1),
+                  ),
+                  _buildCard(
+                    col: col,
+                    children: [
+                      _buildRow(col: col, icon: Icons.person_pin_outlined, iconColor: const Color(0xFF6366F1), label: 'Agent', value: widget.device.agent),
+                      _buildDivider(col),
+                      _buildRow(col: col, icon: Icons.badge_outlined, iconColor: const Color(0xFF6366F1), label: 'Agent ID', value: widget.device.agentID),
+                      _buildDivider(col),
+                      _buildRow(col: col, icon: Icons.phone_forwarded_outlined, iconColor: const Color(0xFF6366F1), label: 'Agent Phone', value: widget.device.agentPhone),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -199,11 +159,40 @@ class _VehicleDetailsState extends State<VehicleDetails> {
     );
   }
 
-  Widget _buildVehicleCard({
+  Widget _buildSectionHeader({
     required AppColors col,
-    required Widget child,
-    VoidCallback? onTap,
+    required String title,
+    required IconData icon,
+    required Color color,
   }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: col.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCard({required AppColors col, required List<Widget> children}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
@@ -211,44 +200,77 @@ class _VehicleDetailsState extends State<VehicleDetails> {
         borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [kShadowSM],
       ),
-      child: Material(
-        color: Colors.transparent,
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(kRadiusMD),
-        child: child,
+        child: Column(children: children),
       ),
     );
   }
 
-  Widget _buildVehicleItem({
+  Widget _buildRow({
     required AppColors col,
-    required String title,
-    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+    Color? statusColor,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: col.textSecondary,
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: Icon(icon, color: iconColor, size: 18),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 14),
           Expanded(
-            child: Text(
-              subtitle,
-              textAlign: TextAlign.right,
-              softWrap: true,
-              overflow: TextOverflow.visible,
-              style: TextStyle(
-                fontSize: 14,
-                color: col.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: col.textSecondary,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                if (statusColor != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: statusColor.withValues(alpha: 0.25)),
+                    ),
+                    child: Text(
+                      value.isEmpty ? '—' : value,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                      ),
+                    ),
+                  )
+                else
+                  Text(
+                    value.isEmpty ? '—' : value,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: col.textPrimary,
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -256,67 +278,81 @@ class _VehicleDetailsState extends State<VehicleDetails> {
     );
   }
 
-  Widget _buildSectionHeader(String title, AppColors col) {
+  Widget _buildUrlRow({
+    required AppColors col,
+    required String label,
+    required String url,
+    required Color color,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: col.textSecondary,
-          letterSpacing: 0.5,
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.link_rounded, color: color, size: 18),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: col.textSecondary,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                GestureDetector(
+                  onTap: () => _openUrl(url),
+                  child: Text(
+                    url.isEmpty ? '—' : url,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: kBlue,
+                      decoration: url.isEmpty ? null : TextDecoration.underline,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (url.isNotEmpty)
+            GestureDetector(
+              onTap: () => _copyToClipboard(url),
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: col.inputFill,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.copy_rounded, color: col.textSecondary, size: 16),
+              ),
+            ),
+        ],
       ),
     );
   }
 
   Widget _buildDivider(AppColors col) {
-    return Container(height: 1, color: col.divider);
-  }
-
-  Widget _buildUrlItem({
-    required AppColors col,
-    required String title,
-    required String url,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: col.textSecondary,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _openUrl(url),
-              child: Text(
-                url,
-                textAlign: TextAlign.right,
-                softWrap: true,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () => _copyToClipboard(url),
-            child: Icon(Icons.copy, color: col.textPrimary, size: 20),
-          ),
-        ],
-      ),
+    return Container(
+      height: 1,
+      margin: const EdgeInsets.only(left: 68),
+      color: col.divider,
     );
   }
 

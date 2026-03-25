@@ -162,6 +162,8 @@ class _CommandsState extends State<Commands> {
   Widget build(BuildContext context) {
     final col = context.col;
     final isEngineOn = widget.device.ignitionStatus == 1;
+    final engineColor = isEngineOn ? kRed : kSuccessGreen;
+
     return Scaffold(
       backgroundColor: col.bg,
       body: SafeArea(
@@ -175,60 +177,72 @@ class _CommandsState extends State<Commands> {
               showBackButton: true,
               onPressed: () => Navigator.pop(context),
             ),
-            const SizedBox(height: 10),
-            _buildSectionHeader("Commands", col),
-            _buildSettingsCard(
-              col: col,
-              child: Column(
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 32),
                 children: [
-                  _buildCommandItem(
+                  _buildSectionHeader(col: col, title: 'Commands', icon: Icons.tune_rounded, color: kBlue),
+                  _buildCard(
                     col: col,
-                    title: 'Check Location',
-                    subtitle: "View the vehicle's current GPS position.",
-                    onTap: () {
-                      final lat = double.tryParse(widget.device.latitude) ?? 0.0;
-                      final lng = double.tryParse(widget.device.longitude) ?? 0.0;
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => VehicleLocationScreen(
-                            latitude: lat,
-                            longitude: lng,
-                            deviceId: widget.device.deviceId,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildDivider(col),
-                  _buildCommandItem(
-                    col: col,
-                    title: isEngineOn ? 'Stop Engine' : 'Start Engine',
-                    subtitle: isEngineOn
-                        ? "Remotely shut down the vehicle's engine."
-                        : "Remotely start the vehicle's engine.",
-                    trailing: _engineToggling
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : null,
-                    onTap: () => _toggleEngine(!isEngineOn),
-                  ),
-                  _buildDivider(col),
-                  _buildCommandItem(
-                    col: col,
-                    title: 'SOS Number',
-                    subtitle: "View the emergency contact for this vehicle.",
-                    onTap: () => _showSosInfo(col),
-                  ),
-                  _buildDivider(col),
-                  _buildCommandItem(
-                    col: col,
-                    title: 'Set Mileage',
-                    subtitle: "Input or adjust the vehicle odometer reading.",
-                    onTap: () => _showSetMileageDialog(col),
+                    children: [
+                      _buildCommandItem(
+                        col: col,
+                        icon: Icons.my_location_rounded,
+                        iconColor: Colors.orange,
+                        title: 'Check Location',
+                        subtitle: "View the vehicle's current GPS position.",
+                        onTap: () {
+                          final lat = double.tryParse(widget.device.latitude) ?? 0.0;
+                          final lng = double.tryParse(widget.device.longitude) ?? 0.0;
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => VehicleLocationScreen(
+                                latitude: lat,
+                                longitude: lng,
+                                deviceId: widget.device.deviceId,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildDivider(col),
+                      _buildCommandItem(
+                        col: col,
+                        icon: Icons.power_settings_new_rounded,
+                        iconColor: engineColor,
+                        title: isEngineOn ? 'Stop Engine' : 'Start Engine',
+                        subtitle: isEngineOn
+                            ? "Remotely shut down the vehicle's engine."
+                            : "Remotely start the vehicle's engine.",
+                        trailing: _engineToggling
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: engineColor),
+                              )
+                            : null,
+                        onTap: () => _toggleEngine(!isEngineOn),
+                      ),
+                      _buildDivider(col),
+                      _buildCommandItem(
+                        col: col,
+                        icon: Icons.sos_rounded,
+                        iconColor: kRed,
+                        title: 'SOS Number',
+                        subtitle: "View the emergency contact for this vehicle.",
+                        onTap: () => _showSosInfo(col),
+                      ),
+                      _buildDivider(col),
+                      _buildCommandItem(
+                        col: col,
+                        icon: Icons.speed_rounded,
+                        iconColor: const Color(0xFF6366F1),
+                        title: 'Set Mileage',
+                        subtitle: "Input or adjust the vehicle odometer reading.",
+                        onTap: () => _showSetMileageDialog(col),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -239,58 +253,81 @@ class _CommandsState extends State<Commands> {
     );
   }
 
-  Widget _buildSectionHeader(String title, AppColors col) {
+  Widget _buildSectionHeader({
+    required AppColors col,
+    required String title,
+    required IconData icon,
+    required Color color,
+  }) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: col.textSecondary,
-          letterSpacing: 0.5,
-        ),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: col.textPrimary,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSettingsCard(
-      {required AppColors col,
-      required Widget child,
-      VoidCallback? onTap}) {
+  Widget _buildCard({required AppColors col, required List<Widget> children}) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
         color: col.surface,
         borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [kShadowSM],
       ),
-      child: Material(
-        color: Colors.transparent,
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(kRadiusMD),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(kRadiusMD),
-          child: child,
-        ),
+        child: Column(children: children),
       ),
     );
   }
 
   Widget _buildCommandItem({
     required AppColors col,
+    required IconData icon,
+    required Color iconColor,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
-    Color? textColor,
     Widget? trailing,
   }) {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: iconColor.withValues(alpha: 0.18)),
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,20 +335,25 @@ class _CommandsState extends State<Commands> {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: textColor ?? col.textPrimary,
+                      color: col.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 14, color: col.textSecondary),
+                    style: TextStyle(fontSize: 12, color: col.textSecondary),
                   ),
                 ],
               ),
             ),
-            trailing ?? Icon(Icons.chevron_right, color: col.border, size: 20),
+            const SizedBox(width: 8),
+            trailing ?? Icon(
+              Icons.chevron_right_rounded,
+              color: iconColor.withValues(alpha: 0.45),
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -319,6 +361,10 @@ class _CommandsState extends State<Commands> {
   }
 
   Widget _buildDivider(AppColors col) {
-    return Container(height: 1, color: col.divider);
+    return Container(
+      height: 1,
+      margin: const EdgeInsets.only(left: 74),
+      color: col.divider,
+    );
   }
 }
