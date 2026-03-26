@@ -13,6 +13,18 @@ class GeoFenceController extends GetxController {
 
   final ApiService _apiService = ApiService();
 
+  Future<bool> deleteGeofence(int id) async {
+    isLoading.value = true;
+    try {
+      return await ApiService.deleteGeofence(id);
+    } catch (e) {
+      debugPrint('delete geofence failed: $e');
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<bool> addGeoFence(BuildContext context) async {
     isLoading.value = true;
 

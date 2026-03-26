@@ -9,9 +9,7 @@ import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 import 'package:atom/models/company_model.dart';
 import 'package:atom/services/api_service.dart';
-import 'package:bluetooth_classic/bluetooth_classic.dart' as bt_classic;
 import 'package:atom/models/register_device_model.dart';
-import 'package:bluetooth_classic/models/device.dart' as bt_device;
 import 'package:flutter_bluetooth_classic_serial/flutter_bluetooth_classic.dart'
     as bt_serial;
 
@@ -171,25 +169,20 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   Map<String, dynamic> _deviceData = {};
   bool _showRegistrationForm = false;
 
-  // Use bluetooth_classic for scanning
-  final bt_classic.BluetoothClassic _bluetoothClassic =
-      bt_classic.BluetoothClassic();
-
-  // Use flutter_bluetooth_classic_serial for connection and data
   late bt_serial.FlutterBluetoothClassic _bluetoothSerial;
 
-  List<bt_device.Device> _devices = [];
-  List<bt_device.Device> _pairedDevices = [];
+  List<bt_serial.BluetoothDevice> _devices = [];
+  List<bt_serial.BluetoothDevice> _pairedDevices = [];
   bool _isScanning = false;
   Map<String, bool> _connectingDevices =
       {}; // Track connecting state per device
   String _receivedData = '';
-  bt_device.Device? _selectedDevice;
+  bt_serial.BluetoothDevice? _selectedDevice;
   bool _isConnected = false;
   bool _isBluetoothEnabled = false;
 
   // Stream subscriptions for scanning
-  StreamSubscription<bt_device.Device>? _discoverySubscription;
+  StreamSubscription<bt_serial.BluetoothDevice>? _discoverySubscription;
   Timer? _scanTimeoutTimer;
 
   // Stream subscriptions for serial connection
@@ -381,8 +374,6 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   Future<void> _initializeBluetooth() async {
     try {
-      await _bluetoothClassic.initPermissions();
-
       bool isSupported = await _bluetoothSerial.isBluetoothSupported();
       if (!isSupported) {
         _showError('Bluetooth is not supported on this device');
@@ -394,8 +385,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         _isBluetoothEnabled = isEnabled;
       });
 
+      _setupSerialListeners();
       if (isEnabled) {
-        _setupSerialListeners();
         await _loadPairedDevices();
       } else {
         if (mounted) _showBluetoothDisabledDialog();
@@ -456,8 +447,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.settings_rounded, size: 18),
-                  label: const Text('Open Settings'),
+                  icon: const Icon(Icons.bluetooth_rounded, size: 18),
+                  label: const Text('Enable Bluetooth'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kBlue,
                     foregroundColor: kWhite,
@@ -468,7 +459,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                   ),
                   onPressed: () {
                     Navigator.of(ctx).pop();
-                    _openBluetoothSettings();
+                    _enableBluetooth();
                   },
                 ),
               ),
@@ -499,19 +490,23 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     );
   }
 
-  Future<void> _openBluetoothSettings() async {
+  Future<void> _enableBluetooth() async {
     try {
-      final Uri uri;
-      if (Platform.isIOS) {
-        uri = Uri.parse('App-prefs:Bluetooth');
+      if (Platform.isAndroid) {
+        final enabled = await _bluetoothSerial.enableBluetooth();
+        if (enabled && mounted) {
+          await _loadPairedDevices();
+        }
       } else {
-        // Android: open general wireless/connectivity settings
-        uri = Uri.parse('android.settings.BLUETOOTH_SETTINGS');
+        // iOS cannot programmatically enable Bluetooth — open settings instead
+        final uri = Uri.parse('App-prefs:Bluetooth');
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
       }
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (_) {}
+    } catch (e) {
+      _showError('Failed to enable Bluetooth: $e');
+    }
   }
 
   Future<void> _saveCompany() async {
@@ -580,11 +575,15 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   }
 
   void _setupSerialListeners() {
-    // Listen for Bluetooth state changes from serial package
+    // Listen for Bluetooth adapter state changes
     _stateSubscription = _bluetoothSerial.onStateChanged.listen((state) {
-      setState(() {
-        _isBluetoothEnabled = state.isEnabled;
-      });
+      if (state.isEnabled && !_isBluetoothEnabled && mounted) {
+        setState(() => _isBluetoothEnabled = true);
+        _loadPairedDevices();
+      } else if (!state.isEnabled && _isBluetoothEnabled && mounted) {
+        setState(() => _isBluetoothEnabled = false);
+        _showBluetoothDisabledDialog();
+      }
     });
 
     // Listen for connection changes from serial package
@@ -621,8 +620,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   Future<void> _loadPairedDevices() async {
     try {
-      List<bt_device.Device> devices = await _bluetoothClassic
-          .getPairedDevices();
+      List<bt_serial.BluetoothDevice> devices =
+          await _bluetoothSerial.getPairedDevices();
       setState(() {
         _pairedDevices = devices;
         _devices = _getFilteredDevices();
@@ -632,10 +631,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     }
   }
 
-  List<bt_device.Device> _getFilteredDevices() {
+  List<bt_serial.BluetoothDevice> _getFilteredDevices() {
     // Filter to only show Atom Speed devices
     return _pairedDevices.where((device) {
-      final name = device.name?.toLowerCase() ?? '';
+      final name = device.name.toLowerCase();
       return name.contains('atom speed');
     }).toList();
   }
@@ -652,12 +651,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     });
 
     try {
-      // Listen for discovered devices using bluetooth_classic package
       _discoverySubscription?.cancel();
-      _discoverySubscription = _bluetoothClassic.onDeviceDiscovered().listen((
+      _discoverySubscription = _bluetoothSerial.onDeviceDiscovered.listen((
         device,
       ) {
-        final deviceName = device.name?.toLowerCase() ?? '';
+        final deviceName = device.name.toLowerCase();
 
         // Check if device name contains "atom speed" (case-insensitive)
         if (deviceName.contains('atom speed')) {
@@ -669,8 +667,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         }
       });
 
-      // Start scanning with bluetooth_classic package
-      await _bluetoothClassic.startScan();
+      await _bluetoothSerial.startDiscovery();
 
       // Auto-stop after 15 seconds
       _scanTimeoutTimer?.cancel();
@@ -690,7 +687,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   Future<void> _stopScanning() async {
     try {
-      await _bluetoothClassic.stopScan();
+      await _bluetoothSerial.stopDiscovery();
       _discoverySubscription?.cancel();
       _discoverySubscription = null;
       _scanTimeoutTimer?.cancel();
@@ -699,7 +696,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     }
   }
 
-  Future<void> _connectToDevice(bt_device.Device device) async {
+  Future<void> _connectToDevice(bt_serial.BluetoothDevice device) async {
     if (_isConnected || _connectingDevices[device.address] == true) return;
 
     setState(() {
@@ -728,8 +725,21 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   Future<void> _disconnectDevice() async {
     try {
-      await _bluetoothSerial.disconnect();
-      _showSuccess('Disconnected');
+      final success = await _bluetoothSerial.disconnect();
+      if (success) {
+        setState(() {
+          _isConnected = false;
+          _selectedDevice = null;
+          _receivedData = '';
+          _jsonBuffer.clear();
+          _connectingDevices.clear();
+        });
+        _dataSubscription?.cancel();
+        _dataSubscription = null;
+        _showSuccess('Disconnected');
+      } else {
+        _showError('Failed to disconnect');
+      }
     } catch (e) {
       _showError('Disconnect error: $e');
     }
@@ -884,6 +894,106 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   Future<void> _retrieveDataFromDevice() async {
     await _sendCommand('GetORCAid>');
   }
+
+  Future<void> _factoryResetDevice() async {
+    await _sendCommand('Factory>');
+  }
+
+  void _showResetConfirmDialog() {
+    final col = context.col;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadiusLG),
+        ),
+        backgroundColor: col.surface,
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: kRed.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.warning_rounded,
+                  size: 36,
+                  color: kRed,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Reset Device?',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: col.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This will reset the ORCA device to factory settings. This action cannot be undone.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: col.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _factoryResetDevice();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kRed,
+                    foregroundColor: kWhite,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(kRadiusMD),
+                    ),
+                  ),
+                  child: const Text(
+                    'Yes, Reset',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: col.textPrimary,
+                    side: BorderSide(color: col.border),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(kRadiusMD),
+                    ),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Future<void> _resetDevice() async {
+  //   await _sendCommand('Reset>');
+  // }
 
   Future<void> _prepareCalibration() async {
     if (!_isConnected) {
@@ -1763,8 +1873,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     );
   }
 
-  Widget _buildDeviceCard(bt_device.Device device, bool isConnected) {
-    final deviceName = device.name ?? 'Unknown Device';
+  Widget _buildDeviceCard(bt_serial.BluetoothDevice device, bool isConnected) {
+    final deviceName = device.name;
     final isConnecting = _connectingDevices[device.address] == true;
     final col = context.col;
 
@@ -2644,6 +2754,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     return Stack(
       children: [
         Scaffold(
+          resizeToAvoidBottomInset: false,
           appBar: AppBar(
             title: const Text("Connect Device"),
             backgroundColor: kBlue,
@@ -3089,17 +3200,38 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               ],
             ),
           ),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
           floatingActionButton: _isConnected
-              ? FloatingActionButton.extended(
-                  onPressed: _retrieveDataFromDevice,
-                  icon: const Icon(Icons.download),
-                  label: const Text('Get Device Data'),
-                  backgroundColor: kBlue,
-                  foregroundColor: kWhite,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(kRadiusPill),
-                  ),
-                  elevation: 4,
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FloatingActionButton.extended(
+                      heroTag: 'reset',
+                      onPressed: _showResetConfirmDialog,
+                      icon: const Icon(Icons.restart_alt),
+                      label: const Text('Reset Device'),
+                      backgroundColor: kRed,
+                      foregroundColor: kWhite,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(kRadiusPill),
+                      ),
+                      elevation: 4,
+                    ),
+                    const SizedBox(width: 12),
+                    FloatingActionButton.extended(
+                      heroTag: 'getData',
+                      onPressed: _retrieveDataFromDevice,
+                      icon: const Icon(Icons.download),
+                      label: const Text('Get Device Data'),
+                      backgroundColor: kBlue,
+                      foregroundColor: kWhite,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(kRadiusPill),
+                      ),
+                      elevation: 4,
+                    ),
+                  ],
                 )
               : null,
         ),

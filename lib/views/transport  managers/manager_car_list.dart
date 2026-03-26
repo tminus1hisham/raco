@@ -267,7 +267,10 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
       );
     }
 
-    return ListView.builder(
+    return RefreshIndicator(
+      onRefresh: () => _controller.fetchDevices(),
+      color: kBlue,
+      child: ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: filteredCars.length,
       itemBuilder: (context, index) {
@@ -288,6 +291,7 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
           ],
         );
       },
+      ),
     );
   }
 }

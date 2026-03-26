@@ -1,4 +1,4 @@
-import 'package:animated_splash_screen/animated_splash_screen.dart';
+import 'package:atom/views/splash_screen.dart';
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/theme_controller.dart';
@@ -84,20 +84,9 @@ class _MyAppState extends State<MyApp> {
           darkTheme: AppTheme.darkTheme,
           themeMode: initialThemeMode,
           onGenerateRoute: AppRoutes.generateRoute,
-          home: AnimatedSplashScreen(
-            splash: Center(
-              child: Image.asset(
-                'assets/orca_logo.png',
-                width: 200,
-                fit: BoxFit.contain,
-              ),
-            ),
+          home: RadarSplashScreen(
             nextScreen: nextScreen,
-            splashTransition: SplashTransition.fadeTransition,
-            duration: 2000,
-            backgroundColor: initialThemeMode == ThemeMode.dark
-                ? const Color(0xFF141720)
-                : kWhite,
+            themeMode: initialThemeMode,
           ),
         );
       },

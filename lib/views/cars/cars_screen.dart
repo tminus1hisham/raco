@@ -131,7 +131,10 @@ class _CarsScreenState extends State<CarsScreen> {
                     ),
                   ),
                   Expanded(
-                    child: ListView.builder(
+                    child: RefreshIndicator(
+                      onRefresh: () => _controller.fetchDevices(),
+                      color: kBlue,
+                      child: ListView.builder(
                       itemCount: devices.length,
                       itemBuilder: (context, index) {
                         final device = devices[index];
@@ -163,6 +166,7 @@ class _CarsScreenState extends State<CarsScreen> {
                           },
                         );
                       },
+                    ),
                     ),
                   ),
                 ],

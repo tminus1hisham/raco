@@ -714,10 +714,14 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                       ),
                     ),
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: _filteredViolations.length,
-                        itemBuilder: (context, index) =>
-                            _buildViolationCard(_filteredViolations[index], col),
+                      child: RefreshIndicator(
+                        onRefresh: _getViolations,
+                        color: kBlue,
+                        child: ListView.builder(
+                          itemCount: _filteredViolations.length,
+                          itemBuilder: (context, index) =>
+                              _buildViolationCard(_filteredViolations[index], col),
+                        ),
                       ),
                     ),
                   ],

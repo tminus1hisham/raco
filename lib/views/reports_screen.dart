@@ -438,10 +438,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   );
                 }
 
-                return ListView.builder(
-                  itemCount: _reportsController.reports.length,
-                  itemBuilder: (context, index) =>
-                      _buildReportCard(_reportsController.reports[index], col),
+                return RefreshIndicator(
+                  onRefresh: _getReports,
+                  color: kBlue,
+                  child: ListView.builder(
+                    itemCount: _reportsController.reports.length,
+                    itemBuilder: (context, index) =>
+                        _buildReportCard(_reportsController.reports[index], col),
+                  ),
                 );
               }),
             ),

@@ -5,6 +5,8 @@ import 'dart:ui' as ui;
 
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/fetch_geofence_controller.dart';
+import 'package:atom/services/geofence_monitor_service.dart';
 import 'package:atom/services/mqtt_client.dart';
 import 'package:atom/widgets/map/map_style_switcher.dart';
 import 'package:flutter/material.dart';
@@ -17,12 +19,14 @@ class VehicleLocationScreen extends StatefulWidget {
   final double latitude;
   final double longitude;
   final String deviceId;
+  final String numberPlate;
 
   const VehicleLocationScreen({
     Key? key,
     required this.latitude,
     required this.longitude,
     required this.deviceId,
+    required this.numberPlate,
   }) : super(key: key);
 
   @override
@@ -52,13 +56,28 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
   double _animLat = 0;
   double _animLng = 0;
 
+  // ── Geofence monitoring ────────────────────────────────────────────────
+  final _geofenceMonitor = GeofenceMonitorService();
+  final _fetchGeofenceController = FetchGeofenceController();
+
   @override
   void initState() {
     super.initState();
+    numberPlate = widget.numberPlate;
     _animLat = widget.latitude;
     _animLng = widget.longitude;
     _moveController = AnimationController(vsync: this);
+    _initGeofenceMonitor();
     _loadCarIcon().then((_) => _subscribeToVehicleTopic());
+  }
+
+  Future<void> _initGeofenceMonitor() async {
+    await _fetchGeofenceController.fetchGeofence(widget.numberPlate);
+    _geofenceMonitor.initializeStates(
+      _fetchGeofenceController.geofences,
+      widget.latitude,
+      widget.longitude,
+    );
   }
 
   @override
@@ -66,6 +85,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
     _moveController.dispose();
     _unsubscribeFromVehicleTopic();
     _mqttSubscription?.cancel();
+    _geofenceMonitor.reset();
     super.dispose();
   }
 
@@ -117,6 +137,14 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
       if (_vehicleAnnotation != null) {
         _vehicleAnnotation!.iconRotate = _bearing;
       }
+
+      // Check vehicle position against all active geofences
+      _geofenceMonitor.updateLocation(
+        _fetchGeofenceController.geofences,
+        lat,
+        lng,
+        numberPlate,
+      );
 
       _animateMarkerTo(lat, lng);
     } catch (e) {
@@ -287,7 +315,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
 
   Widget _buildHeader(AppColors col) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16,vertical: 18),
       child: Row(
         children: [
           // Back button

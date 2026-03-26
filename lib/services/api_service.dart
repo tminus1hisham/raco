@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:atom/config/constants.dart';
 import 'package:atom/models/geofence_model.dart';
 import 'package:atom/models/location_model.dart';
@@ -93,7 +95,7 @@ class ApiService {
     String token = await StorageService.getData('access_token');
 
     final response = await http.get(
-      Uri.parse('$base_url/devices/get/vehicles/dashboard?company=All'),
+      Uri.parse('$BASE_URL/devices/get/vehicles/dashboard?company=All'),
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",
@@ -653,5 +655,57 @@ class ApiService {
       }
     }
     return result;
+  }
+
+  // ─── Geofence management ──────────────────────────────────────────────────
+
+  static Future<bool> deleteGeofence(int id) async {
+    String token = await StorageService.getData('access_token');
+    try {
+      final response = await http.delete(
+        Uri.parse('$base_url/devices/delete/geo/fence/$id'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) return true;
+      _handleAuthError(response.statusCode);
+      return false;
+    } on SocketException catch (_) {
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Fires a geofence-breach event to the backend.
+  /// The backend is responsible for sending push notifications to Admin/Manager.
+  static Future<void> reportGeofenceBreach({
+    required int geofenceId,
+    required String numberPlate,
+    required String latitude,
+    required String longitude,
+    required String exitTime,
+  }) async {
+    String token = await StorageService.getData('access_token');
+    try {
+      await http.post(
+        Uri.parse('$base_url/devices/geo/fence/breach'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'geofenceId': geofenceId,
+          'numberPlate': numberPlate,
+          'latitude': latitude,
+          'longitude': longitude,
+          'exitTime': exitTime,
+        }),
+      );
+    } catch (e) {
+      debugPrint('reportGeofenceBreach error: $e');
+    }
   }
 }

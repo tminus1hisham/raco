@@ -708,6 +708,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                         MaterialPageRoute(
                                           builder: (context) => VehicleLocationScreen(
                                             deviceId: widget.devices.deviceId,
+                                            numberPlate: widget.devices.numberPlate,
                                             latitude:
                                                 double.tryParse(widget.devices.latitude) ??
                                                 0.0,
@@ -821,6 +822,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                     MaterialPageRoute(
                                       builder: (context) => VehicleLocationScreen(
                                         deviceId: widget.devices.deviceId,
+                                        numberPlate: widget.devices.numberPlate,
                                         latitude:
                                             double.tryParse(widget.devices.latitude) ??
                                             0.0,

@@ -5,6 +5,7 @@ import 'package:atom/controllers/geo_fence_controller.dart';
 import 'package:atom/models/geofence_model.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/map/map_style_switcher.dart';
+import 'package:atom/widgets/modal/custom_alert.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -29,16 +30,17 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
       FetchGeofenceController();
 
   final TextEditingController zoneNameController = TextEditingController();
-  final TextEditingController radiusController = TextEditingController(
-    text: '0.0',
-  );
 
   List<PointAnnotationOptions> markers = [];
   List<CircleAnnotationOptions> circles = [];
   GeofenceModel? selectedGeofence;
   bool isAddingGeofence = false;
   bool isSaveEnabled = false;
-  double radiusKm = 0.0;
+
+  // Radius in kilometres (0.1 – 50 km)
+  double radiusKm = 0.5;
+  static const double _radiusMin = 0.1;
+  static const double _radiusMax = 50.0;
 
   @override
   void initState() {
@@ -49,17 +51,19 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   @override
   void dispose() {
     zoneNameController.dispose();
-    radiusController.dispose();
     super.dispose();
   }
 
+  // ── Data loading ──────────────────────────────────────────────────────────
+
   Future<void> _loadExistingGeofences() async {
     await _fetchGeofenceController.fetchGeofence(widget.numberPlate);
-
     setState(() {
       _updateMapMarkers();
     });
   }
+
+  // ── Map markers ───────────────────────────────────────────────────────────
 
   void _updateMapMarkers() {
     markers.clear();
@@ -98,7 +102,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
           geometry: selectedPoint!,
           iconSize: 1.5,
           iconImage: "assets/orange_car.png",
-          textField: "New Point",
+          textField: "New Zone",
           textSize: 12.0,
         ),
       );
@@ -116,13 +120,15 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     setState(() {});
   }
 
+  // ── Interactions ──────────────────────────────────────────────────────────
+
   void _onMapTap(Point point) {
     if (!isAddingGeofence) return;
-
     setState(() {
       selectedPoint = point;
       selectedGeofence = null;
     });
+    _checkSaveButtonState();
     _updateMapMarkers();
   }
 
@@ -139,12 +145,21 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
           double.parse(geofence.latitude),
         ),
       );
-
       mapboxMap?.flyTo(CameraOptions(center: point, zoom: 14.0), null);
     }
 
     _updateMapMarkers();
   }
+
+  void _checkSaveButtonState() {
+    final hasZoneName = zoneNameController.text.trim().isNotEmpty;
+    final hasPin = selectedPoint != null;
+    setState(() {
+      isSaveEnabled = hasZoneName && hasPin;
+    });
+  }
+
+  // ── Save geofence ─────────────────────────────────────────────────────────
 
   Future<void> _addGeofenceZone() async {
     if (selectedPoint == null) {
@@ -169,20 +184,20 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
 
     _geoFenceController.numberPlate.value = widget.numberPlate;
     _geoFenceController.fullName.value = zoneNameController.text.trim();
-    _geoFenceController.latitude.value = selectedPoint!.coordinates.lat
-        .toString();
-    _geoFenceController.longitude.value = selectedPoint!.coordinates.lng
-        .toString();
-    _geoFenceController.radius.value = radiusKm.round() * 1000;
+    _geoFenceController.latitude.value =
+        selectedPoint!.coordinates.lat.toString();
+    _geoFenceController.longitude.value =
+        selectedPoint!.coordinates.lng.toString();
+    // Store in metres (radius is in km on UI)
+    _geoFenceController.radius.value = (radiusKm * 1000).round();
 
-    bool success = await _geoFenceController.addGeoFence(context);
+    final success = await _geoFenceController.addGeoFence(context);
 
     CustomAlertDialog(
       context: context,
       title: success ? "Success" : "Error",
-      message: success
-          ? "Geofence added successfully"
-          : "Failed to add geofence",
+      message:
+          success ? "Geofence added successfully" : "Failed to add geofence",
       icon: success
           ? "assets/animations/Success.json"
           : "assets/animations/Failed.json",
@@ -193,24 +208,57 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
       setState(() {
         selectedPoint = null;
         zoneNameController.clear();
-        radiusController.text = '0.0';
-        radiusKm = 0.0;
+        radiusKm = 0.5;
+        isAddingGeofence = false;
       });
       await _loadExistingGeofences();
     }
   }
 
-  void _checkSaveButtonState() {
-    final hasZoneName = zoneNameController.text.trim().isNotEmpty;
-    final hasPin = selectedPoint != null;
-    final hasRadius =
-        double.tryParse(radiusController.text.trim()) != null &&
-        double.parse(radiusController.text.trim()) > 0;
+  // ── Delete geofence ───────────────────────────────────────────────────────
 
-    setState(() {
-      isSaveEnabled = hasZoneName && hasRadius && hasPin;
-    });
+  void _confirmDeleteGeofence() {
+    if (selectedGeofence == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => ActionDialog(
+        title: 'Delete Geofence',
+        message:
+            'Delete "${selectedGeofence!.name}"? This cannot be undone.',
+        confirmText: 'Delete',
+        onConfirm: _deleteGeofence,
+      ),
+    );
   }
+
+  Future<void> _deleteGeofence() async {
+    if (selectedGeofence == null) return;
+    final id = selectedGeofence!.id;
+    final success = await _geoFenceController.deleteGeofence(id);
+
+    CustomAlertDialog(
+      context: context,
+      title: success ? "Deleted" : "Error",
+      message: success
+          ? "Geofence deleted successfully"
+          : "Failed to delete geofence",
+      icon: success
+          ? "assets/animations/Success.json"
+          : "assets/animations/Failed.json",
+      buttonColor: success ? kSuccessGreen : kRed,
+    );
+
+    if (success) {
+      setState(() {
+        selectedGeofence = null;
+        markers.clear();
+        circles.clear();
+      });
+      await _loadExistingGeofences();
+    }
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -225,12 +273,11 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
               'Geofencing',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
-            // inherits backgroundColor and foregroundColor from AppBarTheme
           ),
           body: Column(
             children: [
-              if (!isAddingGeofence) _buildGeofenceDropdown(col),
-              if (isAddingGeofence) _buildZoneNameInput(),
+              if (!isAddingGeofence) _buildViewPanel(col),
+              if (isAddingGeofence) _buildAddPanel(col),
               Expanded(child: _buildMap(isDark)),
               _buildBottomPanel(col),
             ],
@@ -241,116 +288,193 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     );
   }
 
-  Widget _buildGeofenceDropdown(AppColors col) {
+  // ── View panel (existing geofences dropdown + status) ─────────────────────
+
+  Widget _buildViewPanel(AppColors col) {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: col.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<GeofenceModel>(
-          isExpanded: true,
-          dropdownColor: col.surface,
-          hint: Text(
-            'Select existing geofence to view',
-            style: TextStyle(color: col.textSecondary),
-          ),
-          value: selectedGeofence,
-          icon: Icon(Icons.arrow_drop_down, color: col.textSecondary),
-          items: _fetchGeofenceController.geofences.map((
-            GeofenceModel geofence,
-          ) {
-            return DropdownMenuItem<GeofenceModel>(
-              value: geofence,
-              child: Text(
-                '${geofence.name} (${geofence.radius / 1000}km)',
-                style: TextStyle(color: col.textPrimary),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Dropdown
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: col.surface,
+              borderRadius: BorderRadius.circular(kRadiusMD),
+              boxShadow: [kShadowSM],
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<GeofenceModel>(
+                isExpanded: true,
+                dropdownColor: col.surface,
+                hint: Text(
+                  'Select existing geofence to view',
+                  style: TextStyle(color: col.textSecondary),
+                ),
+                value: selectedGeofence,
+                icon: Icon(Icons.arrow_drop_down, color: col.textSecondary),
+                items: _fetchGeofenceController.geofences.map((
+                  GeofenceModel geofence,
+                ) {
+                  return DropdownMenuItem<GeofenceModel>(
+                    value: geofence,
+                    child: Text(
+                      '${geofence.name} (${(geofence.radius / 1000).toStringAsFixed(1)} km)',
+                      style: TextStyle(color: col.textPrimary),
+                    ),
+                  );
+                }).toList(),
+                onChanged: _onGeofenceSelected,
               ),
-            );
-          }).toList(),
-          onChanged: _onGeofenceSelected,
-        ),
+            ),
+          ),
+
+          // Status chip — only shown when a geofence is selected
+          if (selectedGeofence != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _StatusChip(isInside: selectedGeofence!.isInsideGeofence),
+                const Spacer(),
+                Text(
+                  'Radius: ${(selectedGeofence!.radius / 1000).toStringAsFixed(1)} km',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: col.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }
 
-  Widget _buildZoneNameInput() {
+  // ── Add panel (zone name + radius slider) ──────────────────────────────────
+
+  Widget _buildAddPanel(AppColors col) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Row(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: col.surface,
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        boxShadow: [kShadowSM],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 2,
-            child: Column(
-              children: [
-                const Text("Zone Name"),
-                const SizedBox(height: 5),
-                TextField(
-                  controller: zoneNameController,
-                  decoration: InputDecoration(
-                    hintText: 'Enter zone name',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                  onChanged: (_) => _checkSaveButtonState(),
+          // Zone name
+          TextField(
+            controller: zoneNameController,
+            decoration: InputDecoration(
+              hintText: 'Zone name (e.g. Depot A)',
+              prefixIcon: const Icon(Icons.label_outline, size: 20),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(kRadiusSM),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+            ),
+            onChanged: (_) => _checkSaveButtonState(),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Radius slider
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Radius',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: col.textPrimary,
                 ),
-              ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: kBlue.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(kRadiusPill),
+                ),
+                child: Text(
+                  '${radiusKm.toStringAsFixed(1)} km',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: kBlue,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: kBlue,
+              thumbColor: kBlue,
+              inactiveTrackColor: col.border,
+              overlayColor: kBlue.withValues(alpha: 0.15),
+              trackHeight: 4,
+            ),
+            child: Slider(
+              min: _radiusMin,
+              max: _radiusMax,
+              divisions: 499, // 100 m steps
+              value: radiusKm,
+              onChanged: (value) {
+                setState(() => radiusKm = value);
+                _updateMapMarkers();
+              },
             ),
           ),
-          const SizedBox(width: 5),
-          Expanded(
-            flex: 1,
-            child: Column(
-              children: [
-                const Text("Radius ( KM )"),
-                const SizedBox(height: 5),
-                TextField(
-                  controller: radiusController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '0',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                  onChanged: (value) {
-                    double? newRadius = double.tryParse(value);
-                    if (newRadius != null && newRadius > 0) {
-                      setState(() {
-                        radiusKm = newRadius;
-                        _updateMapMarkers();
-                      });
-                    }
-                    _checkSaveButtonState();
-                  },
-                ),
-              ],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${_radiusMin.toStringAsFixed(1)} km',
+                style: TextStyle(fontSize: 11, color: col.textSecondary),
+              ),
+              Text(
+                '${_radiusMax.toStringAsFixed(0)} km',
+                style: TextStyle(fontSize: 11, color: col.textSecondary),
+              ),
+            ],
           ),
+
+          // Tap-to-place hint
+          if (selectedPoint == null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.touch_app, size: 16, color: Colors.orange),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Tap on the map to place the center pin',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: col.textSecondary,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
+
+  // ── Map ───────────────────────────────────────────────────────────────────
 
   Widget _buildMap(bool isDark) {
     final styleUri =
@@ -358,48 +482,43 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     return Stack(
       children: [
         Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(kRadiusLG),
+            boxShadow: [kShadowMD],
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: MapWidget(
-          styleUri: styleUri,
-          cameraOptions: CameraOptions(
-            center:
-                selectedPoint ??
-                Point(
-                  coordinates: Position(
-                    36.816382318562034,
-                    -1.2842328448615796,
-                  ),
-                ),
-            zoom: 13.0,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(kRadiusLG),
+            child: MapWidget(
+              styleUri: styleUri,
+              cameraOptions: CameraOptions(
+                center: selectedPoint ??
+                    Point(
+                      coordinates: Position(
+                        36.816382318562034,
+                        -1.2842328448615796,
+                      ),
+                    ),
+                zoom: 13.0,
+              ),
+              onMapCreated: (MapboxMap map) {
+                mapboxMap = map;
+                map.annotations.createPointAnnotationManager().then((manager) {
+                  if (markers.isNotEmpty) {
+                    manager.createMulti(markers);
+                  }
+                });
+                map.annotations
+                    .createCircleAnnotationManager()
+                    .then((manager) {
+                  if (circles.isNotEmpty) {
+                    manager.createMulti(circles);
+                  }
+                });
+              },
+              onTapListener: (context) => _onMapTap(context.point),
+            ),
           ),
-          onMapCreated: (MapboxMap map) {
-            mapboxMap = map;
-            map.annotations.createPointAnnotationManager().then((manager) {
-              if (markers.isNotEmpty) {
-                manager.createMulti(markers);
-              }
-            });
-            map.annotations.createCircleAnnotationManager().then((manager) {
-              if (circles.isNotEmpty) {
-                manager.createMulti(circles);
-              }
-            });
-          },
-          onTapListener: (context) => _onMapTap(context.point),
-        ),
-      ),
         ),
         Positioned(
           top: 16,
@@ -414,67 +533,73 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     );
   }
 
+  // ── Bottom panel ──────────────────────────────────────────────────────────
+
   Widget _buildBottomPanel(AppColors col) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(kSpaceLG),
       decoration: BoxDecoration(
         color: col.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
+        boxShadow: [kShadowMD],
       ),
-      child: SizedBox(
-        width: double.infinity,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
+      child: Row(
+        children: [
+          // Cancel / Add Geofence button
+          Expanded(
+            child: CustomButton(
+              callBackFunction: () {
+                setState(() {
+                  if (isAddingGeofence) {
+                    isAddingGeofence = false;
+                    selectedPoint = null;
+                    zoneNameController.clear();
+                    radiusKm = 0.5;
+                    _updateMapMarkers();
+                  } else {
+                    isAddingGeofence = true;
+                    selectedGeofence = null;
+                    markers.clear();
+                    circles.clear();
+                  }
+                });
+              },
+              label: isAddingGeofence ? "Cancel" : "Add Geofence",
+              backgroundColor: isAddingGeofence ? kRed : kBlue,
+              txtColor: kWhite,
+            ),
+          ),
+
+          // Save button (add mode)
+          if (isAddingGeofence) ...[
+            const SizedBox(width: kSpaceSM),
             Expanded(
               child: CustomButton(
-                callBackFunction: () {
-                  setState(() {
-                    if (isAddingGeofence) {
-                      isAddingGeofence = false;
-                      selectedPoint = null;
-                      zoneNameController.clear();
-                      radiusController.text = '0';
-                      radiusKm = 0;
-                      _updateMapMarkers();
-                    } else {
-                      isAddingGeofence = true;
-                      selectedGeofence = null;
-                      markers.clear();
-                      circles.clear();
-                    }
-                  });
-                },
-                label: isAddingGeofence ? "Cancel" : "Add Geofence",
-                backgroundColor: isAddingGeofence ? kRed : kBlue,
+                callBackFunction: isSaveEnabled ? _addGeofenceZone : () {},
+                label: "Save",
+                backgroundColor: isSaveEnabled ? kBlue : col.border,
                 txtColor: kWhite,
               ),
             ),
-            const SizedBox(width: 5),
-            if (isAddingGeofence)
-              Expanded(
-                child: CustomButton(
-                  callBackFunction: () {
-                    if (isSaveEnabled) {
-                      _addGeofenceZone();
-                    }
-                  },
-                  label: "Save",
-                  backgroundColor: isSaveEnabled ? kBlue : col.border,
-                  txtColor: kWhite,
-                ),
-              ),
           ],
-        ),
+
+          // Delete button (view mode, geofence selected)
+          if (!isAddingGeofence && selectedGeofence != null) ...[
+            const SizedBox(width: kSpaceSM),
+            Expanded(
+              child: CustomButton(
+                callBackFunction: _confirmDeleteGeofence,
+                label: "Delete",
+                backgroundColor: kRed,
+                txtColor: kWhite,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
+
+  // ── Loading overlay ───────────────────────────────────────────────────────
 
   Widget _buildLoadingOverlay() {
     return Obx(() {
@@ -491,5 +616,43 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
       }
       return const SizedBox.shrink();
     });
+  }
+}
+
+// ── Status chip widget ─────────────────────────────────────────────────────
+
+class _StatusChip extends StatelessWidget {
+  final bool isInside;
+  const _StatusChip({required this.isInside});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isInside ? kSuccessGreen : kRed;
+    final icon = isInside ? Icons.check_circle_outline : Icons.highlight_off;
+    final label = isInside ? 'INSIDE' : 'OUTSIDE';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(kRadiusPill),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

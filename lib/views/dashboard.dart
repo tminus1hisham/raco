@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/notifcations_controller.dart';
+import 'package:atom/routes/routes.dart';
+import 'package:atom/services/auth_service.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/views/notification_screen.dart';
 import 'package:atom/views/settings_screen.dart';
@@ -37,6 +41,31 @@ class _DashboardState extends State<Dashboard> {
 
   Future<void> _fetchRole() async {
     final fetchedRole = await StorageService.getData('userRole');
+
+    if (fetchedRole == 'Technician' && Platform.isIOS) {
+      await AuthService().logoutUser();
+      if (mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Not Available'),
+            content: const Text(
+              'This feature is not available for Apple devices.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        Get.offAllNamed(AppRoutes.login);
+      }
+      return;
+    }
+
     setState(() {
       role = fetchedRole;
       _screens = [

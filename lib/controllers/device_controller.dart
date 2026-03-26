@@ -1,5 +1,6 @@
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/services/api_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 class DeviceController extends GetxController {
@@ -19,6 +20,8 @@ class DeviceController extends GetxController {
       }
       var fetchedModel = await ApiService.fetchDevices();
       devicesModel.value = fetchedModel;
+    } catch (e) {
+      debugPrint('Error initializing data: $e');
     } finally {
       if (!silent) {
         isLoading(false);

@@ -272,12 +272,27 @@ class _NotificationScreenState extends State<NotificationScreen>
     String emptySubtitle = 'You\'re all caught up',
   }) {
     if (items.isEmpty) {
-      return _buildEmptyState(col, label: emptyLabel, subtitle: emptySubtitle);
+      return RefreshIndicator(
+        onRefresh: () => _controller.fetchNotifications(),
+        color: kBlue,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.6,
+              child: _buildEmptyState(col, label: emptyLabel, subtitle: emptySubtitle),
+            ),
+          ],
+        ),
+      );
     }
 
     final grouped = _groupByDate(items);
 
-    return ListView.builder(
+    return RefreshIndicator(
+      onRefresh: () => _controller.fetchNotifications(),
+      color: kBlue,
+      child: ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       itemCount: grouped.entries.fold<int>(
         0,
@@ -304,6 +319,7 @@ class _NotificationScreenState extends State<NotificationScreen>
         }
         return const SizedBox.shrink();
       },
+    ),
     );
   }
 

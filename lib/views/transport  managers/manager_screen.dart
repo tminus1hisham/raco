@@ -70,7 +70,10 @@ class _ManagerScreenState extends State<ManagerScreen> {
                     },
                   ),
                   Expanded(
-                    child: ListView.builder(
+                    child: RefreshIndicator(
+                      onRefresh: () => userController.fetchUsers(),
+                      color: kBlue,
+                      child: ListView.builder(
                       itemCount: userController.users.length,
                       itemBuilder: (context, index) {
                         final manager = userController.users[index];
@@ -132,6 +135,7 @@ class _ManagerScreenState extends State<ManagerScreen> {
                           },
                         );
                       },
+                    ),
                     ),
                   ),
                 ],

@@ -1136,6 +1136,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     double.tryParse(device.longitude) ??
                                     36.8163,
                                 deviceId: device.deviceId,
+                                numberPlate: device.numberPlate,
                               ),
                             ),
                           );

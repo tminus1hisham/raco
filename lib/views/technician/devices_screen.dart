@@ -115,7 +115,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 ),
               ),
               Expanded(
-                child: ListView.builder(
+                child: RefreshIndicator(
+                  onRefresh: () => _controller.fetchTechnicianDevices(),
+                  color: kBlue,
+                  child: ListView.builder(
                   itemCount: devices.length,
                   itemBuilder: (context, index) {
                     final device = devices[index];
@@ -145,6 +148,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       },
                     );
                   },
+                ),
                 ),
               ),
             ],
