@@ -53,11 +53,29 @@ class _VehicleDetailsState extends State<VehicleDetails> {
                   _buildCard(
                     col: col,
                     children: [
-                      _buildRow(col: col, icon: Icons.car_repair_rounded, iconColor: kBlue, label: 'Make', value: widget.device.make),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.car_repair_rounded,
+                        iconColor: kBlue,
+                        label: 'Make',
+                        value: widget.device.make,
+                      ),
                       _buildDivider(col),
-                      _buildRow(col: col, icon: Icons.confirmation_number_outlined, iconColor: kBlue, label: 'Chassis Number', value: widget.device.chassis),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.confirmation_number_outlined,
+                        iconColor: kBlue,
+                        label: 'Chassis Number',
+                        value: widget.device.chassis,
+                      ),
                       _buildDivider(col),
-                      _buildRow(col: col, icon: Icons.pin_outlined, iconColor: kBlue, label: 'Registration Number', value: widget.device.numberPlate),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.pin_outlined,
+                        iconColor: kBlue,
+                        label: 'Registration Number',
+                        value: widget.device.numberPlate,
+                      ),
                     ],
                   ),
 
@@ -71,13 +89,37 @@ class _VehicleDetailsState extends State<VehicleDetails> {
                   _buildCard(
                     col: col,
                     children: [
-                      _buildRow(col: col, icon: Icons.badge_outlined, iconColor: const Color(0xFF7C3AED), label: 'Owner ID', value: widget.device.ownerId),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.badge_outlined,
+                        iconColor: const Color(0xFF7C3AED),
+                        label: 'Owner ID',
+                        value: widget.device.ownerId,
+                      ),
                       _buildDivider(col),
-                      _buildRow(col: col, icon: Icons.phone_outlined, iconColor: const Color(0xFF7C3AED), label: 'Phone', value: widget.device.phone),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.phone_outlined,
+                        iconColor: const Color(0xFF7C3AED),
+                        label: 'Phone',
+                        value: widget.device.phone,
+                      ),
                       _buildDivider(col),
-                      _buildRow(col: col, icon: Icons.email_outlined, iconColor: const Color(0xFF7C3AED), label: 'Email', value: widget.device.email),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.email_outlined,
+                        iconColor: const Color(0xFF7C3AED),
+                        label: 'Email',
+                        value: widget.device.email,
+                      ),
                       _buildDivider(col),
-                      _buildRow(col: col, icon: Icons.business_outlined, iconColor: const Color(0xFF7C3AED), label: 'Business Reg', value: widget.device.businessReg),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.business_outlined,
+                        iconColor: const Color(0xFF7C3AED),
+                        label: 'Business Reg',
+                        value: widget.device.businessReg,
+                      ),
                     ],
                   ),
 
@@ -91,9 +133,20 @@ class _VehicleDetailsState extends State<VehicleDetails> {
                   _buildCard(
                     col: col,
                     children: [
-                      _buildRow(col: col, icon: Icons.numbers_outlined, iconColor: isCertActive ? kSuccessGreen : kRed, label: 'Certificate Number', value: widget.device.certNo),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.numbers_outlined,
+                        iconColor: isCertActive ? kSuccessGreen : kRed,
+                        label: 'Certificate Number',
+                        value: widget.device.certNo,
+                      ),
                       _buildDivider(col),
-                      _buildUrlRow(col: col, label: 'Certificate URL', url: widget.device.certificateUrl, color: isCertActive ? kSuccessGreen : kRed),
+                      _buildUrlRow(
+                        col: col,
+                        label: 'Certificate URL',
+                        url: widget.device.certificateUrl,
+                        color: isCertActive ? kSuccessGreen : kRed,
+                      ),
                       _buildDivider(col),
                       _buildRow(
                         col: col,
@@ -104,7 +157,15 @@ class _VehicleDetailsState extends State<VehicleDetails> {
                         statusColor: isCertActive ? kSuccessGreen : kRed,
                       ),
                       _buildDivider(col),
-                      _buildRow(col: col, icon: Icons.calendar_today_outlined, iconColor: isCertActive ? kSuccessGreen : kRed, label: 'Certificate Expiry', value: _utils.formatDate(widget.device.certificateExpirey)),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.calendar_today_outlined,
+                        iconColor: isCertActive ? kSuccessGreen : kRed,
+                        label: 'Certificate Expiry',
+                        value: _utils.formatDate(
+                          widget.device.certificateExpirey,
+                        ),
+                      ),
                     ],
                   ),
 
@@ -118,9 +179,21 @@ class _VehicleDetailsState extends State<VehicleDetails> {
                   _buildCard(
                     col: col,
                     children: [
-                      _buildRow(col: col, icon: Icons.engineering_rounded, iconColor: const Color(0xFFF59E0B), label: 'Technician Name', value: widget.device.technicianName),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.engineering_rounded,
+                        iconColor: const Color(0xFFF59E0B),
+                        label: 'Technician Name',
+                        value: widget.device.technicianName,
+                      ),
                       _buildDivider(col),
-                      _buildRow(col: col, icon: Icons.router_rounded, iconColor: const Color(0xFFF59E0B), label: 'Device Type', value: widget.device.deviceType),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.router_rounded,
+                        iconColor: const Color(0xFFF59E0B),
+                        label: 'Device Type',
+                        value: widget.device.deviceType,
+                      ),
                       _buildDivider(col),
                       _buildRow(
                         col: col,
@@ -143,11 +216,29 @@ class _VehicleDetailsState extends State<VehicleDetails> {
                   _buildCard(
                     col: col,
                     children: [
-                      _buildRow(col: col, icon: Icons.person_pin_outlined, iconColor: const Color(0xFF6366F1), label: 'Agent', value: widget.device.agent),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.person_pin_outlined,
+                        iconColor: const Color(0xFF6366F1),
+                        label: 'Agent',
+                        value: widget.device.agent,
+                      ),
                       _buildDivider(col),
-                      _buildRow(col: col, icon: Icons.badge_outlined, iconColor: const Color(0xFF6366F1), label: 'Agent ID', value: widget.device.agentID),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.badge_outlined,
+                        iconColor: const Color(0xFF6366F1),
+                        label: 'Agent ID',
+                        value: widget.device.agentID,
+                      ),
                       _buildDivider(col),
-                      _buildRow(col: col, icon: Icons.phone_forwarded_outlined, iconColor: const Color(0xFF6366F1), label: 'Agent Phone', value: widget.device.agentPhone),
+                      _buildRow(
+                        col: col,
+                        icon: Icons.phone_forwarded_outlined,
+                        iconColor: const Color(0xFF6366F1),
+                        label: 'Agent Phone',
+                        value: widget.device.agentPhone,
+                      ),
                     ],
                   ),
                 ],
@@ -246,11 +337,16 @@ class _VehicleDetailsState extends State<VehicleDetails> {
                 const SizedBox(height: 3),
                 if (statusColor != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: statusColor.withValues(alpha: 0.25)),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.25),
+                      ),
                     ),
                     child: Text(
                       value.isEmpty ? '—' : value,
@@ -340,7 +436,11 @@ class _VehicleDetailsState extends State<VehicleDetails> {
                   color: col.inputFill,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.copy_rounded, color: col.textSecondary, size: 16),
+                child: Icon(
+                  Icons.copy_rounded,
+                  color: col.textSecondary,
+                  size: 16,
+                ),
               ),
             ),
         ],

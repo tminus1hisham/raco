@@ -176,6 +176,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
     _moveController.duration = const Duration(milliseconds: 800);
 
     _moveListener = () {
+      if (!mounted) return;
       final t = Curves.easeInOut.transform(_moveController.value);
       _animLat = fromLat + (newLat - fromLat) * t;
       _animLng = fromLng + (newLng - fromLng) * t;
@@ -195,6 +196,35 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
       _animLat = newLat;
       _animLng = newLng;
     });
+  }
+
+  // ─── Annotation setup ─────────────────────────────────────────────────────
+  // Called from both onMapCreated (initial) and onStyleLoadedListener (style
+  // changes). loadStyleURI destroys native managers without re-firing
+  // onMapCreated, so we must recreate them on every style load.
+
+  Future<void> _setupAnnotations() async {
+    _annotationManager = null;
+    _vehicleAnnotation = null;
+    if (mapboxMap == null || !mounted) return;
+    final manager =
+        await mapboxMap!.annotations.createPointAnnotationManager();
+    if (!mounted) return;
+    _annotationManager = manager;
+    final ann = await manager.create(
+      PointAnnotationOptions(
+        geometry: Point(
+          coordinates: Position(_animLng, _animLat),
+        ),
+        image: carIcon,
+        iconSize: 1.6,
+        iconRotate: _bearing,
+        textField: numberPlate.toUpperCase(),
+        textSize: 11.0,
+        textOffset: [0.0, 2.2],
+      ),
+    );
+    if (mounted) _vehicleAnnotation = ann;
   }
 
   // ─── Icon loading ─────────────────────────────────────────────────────────
@@ -236,7 +266,8 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
                 // ── Map ────────────────────────────────────────────
                 Positioned.fill(
                   child: MapWidget(
-                    styleUri: _mapStyleUri ??
+                    styleUri:
+                        _mapStyleUri ??
                         (isDark
                             ? MapboxStyles.DARK
                             : MapboxStyles.MAPBOX_STREETS),
@@ -250,31 +281,13 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
                       zoom: _currentZoom,
                     ),
                     onMapCreated: (MapboxMap map) {
+                      _annotationManager = null;
+                      _vehicleAnnotation = null;
                       mapboxMap = map;
-                      map.annotations.createPointAnnotationManager().then((
-                        manager,
-                      ) {
-                        _annotationManager = manager;
-                        manager
-                            .create(
-                              PointAnnotationOptions(
-                                geometry: Point(
-                                  coordinates: Position(
-                                    widget.longitude,
-                                    widget.latitude,
-                                  ),
-                                ),
-                                image: carIcon,
-                                iconSize: 1.6,
-                                iconRotate: _bearing,
-                                textField: numberPlate.toUpperCase(),
-                                textSize: 11.0,
-                                textOffset: [0.0, 2.2],
-                              ),
-                            )
-                            .then((ann) => _vehicleAnnotation = ann);
-                      });
+                      // Annotation setup happens in onStyleLoadedListener
+                      // (fires on both initial load and every style change).
                     },
+                    onStyleLoadedListener: (_) => _setupAnnotations(),
                   ),
                 ),
 
@@ -288,16 +301,16 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
 
                 // ── Map style switcher ─────────────────────────────
                 Positioned(
-                  top: MediaQuery.of(context).padding.top + 70,
+                  top: MediaQuery.of(context).padding.top + 100,
                   right: 16,
                   child: MapStyleSwitcherButton(
                     mapboxMap: mapboxMap,
-                    currentStyleUri: _mapStyleUri ??
+                    currentStyleUri:
+                        _mapStyleUri ??
                         (isDark
                             ? MapboxStyles.DARK
                             : MapboxStyles.MAPBOX_STREETS),
-                    onStyleChanged: (uri) =>
-                        setState(() => _mapStyleUri = uri),
+                    onStyleChanged: (uri) => setState(() => _mapStyleUri = uri),
                   ),
                 ),
 
@@ -315,7 +328,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
 
   Widget _buildHeader(AppColors col) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16,vertical: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       child: Row(
         children: [
           // Back button
@@ -323,7 +336,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
             onTap: () => Navigator.pop(context),
             child: Container(
               width: 42,
-              height: 42,
+              height: 60,
               decoration: BoxDecoration(
                 color: col.surface,
                 borderRadius: BorderRadius.circular(kRadiusSM),
@@ -339,7 +352,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
           const SizedBox(width: 12),
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
               decoration: BoxDecoration(
                 color: col.surface,
                 borderRadius: BorderRadius.circular(kRadiusSM),

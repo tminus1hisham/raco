@@ -99,7 +99,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
         setState(() => _localEngineOn = !turnOn);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to ${turnOn ? 'start' : 'stop'} engine. Please try again.'),
+            content: Text(
+              'Failed to ${turnOn ? 'start' : 'stop'} engine. Please try again.',
+            ),
             backgroundColor: kRed,
           ),
         );
@@ -188,7 +190,10 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
               const SizedBox(height: 22),
               // URL display box
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: sheetCol.inputFill,
                   borderRadius: BorderRadius.circular(kRadiusMD),
@@ -227,7 +232,11 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                           color: kBlue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.copy_rounded, size: 16, color: kBlue),
+                        child: const Icon(
+                          Icons.copy_rounded,
+                          size: 16,
+                          color: kBlue,
+                        ),
                       ),
                     ),
                   ],
@@ -246,15 +255,26 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                     ),
                     elevation: 0,
                   ),
-                  icon: const Icon(Icons.open_in_browser_rounded, color: kWhite, size: 18),
+                  icon: const Icon(
+                    Icons.open_in_browser_rounded,
+                    color: kWhite,
+                    size: 18,
+                  ),
                   label: const Text(
                     'Open Certificate',
-                    style: TextStyle(fontSize: 15, color: kWhite, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: kWhite,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   onPressed: () async {
                     final uri = Uri.tryParse(certUrl);
                     if (uri != null && await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                   },
                 ),
@@ -338,9 +358,15 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                             decoration: BoxDecoration(
                               color: kRed.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: kRed.withValues(alpha: 0.2)),
+                              border: Border.all(
+                                color: kRed.withValues(alpha: 0.2),
+                              ),
                             ),
-                            child: const Icon(Icons.autorenew_rounded, color: kRed, size: 24),
+                            child: const Icon(
+                              Icons.autorenew_rounded,
+                              color: kRed,
+                              size: 24,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -423,18 +449,25 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                         ? kBlue
                                         : Colors.transparent,
                                     border: Border.all(
-                                      color: isSelected ? kBlue : sheetCol.border,
+                                      color: isSelected
+                                          ? kBlue
+                                          : sheetCol.border,
                                       width: 2,
                                     ),
                                   ),
                                   child: isSelected
-                                      ? const Icon(Icons.check, size: 13, color: kWhite)
+                                      ? const Icon(
+                                          Icons.check,
+                                          size: 13,
+                                          color: kWhite,
+                                        )
                                       : null,
                                 ),
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         plan.planName.isNotEmpty
@@ -449,9 +482,11 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                       const SizedBox(height: 3),
                                       Row(
                                         children: [
-                                          Icon(Icons.calendar_today_outlined,
-                                              size: 11,
-                                              color: sheetCol.textSecondary),
+                                          Icon(
+                                            Icons.calendar_today_outlined,
+                                            size: 11,
+                                            color: sheetCol.textSecondary,
+                                          ),
                                           const SizedBox(width: 4),
                                           Text(
                                             "${plan.durationInDays} ${plan.durationInDays > 1 ? 'Years' : 'Year'}",
@@ -486,7 +521,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 13,
-                                      color: isSelected ? kBlue : sheetCol.textPrimary,
+                                      color: isSelected
+                                          ? kBlue
+                                          : sheetCol.textPrimary,
                                     ),
                                   ),
                                 ),
@@ -500,7 +537,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                         height: 50,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: selectedIndex != null ? kBlue : sheetCol.border,
+                            backgroundColor: selectedIndex != null
+                                ? kBlue
+                                : sheetCol.border,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(kRadiusMD),
                             ),
@@ -523,8 +562,10 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                             .renewCertificate(
                                               parentContext,
                                               widget.licensePlate,
-                                              _phoneNumberController.text.trim(),
-                                              plans[selectedIndex!].price.toInt(),
+                                              _phoneNumberController.text
+                                                  .trim(),
+                                              plans[selectedIndex!].price
+                                                  .toInt(),
                                               plans[selectedIndex!].id.toInt(),
                                             );
                                         if (!mounted) return;
@@ -534,7 +575,8 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                             title: "Success",
                                             message:
                                                 "Payment request successful, please pay to renew your certificate",
-                                            icon: "assets/animations/Success.json",
+                                            icon:
+                                                "assets/animations/Success.json",
                                             buttonColor: kSuccessGreen,
                                           );
                                         } else {
@@ -542,7 +584,8 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                             context: parentContext,
                                             title: "Error",
                                             message: "Payment request failed.",
-                                            icon: "assets/animations/Failed.json",
+                                            icon:
+                                                "assets/animations/Failed.json",
                                             buttonColor: kRed,
                                           );
                                         }
@@ -575,7 +618,8 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
   @override
   Widget build(BuildContext context) {
     final col = context.col;
-    final isVehicleActive = _localEngineOn ?? (widget.devices.ignitionStatus == 0);
+    final isVehicleActive =
+        _localEngineOn ?? (widget.devices.ignitionStatus == 0);
     final isOnline = widget.devices.isDeviceOnline;
     final isCertificateExpired = _isCertificateExpired(
       widget.devices.certificateExpirey,
@@ -636,14 +680,16 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                   child: _buildQuickActionButton(
                                     col: col,
                                     title: 'Vehicle Safety',
-                                    description: 'Driving behaviour and safety trends',
+                                    description:
+                                        'Driving behaviour and safety trends',
                                     icon: Icons.safety_check_outlined,
                                     color: kSuccessGreen,
                                     onPressed: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => DriverBehaviour(),
+                                          builder: (context) =>
+                                              DriverBehaviour(),
                                         ),
                                       );
                                     },
@@ -654,7 +700,8 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                   child: _buildQuickActionButton(
                                     col: col,
                                     title: 'Location History',
-                                    description: 'Replay routes and recent movement',
+                                    description:
+                                        'Replay routes and recent movement',
                                     icon: Icons.route,
                                     color: kBlue,
                                     onPressed: () {
@@ -662,7 +709,8 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => PlaybackScreen(
-                                            numberPlate: widget.devices.numberPlate,
+                                            numberPlate:
+                                                widget.devices.numberPlate,
                                           ),
                                         ),
                                       );
@@ -679,16 +727,19 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                   child: _buildQuickActionButton(
                                     col: col,
                                     title: 'Violations',
-                                    description: 'Review alerts and risk events',
+                                    description:
+                                        'Review alerts and risk events',
                                     icon: Icons.warning_amber_rounded,
                                     color: kRed,
                                     onPressed: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => ViolationsScreen(
-                                            numberPlate: widget.devices.numberPlate,
-                                          ),
+                                          builder: (context) =>
+                                              ViolationsScreen(
+                                                numberPlate:
+                                                    widget.devices.numberPlate,
+                                              ),
                                         ),
                                       );
                                     },
@@ -699,23 +750,31 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                   child: _buildQuickActionButton(
                                     col: col,
                                     title: 'Live Location',
-                                    description: 'Open the latest position on the map',
+                                    description:
+                                        'Open the latest position on the map',
                                     icon: Icons.my_location_rounded,
                                     color: Colors.orange,
                                     onPressed: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => VehicleLocationScreen(
-                                            deviceId: widget.devices.deviceId,
-                                            numberPlate: widget.devices.numberPlate,
-                                            latitude:
-                                                double.tryParse(widget.devices.latitude) ??
-                                                0.0,
-                                            longitude:
-                                                double.tryParse(widget.devices.longitude) ??
-                                                0.0,
-                                          ),
+                                          builder: (context) =>
+                                              VehicleLocationScreen(
+                                                deviceId:
+                                                    widget.devices.deviceId,
+                                                numberPlate:
+                                                    widget.devices.numberPlate,
+                                                latitude:
+                                                    double.tryParse(
+                                                      widget.devices.latitude,
+                                                    ) ??
+                                                    0.0,
+                                                longitude:
+                                                    double.tryParse(
+                                                      widget.devices.longitude,
+                                                    ) ??
+                                                    0.0,
+                                              ),
                                         ),
                                       );
                                     },
@@ -768,7 +827,8 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => Commands(device: widget.devices),
+                                      builder: (context) =>
+                                          Commands(device: widget.devices),
                                     ),
                                   );
                                 },
@@ -820,18 +880,22 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => VehicleLocationScreen(
-                                        deviceId: widget.devices.deviceId,
-                                        numberPlate: widget.devices.numberPlate,
-                                        latitude:
-                                            double.tryParse(widget.devices.latitude) ??
-                                            0.0,
-                                        longitude:
-                                            double.tryParse(
+                                      builder: (context) =>
+                                          VehicleLocationScreen(
+                                            deviceId: widget.devices.deviceId,
+                                            numberPlate:
+                                                widget.devices.numberPlate,
+                                            latitude:
+                                                double.tryParse(
+                                                  widget.devices.latitude,
+                                                ) ??
+                                                0.0,
+                                            longitude:
+                                                double.tryParse(
                                                   widget.devices.longitude,
                                                 ) ??
                                                 0.0,
-                                      ),
+                                          ),
                                     ),
                                   );
                                 },
@@ -859,7 +923,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                               _buildCommandItem(
                                 col: col,
                                 icon: Icons.verified_outlined,
-                                iconColor: isCertificateExpired ? kRed : kSuccessGreen,
+                                iconColor: isCertificateExpired
+                                    ? kRed
+                                    : kSuccessGreen,
                                 showBanner: isCertificateExpired,
                                 title: 'Certificate',
                                 subtitle:
@@ -937,7 +1003,9 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                   ),
                 ),
                 Text(
-                  isEngineOn ? 'Engine is currently running' : 'Engine is currently off',
+                  isEngineOn
+                      ? 'Engine is currently running'
+                      : 'Engine is currently off',
                   style: TextStyle(fontSize: 13, color: col.textSecondary),
                 ),
               ],
@@ -966,10 +1034,11 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     );
   }
 
-  Widget _buildSettingsCard(
-      {required AppColors col,
-      required Widget child,
-      VoidCallback? onTap}) {
+  Widget _buildSettingsCard({
+    required AppColors col,
+    required Widget child,
+    VoidCallback? onTap,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: col.surface,
@@ -1000,10 +1069,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            kBlue,
-            kBlue.withValues(alpha: 0.82),
-          ],
+          colors: [kBlue, kBlue.withValues(alpha: 0.82)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1084,17 +1150,11 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
           Row(
             children: [
               Expanded(
-                child: _buildInfoStat(
-                  label: 'Speed',
-                  value: vehicleSpeed,
-                ),
+                child: _buildInfoStat(label: 'Speed', value: vehicleSpeed),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildInfoStat(
-                  label: 'Signal',
-                  value: signalStrength,
-                ),
+                child: _buildInfoStat(label: 'Signal', value: signalStrength),
               ),
             ],
           ),
@@ -1155,10 +1215,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
         const SizedBox(height: 4),
         Text(
           subtitle,
-          style: TextStyle(
-            fontSize: 13,
-            color: col.textSecondary,
-          ),
+          style: TextStyle(fontSize: 13, color: col.textSecondary),
         ),
       ],
     );
@@ -1174,9 +1231,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(kRadiusPill),
-        border: Border.all(
-          color: color.withValues(alpha: 0.35),
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Text(
         label,
@@ -1189,10 +1244,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     );
   }
 
-  Widget _buildInfoStat({
-    required String label,
-    required String value,
-  }) {
+  Widget _buildInfoStat({required String label, required String value}) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1331,9 +1383,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
           color: col.surface,
           borderRadius: BorderRadius.circular(kRadiusMD),
           boxShadow: [kShadowSM],
-          border: Border.all(
-            color: color.withValues(alpha: 0.12),
-          ),
+          border: Border.all(color: color.withValues(alpha: 0.12)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

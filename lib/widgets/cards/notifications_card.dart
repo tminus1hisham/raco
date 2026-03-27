@@ -25,13 +25,17 @@ class NotificationCard extends StatelessWidget {
     }
     if (t.contains('engine') || t.contains('ignition')) {
       return _NotificationMeta(
-          Icons.power_settings_new_rounded, const Color(0xFF10B981));
+        Icons.power_settings_new_rounded,
+        const Color(0xFF10B981),
+      );
     }
     if (t.contains('alert') ||
         t.contains('warning') ||
         t.contains('violation')) {
       return _NotificationMeta(
-          Icons.warning_amber_rounded, const Color(0xFFEF4444));
+        Icons.warning_amber_rounded,
+        const Color(0xFFEF4444),
+      );
     }
     return _NotificationMeta(Icons.notifications_rounded, kBlue);
   }
@@ -126,7 +130,9 @@ class NotificationCard extends StatelessWidget {
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: meta.color.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(kRadiusPill),

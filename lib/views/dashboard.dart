@@ -153,7 +153,9 @@ class _DashboardState extends State<Dashboard> {
         curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? kBlue.withValues(alpha: 0.10) : Colors.transparent,
+          color: isSelected
+              ? kBlue.withValues(alpha: 0.10)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(kRadiusMD),
         ),
         child: Column(
@@ -197,7 +199,9 @@ class _DashboardState extends State<Dashboard> {
         curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? kBlue.withValues(alpha: 0.10) : Colors.transparent,
+          color: isSelected
+              ? kBlue.withValues(alpha: 0.10)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(kRadiusMD),
         ),
         child: Column(

@@ -311,9 +311,16 @@ class _CarInfoCardState extends State<CarInfoCard> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: kSpaceXL, right: kSpaceXL, top: kSpaceSM),
+      padding: const EdgeInsets.only(
+        left: kSpaceXL,
+        right: kSpaceXL,
+        top: kSpaceSM,
+      ),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: kSpaceXL, vertical: kSpaceLG),
+        padding: const EdgeInsets.symmetric(
+          horizontal: kSpaceXL,
+          vertical: kSpaceLG,
+        ),
         decoration: BoxDecoration(
           color: context.col.surface,
           borderRadius: BorderRadius.circular(kRadiusLG),
@@ -377,7 +384,9 @@ class _CarInfoCardState extends State<CarInfoCard> {
                               ),
                               decoration: BoxDecoration(
                                 color: widget.statusBackgroundColor,
-                                borderRadius: BorderRadius.circular(kRadiusPill),
+                                borderRadius: BorderRadius.circular(
+                                  kRadiusPill,
+                                ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -415,7 +424,9 @@ class _CarInfoCardState extends State<CarInfoCard> {
                                       horizontal: 10,
                                     ),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(kRadiusMD),
+                                      borderRadius: BorderRadius.circular(
+                                        kRadiusMD,
+                                      ),
                                     ),
                                     elevation: 0,
                                   ),

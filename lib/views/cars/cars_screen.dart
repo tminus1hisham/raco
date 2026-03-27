@@ -5,6 +5,7 @@ import 'package:atom/controllers/renew_certificate_controller.dart';
 import 'package:atom/views/cars/car_list_screen.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/widgets/cards/car_info_card.dart';
+import 'package:atom/widgets/shimmer_loading.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -134,47 +135,50 @@ class _CarsScreenState extends State<CarsScreen> {
                     child: RefreshIndicator(
                       onRefresh: () => _controller.fetchDevices(),
                       color: kBlue,
-                      child: ListView.builder(
-                      itemCount: devices.length,
-                      itemBuilder: (context, index) {
-                        final device = devices[index];
-                        return CarInfoCard(
-                          expiryDate: device.certificateExpirey,
-                          isAdmin: true,
-                          carModel: "${device.type} ${device.make}",
-                          licensePlate: device.numberPlate,
-                          status: device.isDeviceOnline ? "Online" : "Offline",
-                          statusColor: device.isDeviceOnline
-                              ? kSuccessGreen
-                              : kRed,
-                          statusBackgroundColor: device.isDeviceOnline
-                              ? const Color(0xFFE8F5E8)
-                              : kRed.withValues(alpha: 0.1),
-                          currentSpeed: "${device.speed} km/h",
-                          topSpeed: "",
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SelectedCarScreen(
-                                  devices: device,
-                                  carModel: device.make,
+                      child: _controller.isLoading.value && devices.isEmpty
+                          ? const ShimmerList(itemCount: 6, cardHeight: 110)
+                          : ListView.builder(
+                              itemCount: devices.length,
+                              itemBuilder: (context, index) {
+                                final device = devices[index];
+                                return CarInfoCard(
+                                  expiryDate: device.certificateExpirey,
+                                  isAdmin: true,
+                                  carModel: "${device.type} ${device.make}",
                                   licensePlate: device.numberPlate,
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+                                  status: device.isDeviceOnline
+                                      ? "Online"
+                                      : "Offline",
+                                  statusColor: device.isDeviceOnline
+                                      ? kSuccessGreen
+                                      : kRed,
+                                  statusBackgroundColor: device.isDeviceOnline
+                                      ? const Color(0xFFE8F5E8)
+                                      : kRed.withValues(alpha: 0.1),
+                                  currentSpeed: "${device.speed} km/h",
+                                  topSpeed: "",
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => SelectedCarScreen(
+                                          devices: device,
+                                          carModel: device.make,
+                                          licensePlate: device.numberPlate,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          if (_controller.isLoading.value ||
-              _renewCertificateController.isLoading.value) ...[
+          if (_renewCertificateController.isLoading.value) ...[
             Container(
               color: kBlack.withValues(alpha: 0.3),
               child: Center(

@@ -74,10 +74,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       // Subtitle
                       Text(
                         'The password must be different than before',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: kGrey,
-                        ),
+                        style: TextStyle(fontSize: 16, color: kGrey),
                         textAlign: TextAlign.center,
                       ),
 

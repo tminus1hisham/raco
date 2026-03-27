@@ -35,9 +35,10 @@ class _CustomHeaderState extends State<customHeader>
       vsync: this,
       duration: const Duration(milliseconds: 2600),
     )..repeat(reverse: false);
-    _shimmerAnim = Tween<double>(begin: -1.6, end: 2.2).animate(
-      CurvedAnimation(parent: _shimmer, curve: Curves.easeInOut),
-    );
+    _shimmerAnim = Tween<double>(
+      begin: -1.6,
+      end: 2.2,
+    ).animate(CurvedAnimation(parent: _shimmer, curve: Curves.easeInOut));
   }
 
   @override
@@ -75,10 +76,7 @@ class _CustomHeaderState extends State<customHeader>
         // In dark mode: subtle blue glow border so the card reads against
         // the #141720 scaffold instead of blending in.
         border: isDark
-            ? Border.all(
-                color: kBlue.withValues(alpha: 0.30),
-                width: 1.0,
-              )
+            ? Border.all(color: kBlue.withValues(alpha: 0.30), width: 1.0)
             : null,
         boxShadow: isDark
             ? [
@@ -125,8 +123,9 @@ class _CustomHeaderState extends State<customHeader>
                     height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white
-                          .withValues(alpha: isDark ? 0.06 : 0.10),
+                      color: Colors.white.withValues(
+                        alpha: isDark ? 0.06 : 0.10,
+                      ),
                     ),
                   ),
                 ),
@@ -139,8 +138,9 @@ class _CustomHeaderState extends State<customHeader>
                     height: 76,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white
-                          .withValues(alpha: isDark ? 0.05 : 0.08),
+                      color: Colors.white.withValues(
+                        alpha: isDark ? 0.05 : 0.08,
+                      ),
                     ),
                   ),
                 ),
@@ -153,8 +153,9 @@ class _CustomHeaderState extends State<customHeader>
                     height: 56,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white
-                          .withValues(alpha: isDark ? 0.04 : 0.06),
+                      color: Colors.white.withValues(
+                        alpha: isDark ? 0.04 : 0.06,
+                      ),
                     ),
                   ),
                 ),
@@ -168,8 +169,7 @@ class _CustomHeaderState extends State<customHeader>
                         end: Alignment(_shimmerAnim.value + 0.6, 0.4),
                         colors: [
                           Colors.transparent,
-                          Colors.white
-                              .withValues(alpha: isDark ? 0.08 : 0.13),
+                          Colors.white.withValues(alpha: isDark ? 0.08 : 0.13),
                           Colors.transparent,
                         ],
                         stops: const [0.0, 0.5, 1.0],
@@ -189,8 +189,7 @@ class _CustomHeaderState extends State<customHeader>
                       gradient: LinearGradient(
                         colors: [
                           Colors.transparent,
-                          Colors.white.withValues(
-                              alpha: isDark ? 0.25 : 0.50),
+                          Colors.white.withValues(alpha: isDark ? 0.25 : 0.50),
                           Colors.transparent,
                         ],
                       ),
@@ -207,7 +206,8 @@ class _CustomHeaderState extends State<customHeader>
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(
-                          alpha: isDark ? 0.30 : 0.45),
+                        alpha: isDark ? 0.30 : 0.45,
+                      ),
                       borderRadius: const BorderRadius.horizontal(
                         right: Radius.circular(4),
                       ),
@@ -313,9 +313,7 @@ class _BackButton extends StatelessWidget {
           height: 38,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.30),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
           ),
           child: const Icon(
             Icons.arrow_back_ios_new_rounded,

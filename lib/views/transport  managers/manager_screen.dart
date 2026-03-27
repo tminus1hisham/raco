@@ -74,33 +74,34 @@ class _ManagerScreenState extends State<ManagerScreen> {
                       onRefresh: () => userController.fetchUsers(),
                       color: kBlue,
                       child: ListView.builder(
-                      itemCount: userController.users.length,
-                      itemBuilder: (context, index) {
-                        final manager = userController.users[index];
-                        return ManagerInfoCard(
-                          fullName: manager.fullName,
-                          phoneNumber: manager.phoneNumber,
-                          emailAddress: manager.emailAddress,
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ManagerCarListScreen(),
-                              ),
-                            );
-                          },
-                          onDelete: () {
-                            showCupertinoDialog(
-                              context: context,
-                              builder: (context) => ActionDialog(
-                                title: "Delete",
-                                message:
-                                    "Are you sure you want to delete ${manager.fullName} ?",
-                                confirmText: "Delete",
-                                cancelText: "Cancel",
-                                onConfirm: () {
-                                  authController.deleteUser(manager.id).then(
-                                    (success) {
+                        itemCount: userController.users.length,
+                        itemBuilder: (context, index) {
+                          final manager = userController.users[index];
+                          return ManagerInfoCard(
+                            fullName: manager.fullName,
+                            phoneNumber: manager.phoneNumber,
+                            emailAddress: manager.emailAddress,
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ManagerCarListScreen(),
+                                ),
+                              );
+                            },
+                            onDelete: () {
+                              showCupertinoDialog(
+                                context: context,
+                                builder: (context) => ActionDialog(
+                                  title: "Delete",
+                                  message:
+                                      "Are you sure you want to delete ${manager.fullName} ?",
+                                  confirmText: "Delete",
+                                  cancelText: "Cancel",
+                                  onConfirm: () {
+                                    authController.deleteUser(manager.id).then((
+                                      success,
+                                    ) {
                                       if (success) {
                                         Navigator.pop(context); // Close dialog
                                         CustomAlertDialog(
@@ -117,25 +118,22 @@ class _ManagerScreenState extends State<ManagerScreen> {
                                         CustomAlertDialog(
                                           context: context,
                                           title: "Error",
-                                          message:
-                                              "Failed to delete manager.",
-                                          icon:
-                                              "assets/animations/Failed.json",
+                                          message: "Failed to delete manager.",
+                                          icon: "assets/animations/Failed.json",
                                           buttonColor: kRed,
                                         );
                                       }
-                                    },
-                                  );
-                                  setState(() {
-                                    userController.users.removeAt(index);
-                                  });
-                                },
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+                                    });
+                                    setState(() {
+                                      userController.users.removeAt(index);
+                                    });
+                                  },
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],

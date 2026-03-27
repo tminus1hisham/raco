@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'constants.dart';
 
@@ -8,13 +9,13 @@ import 'constants.dart';
 /// Context-aware color tokens used throughout the app.
 /// Access via `context.col.*`.
 class AppColors extends ThemeExtension<AppColors> {
-  final Color surface;       // Card / sheet / dialog background
-  final Color bg;            // Scaffold / page background
-  final Color textPrimary;   // Headings and body text
+  final Color surface; // Card / sheet / dialog background
+  final Color bg; // Scaffold / page background
+  final Color textPrimary; // Headings and body text
   final Color textSecondary; // Hints, captions, secondary text
-  final Color border;        // Borders, inactive outlines
-  final Color divider;       // Thin separator lines
-  final Color inputFill;     // Text field fill
+  final Color border; // Borders, inactive outlines
+  final Color divider; // Thin separator lines
+  final Color inputFill; // Text field fill
 
   const AppColors({
     required this.surface,
@@ -55,16 +56,15 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? border,
     Color? divider,
     Color? inputFill,
-  }) =>
-      AppColors(
-        surface: surface ?? this.surface,
-        bg: bg ?? this.bg,
-        textPrimary: textPrimary ?? this.textPrimary,
-        textSecondary: textSecondary ?? this.textSecondary,
-        border: border ?? this.border,
-        divider: divider ?? this.divider,
-        inputFill: inputFill ?? this.inputFill,
-      );
+  }) => AppColors(
+    surface: surface ?? this.surface,
+    bg: bg ?? this.bg,
+    textPrimary: textPrimary ?? this.textPrimary,
+    textSecondary: textSecondary ?? this.textSecondary,
+    border: border ?? this.border,
+    divider: divider ?? this.divider,
+    inputFill: inputFill ?? this.inputFill,
+  );
 
   @override
   AppColors lerp(AppColors? other, double t) {
@@ -97,42 +97,42 @@ class AppTheme {
   AppTheme._();
 
   static ThemeData get lightTheme => _build(
-        brightness: Brightness.light,
-        colors: AppColors.light,
-        systemOverlay: const SystemUiOverlayStyle(
-          statusBarIconBrightness: Brightness.dark,
-          systemNavigationBarColor: Color(0xFFFFFFFF),
-          systemNavigationBarIconBrightness: Brightness.dark,
-        ),
-        colorScheme: ColorScheme.light(
-          primary: kBlue,
-          onPrimary: kWhite,
-          secondary: kSuccessGreen,
-          error: kRed,
-          surface: const Color(0xFFFFFFFF),
-          onSurface: const Color(0xFF000000),
-          outline: kLightGrey,
-        ),
-      );
+    brightness: Brightness.light,
+    colors: AppColors.light,
+    systemOverlay: const SystemUiOverlayStyle(
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Color(0xFFFFFFFF),
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+    colorScheme: ColorScheme.light(
+      primary: kBlue,
+      onPrimary: kWhite,
+      secondary: kSuccessGreen,
+      error: kRed,
+      surface: const Color(0xFFFFFFFF),
+      onSurface: const Color(0xFF000000),
+      outline: kLightGrey,
+    ),
+  );
 
   static ThemeData get darkTheme => _build(
-        brightness: Brightness.dark,
-        colors: AppColors.dark,
-        systemOverlay: const SystemUiOverlayStyle(
-          statusBarIconBrightness: Brightness.light,
-          systemNavigationBarColor: Color(0xFF1E2232),
-          systemNavigationBarIconBrightness: Brightness.light,
-        ),
-        colorScheme: ColorScheme.dark(
-          primary: kBlue,
-          onPrimary: kWhite,
-          secondary: kSuccessGreen,
-          error: kRed,
-          surface: const Color(0xFF1E2232),
-          onSurface: const Color(0xFFF0F0F0),
-          outline: const Color(0xFF3A4060),
-        ),
-      );
+    brightness: Brightness.dark,
+    colors: AppColors.dark,
+    systemOverlay: const SystemUiOverlayStyle(
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Color(0xFF1E2232),
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+    colorScheme: ColorScheme.dark(
+      primary: kBlue,
+      onPrimary: kWhite,
+      secondary: kSuccessGreen,
+      error: kRed,
+      surface: const Color(0xFF1E2232),
+      onSurface: const Color(0xFFF0F0F0),
+      outline: const Color(0xFF3A4060),
+    ),
+  );
 
   static ThemeData _build({
     required Brightness brightness,
@@ -147,23 +147,49 @@ class AppTheme {
       scaffoldBackgroundColor: colors.bg,
       colorScheme: colorScheme,
       extensions: [colors],
-      textTheme: TextTheme(
-        headlineLarge: TextStyle(
-            fontSize: 25, fontWeight: FontWeight.w700, color: colors.textPrimary),
-        headlineMedium: TextStyle(
-            fontSize: 20, fontWeight: FontWeight.w600, color: colors.textPrimary),
-        titleLarge: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w600, color: colors.textPrimary),
-        titleMedium: TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w600, color: colors.textPrimary),
-        bodyLarge: TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w400, color: colors.textPrimary),
-        bodyMedium: TextStyle(
-            fontSize: 14, fontWeight: FontWeight.w400, color: colors.textSecondary),
-        bodySmall: TextStyle(
-            fontSize: 12, fontWeight: FontWeight.w400, color: colors.textSecondary),
-        labelLarge: const TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w600, color: kWhite),
+      textTheme: GoogleFonts.outfitTextTheme(
+        TextTheme(
+          headlineLarge: TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.w700,
+            color: colors.textPrimary,
+          ),
+          headlineMedium: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: colors.textPrimary,
+          ),
+          titleLarge: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: colors.textPrimary,
+          ),
+          titleMedium: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: colors.textPrimary,
+          ),
+          bodyLarge: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: colors.textPrimary,
+          ),
+          bodyMedium: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: colors.textSecondary,
+          ),
+          bodySmall: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: colors.textSecondary,
+          ),
+          labelLarge: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: kWhite,
+          ),
+        ),
       ),
       appBarTheme: AppBarTheme(
         elevation: 0,
@@ -209,8 +235,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(kRadiusMD),
           borderSide: const BorderSide(color: kBlue, width: 1.5),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         hintStyle: TextStyle(color: colors.textSecondary),
       ),
       cardTheme: CardThemeData(
@@ -237,10 +265,14 @@ class AppTheme {
         selectedItemColor: kBlue,
         unselectedItemColor: colors.textSecondary,
         type: BottomNavigationBarType.fixed,
-        selectedLabelStyle:
-            const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        unselectedLabelStyle:
-            const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
+        selectedLabelStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w400,
+        ),
         elevation: 8,
       ),
       dividerTheme: DividerThemeData(
@@ -263,15 +295,20 @@ class AppTheme {
         thumbColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected) ? kBlue : null,
         ),
-        trackColor: WidgetStateProperty.resolveWith((states) =>
-            states.contains(WidgetState.selected)
-                ? kBlue.withValues(alpha: 0.4)
-                : null),
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? kBlue.withValues(alpha: 0.4)
+              : null,
+        ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isDark ? const Color(0xFF2A2F45) : const Color(0xFF323232),
+        backgroundColor: isDark
+            ? const Color(0xFF2A2F45)
+            : const Color(0xFF323232),
         contentTextStyle: const TextStyle(color: Color(0xFFF0F0F0)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kRadiusMD)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadiusMD),
+        ),
         behavior: SnackBarBehavior.floating,
       ),
       tabBarTheme: TabBarThemeData(

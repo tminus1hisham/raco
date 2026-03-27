@@ -28,7 +28,7 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int selectedVehicleIndex = 0;
   bool isLoadingLocation = false;
 
@@ -41,6 +41,10 @@ class _HomeScreenState extends State<HomeScreen> {
   PointAnnotationManager? _annotationManager;
   final Map<String, PointAnnotation> _vehicleAnnotations = {};
   String? _selectedVehiclePlate;
+
+  CircleAnnotationManager? _circleAnnotationManager;
+  CircleAnnotation? _breathingCircle;
+  late AnimationController _breathingController;
 
   final Utils _utils = Utils();
   final DeviceController _controller = Get.put(DeviceController());
@@ -59,6 +63,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _breathingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+    _breathingController.addListener(_updateBreathingCircle);
+
     _initializeData();
     _startPolling();
   }
@@ -143,6 +153,32 @@ class _HomeScreenState extends State<HomeScreen> {
     return bytes!.buffer.asUint8List();
   }
 
+  // ─── Map layer setup ─────────────────────────────────────────────────────
+  // Called from onStyleLoadedListener so it runs on EVERY style load (initial
+  // map creation AND any subsequent style changes via loadStyleURI).
+  // loadStyleURI destroys all native annotation managers immediately, so Dart
+  // references must be nulled BEFORE the call and recreated here.
+
+  Future<void> _setupMapLayers() async {
+    _vehicleAnnotations.clear();
+    _breathingCircle = null;
+    _circleAnnotationManager = null;
+    _annotationManager = null;
+    if (mapboxMap == null || !mounted) return;
+
+    // Circles underneath, points on top.
+    final circleManager =
+        await mapboxMap!.annotations.createCircleAnnotationManager();
+    if (!mounted) return;
+    setState(() => _circleAnnotationManager = circleManager);
+
+    final pointManager =
+        await mapboxMap!.annotations.createPointAnnotationManager();
+    if (!mounted) return;
+    _annotationManager = pointManager;
+    _updateVehicleAnnotations(_filteredDevices);
+  }
+
   // ─── Icon & annotation helpers ───────────────────────────────────────────
 
   /// Returns the pre-loaded Uint8List icon for a device based on its status.
@@ -190,11 +226,67 @@ class _HomeScreenState extends State<HomeScreen> {
             iconRotate: rotation,
             textField: device.numberPlate,
             textSize: 10.0,
+            textColor: 0xFFFFFFFF,
+            textHaloColor: 0xFF000000,
+            textHaloWidth: 1.0,
             textOffset: [0.0, 2.0],
           ),
         );
         _vehicleAnnotations[device.numberPlate] = ann;
       }
+    }
+  }
+
+  int _lastFrameRenderTime = 0;
+  Future<void> _updateBreathingCircle() async {
+    if (_circleAnnotationManager == null ||
+        _selectedVehiclePlate == null ||
+        _filteredDevices.isEmpty)
+      return;
+
+    // Throttle frame rendering to ~24 FPS to avoid Mapbox channel overload
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastFrameRenderTime < 41) return;
+    _lastFrameRenderTime = now;
+
+    final device = _filteredDevices.firstWhereOrNull(
+      (d) => d.numberPlate == _selectedVehiclePlate,
+    );
+    if (device == null) return;
+
+    final lat = double.tryParse(device.latitude) ?? -1.2842;
+    final lng = double.tryParse(device.longitude) ?? 36.8163;
+    final progress = _breathingController.value;
+
+    // Circle scales up from 10 to 40 radius, opacity fades from 0.6 to 0.0
+    final currentRadius = 10.0 + (progress * 30.0);
+    final currentOpacity = (0.6 * (1.0 - progress)).clamp(0.0, 1.0);
+
+    try {
+      if (_breathingCircle == null) {
+        _breathingCircle = await _circleAnnotationManager!.create(
+          CircleAnnotationOptions(
+            geometry: Point(coordinates: Position(lng, lat)),
+            circleColor: 0xFF287ec3, // kBlue roughly
+            circleRadius: currentRadius,
+            circleOpacity: currentOpacity,
+            circleStrokeWidth: 1.5,
+            circleStrokeColor: 0xFF287ec3,
+            circleStrokeOpacity: currentOpacity,
+          ),
+        );
+      } else {
+        _breathingCircle!.geometry = Point(coordinates: Position(lng, lat));
+        _breathingCircle!.circleRadius = currentRadius;
+        _breathingCircle!.circleOpacity = currentOpacity;
+        _breathingCircle!.circleStrokeOpacity = currentOpacity;
+        await _circleAnnotationManager!.update(_breathingCircle!);
+      }
+    } catch (_) {
+      // Channel became invalid (map recreated/style changed); reset so it
+      // reinitialises cleanly on the next animation frame.
+      _breathingCircle = null;
+      _circleAnnotationManager = null;
     }
   }
 
@@ -377,15 +469,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _applyMapStyle(String style) {
     Navigator.pop(context);
+    // Null references BEFORE loadStyleURI — the native side destroys managers
+    // immediately when loadStyleURI is called, not when the Future resolves.
+    // onStyleLoadedListener will recreate them once the new style is ready.
+    _vehicleAnnotations.clear();
+    _breathingCircle = null;
+    _circleAnnotationManager = null;
+    _annotationManager = null;
     setState(() => _currentMapStyle = style);
-    mapboxMap?.loadStyleURI(style).then((_) {
-      _vehicleAnnotations.clear();
-      _annotationManager = null;
-      mapboxMap?.annotations.createPointAnnotationManager().then((manager) {
-        _annotationManager = manager;
-        _updateVehicleAnnotations(_filteredDevices);
-      });
-    });
+    mapboxMap?.loadStyleURI(style);
   }
 
   void _showMapStyleSelector() {
@@ -534,6 +626,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _pollingTimer?.cancel();
     _searchController.dispose();
+    _breathingController.dispose();
     super.dispose();
   }
 
@@ -684,14 +777,15 @@ class _HomeScreenState extends State<HomeScreen> {
       styleUri: _currentMapStyle,
       cameraOptions: CameraOptions(center: initialPosition, zoom: currentZoom),
       onMapCreated: (MapboxMap map) {
-        mapboxMap = map;
-        // Clear any stale references from a previous map instance
+        // Null stale references immediately. Annotation setup is handled by
+        // onStyleLoadedListener (fires on initial load and every style change).
         _vehicleAnnotations.clear();
-        map.annotations.createPointAnnotationManager().then((manager) {
-          _annotationManager = manager;
-          _updateVehicleAnnotations(_filteredDevices);
-        });
+        _breathingCircle = null;
+        _circleAnnotationManager = null;
+        _annotationManager = null;
+        mapboxMap = map;
       },
+      onStyleLoadedListener: (_) => _setupMapLayers(),
       onTapListener: (MapContentGestureContext context) {
         _onMapTapped(context.point);
       },

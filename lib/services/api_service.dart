@@ -95,12 +95,15 @@ class ApiService {
     String token = await StorageService.getData('access_token');
 
     final response = await http.get(
-      Uri.parse('$BASE_URL/devices/get/vehicles/dashboard?company=All'),
+      Uri.parse('$base_url/devices/get/vehicles/dashboard?company=All'),
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",
       },
     );
+    // debugPrint(
+    //   '[fetchDevices] status: ${response.statusCode}, body: ${response.body}',
+    // );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return DevicesModel.fromJson(data);
@@ -358,6 +361,9 @@ class ApiService {
         },
       );
 
+      // debugPrint(
+      //   '[fetchNotifications] status: ${response.statusCode}, body: ${response.body}',
+      // );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data;
@@ -466,6 +472,9 @@ class ApiService {
       },
     );
 
+    // debugPrint(
+    //   '[fetchPlans] status: ${response.statusCode}, body: ${response.body}',
+    // );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
@@ -549,13 +558,25 @@ class ApiService {
       body: jsonEncode(deviceData),
     );
 
-
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
       return data;
     } else {
       _handleAuthError(response.statusCode);
-      throw Exception('Failed to register device: ${response.statusCode}');
+      try {
+        final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+        return {
+          'success': false,
+          'statusCode': response.statusCode,
+          ...errorData,
+        };
+      } catch (_) {
+        return {
+          'success': false,
+          'statusCode': response.statusCode,
+          'message': 'Registration failed (${response.statusCode})',
+        };
+      }
     }
   }
 

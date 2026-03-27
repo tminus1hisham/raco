@@ -48,17 +48,23 @@ class AuthService {
 
           // Store agent phone
           if (agent['phoneNumber'] != null) {
-            await StorageService.storeData({'agentPhone': agent['phoneNumber']});
+            await StorageService.storeData({
+              'agentPhone': agent['phoneNumber'],
+            });
           }
 
           // Store business registration
           if (agent['businessReg'] != null) {
-            await StorageService.storeData({'businessReg': agent['businessReg']});
+            await StorageService.storeData({
+              'businessReg': agent['businessReg'],
+            });
           }
 
           // Store location
           if (agent['location'] != null) {
-            await StorageService.storeData({'agentLocation': agent['location']});
+            await StorageService.storeData({
+              'agentLocation': agent['location'],
+            });
           }
         }
       }

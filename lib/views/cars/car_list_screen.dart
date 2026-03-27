@@ -45,11 +45,18 @@ class _CarListScreenState extends State<CarListScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.directions_car, color: col.textSecondary, size: 40),
+                          Icon(
+                            Icons.directions_car,
+                            color: col.textSecondary,
+                            size: 40,
+                          ),
                           const SizedBox(height: 10),
                           Text(
                             "No devices found",
-                            style: TextStyle(color: col.textSecondary, fontSize: 18),
+                            style: TextStyle(
+                              color: col.textSecondary,
+                              fontSize: 18,
+                            ),
                           ),
                         ],
                       ),

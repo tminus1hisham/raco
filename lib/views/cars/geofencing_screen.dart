@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/fetch_geofence_controller.dart';
@@ -23,6 +26,8 @@ class GeofencingScreen extends StatefulWidget {
 
 class _GeofencingScreenState extends State<GeofencingScreen> {
   MapboxMap? mapboxMap;
+  PointAnnotationManager? _pointAnnotationManager;
+  CircleAnnotationManager? _circleAnnotationManager;
   String? _mapStyleUri;
   Point? selectedPoint;
   final GeoFenceController _geoFenceController = GeoFenceController();
@@ -36,6 +41,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   GeofenceModel? selectedGeofence;
   bool isAddingGeofence = false;
   bool isSaveEnabled = false;
+  Uint8List? _centerPinIcon;
 
   // Radius in kilometres (0.1 – 50 km)
   double radiusKm = 0.5;
@@ -45,7 +51,49 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   @override
   void initState() {
     super.initState();
+    _buildCenterPinIcon().then((bytes) => setState(() => _centerPinIcon = bytes));
     _loadExistingGeofences();
+  }
+
+  Future<Uint8List> _buildCenterPinIcon() async {
+    const double w = 48, h = 64;
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+
+    final fillPaint = ui.Paint()
+      ..color = const Color(0xFFFF6B00)
+      ..style = ui.PaintingStyle.fill;
+    final strokePaint = ui.Paint()
+      ..color = const Color(0xFFFFFFFF)
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+    final innerPaint = ui.Paint()
+      ..color = const Color(0xFFFFFFFF)
+      ..style = ui.PaintingStyle.fill;
+
+    // Pin head (circle)
+    const cx = w / 2;
+    const cy = w / 2;
+    const r = w / 2 - 2;
+    canvas.drawCircle(const ui.Offset(cx, cy), r, fillPaint);
+    canvas.drawCircle(const ui.Offset(cx, cy), r, strokePaint);
+
+    // Pin tail (triangle pointing down)
+    final tail = ui.Path()
+      ..moveTo(cx - 10, cy + r - 4)
+      ..lineTo(cx, h - 2)
+      ..lineTo(cx + 10, cy + r - 4)
+      ..close();
+    canvas.drawPath(tail, fillPaint);
+    canvas.drawPath(tail, strokePaint);
+
+    // Inner dot
+    canvas.drawCircle(const ui.Offset(cx, cy), 8, innerPaint);
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(w.toInt(), h.toInt());
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
   }
 
   @override
@@ -89,8 +137,8 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
         CircleAnnotationOptions(
           geometry: point,
           circleRadius: selectedGeofence!.radius.toDouble(),
-          circleColor: kBlue.withValues(alpha: 0.2).value,
-          circleStrokeColor: kBlue.value,
+          circleColor: kBlue.withValues(alpha: 0.2).toARGB32(),
+          circleStrokeColor: kBlue.toARGB32(),
           circleStrokeWidth: 2.0,
         ),
       );
@@ -100,24 +148,43 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
       markers.add(
         PointAnnotationOptions(
           geometry: selectedPoint!,
-          iconSize: 1.5,
-          iconImage: "assets/orange_car.png",
-          textField: "New Zone",
+          iconSize: 1.0,
+          image: _centerPinIcon,
+          textField: zoneNameController.text.trim().isNotEmpty
+              ? zoneNameController.text.trim()
+              : "New Zone",
           textSize: 12.0,
+          textOffset: [0.0, 2.5],
         ),
       );
       circles.add(
         CircleAnnotationOptions(
           geometry: selectedPoint!,
           circleRadius: radiusKm * 1000,
-          circleColor: Colors.orange.withValues(alpha: 0.3).value,
-          circleStrokeColor: Colors.orange.value,
+          circleColor: kBlue.withValues(alpha: 0.08).toARGB32(),
+          circleStrokeColor: kBlue.toARGB32(),
           circleStrokeWidth: 2.0,
         ),
       );
     }
 
     setState(() {});
+    _refreshMapAnnotations();
+  }
+
+  Future<void> _refreshMapAnnotations() async {
+    if (_pointAnnotationManager != null) {
+      await _pointAnnotationManager!.deleteAll();
+      if (markers.isNotEmpty) {
+        await _pointAnnotationManager!.createMulti(markers);
+      }
+    }
+    if (_circleAnnotationManager != null) {
+      await _circleAnnotationManager!.deleteAll();
+      if (circles.isNotEmpty) {
+        await _circleAnnotationManager!.createMulti(circles);
+      }
+    }
   }
 
   // ── Interactions ──────────────────────────────────────────────────────────
@@ -184,10 +251,10 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
 
     _geoFenceController.numberPlate.value = widget.numberPlate;
     _geoFenceController.fullName.value = zoneNameController.text.trim();
-    _geoFenceController.latitude.value =
-        selectedPoint!.coordinates.lat.toString();
-    _geoFenceController.longitude.value =
-        selectedPoint!.coordinates.lng.toString();
+    _geoFenceController.latitude.value = selectedPoint!.coordinates.lat
+        .toString();
+    _geoFenceController.longitude.value = selectedPoint!.coordinates.lng
+        .toString();
     // Store in metres (radius is in km on UI)
     _geoFenceController.radius.value = (radiusKm * 1000).round();
 
@@ -196,8 +263,9 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     CustomAlertDialog(
       context: context,
       title: success ? "Success" : "Error",
-      message:
-          success ? "Geofence added successfully" : "Failed to add geofence",
+      message: success
+          ? "Geofence added successfully"
+          : "Failed to add geofence",
       icon: success
           ? "assets/animations/Success.json"
           : "assets/animations/Failed.json",
@@ -223,8 +291,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
       context: context,
       builder: (_) => ActionDialog(
         title: 'Delete Geofence',
-        message:
-            'Delete "${selectedGeofence!.name}"? This cannot be undone.',
+        message: 'Delete "${selectedGeofence!.name}"? This cannot be undone.',
         confirmText: 'Delete',
         onConfirm: _deleteGeofence,
       ),
@@ -383,7 +450,10 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
                 vertical: 10,
               ),
             ),
-            onChanged: (_) => _checkSaveButtonState(),
+            onChanged: (_) {
+              _checkSaveButtonState();
+              if (selectedPoint != null) _updateMapMarkers();
+            },
           ),
 
           const SizedBox(height: 12),
@@ -401,7 +471,10 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: kBlue.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(kRadiusPill),
@@ -478,7 +551,8 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
 
   Widget _buildMap(bool isDark) {
     final styleUri =
-        _mapStyleUri ?? (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS);
+        _mapStyleUri ??
+        (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS);
     return Stack(
       children: [
         Container(
@@ -492,7 +566,8 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
             child: MapWidget(
               styleUri: styleUri,
               cameraOptions: CameraOptions(
-                center: selectedPoint ??
+                center:
+                    selectedPoint ??
                     Point(
                       coordinates: Position(
                         36.816382318562034,
@@ -503,16 +578,16 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
               ),
               onMapCreated: (MapboxMap map) {
                 mapboxMap = map;
-                map.annotations.createPointAnnotationManager().then((manager) {
-                  if (markers.isNotEmpty) {
-                    manager.createMulti(markers);
-                  }
-                });
-                map.annotations
-                    .createCircleAnnotationManager()
-                    .then((manager) {
+                map.annotations.createCircleAnnotationManager().then((manager) {
+                  _circleAnnotationManager = manager;
                   if (circles.isNotEmpty) {
                     manager.createMulti(circles);
+                  }
+                });
+                map.annotations.createPointAnnotationManager().then((manager) {
+                  _pointAnnotationManager = manager;
+                  if (markers.isNotEmpty) {
+                    manager.createMulti(markers);
                   }
                 });
               },
@@ -538,10 +613,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   Widget _buildBottomPanel(AppColors col) {
     return Container(
       padding: const EdgeInsets.all(kSpaceLG),
-      decoration: BoxDecoration(
-        color: col.surface,
-        boxShadow: [kShadowMD],
-      ),
+      decoration: BoxDecoration(color: col.surface, boxShadow: [kShadowMD]),
       child: Row(
         children: [
           // Cancel / Add Geofence button

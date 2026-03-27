@@ -143,10 +143,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   children: [
                     Text(
                       "Didn't you receive any code? ",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: kGrey,
-                      ),
+                      style: TextStyle(fontSize: 14, color: kGrey),
                     ),
                     TextButton(
                       onPressed: () {

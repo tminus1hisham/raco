@@ -212,18 +212,12 @@ class TermsAndConditions extends StatelessWidget {
                             SizedBox(height: 8),
                             Text(
                               "Email: info@atomiot.live",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: kBlue,
-                              ),
+                              style: TextStyle(fontSize: 16, color: kBlue),
                             ),
                             SizedBox(height: 8),
                             Text(
                               "Phone: +254 798 032 158",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: kBlue,
-                              ),
+                              style: TextStyle(fontSize: 16, color: kBlue),
                             ),
                             SizedBox(height: 8),
                             Text(

@@ -346,10 +346,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                           padding: const EdgeInsets.only(left: 8.0, top: 4),
                           child: Text(
                             'This field is populated from device data',
-                            style: TextStyle(
-                              color: kGrey,
-                              fontSize: 12,
-                            ),
+                            style: TextStyle(color: kGrey, fontSize: 12),
                           ),
                         ),
                       InputField(

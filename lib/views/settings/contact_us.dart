@@ -144,7 +144,10 @@ class _ContactUsState extends State<ContactUs> {
                 offset: const Offset(0, 4),
               ),
             ],
-            border: Border.all(color: col.border.withValues(alpha: 0.5), width: 1),
+            border: Border.all(
+              color: col.border.withValues(alpha: 0.5),
+              width: 1,
+            ),
           ),
           child: Row(
             children: [

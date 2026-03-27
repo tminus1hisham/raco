@@ -15,8 +15,12 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen>
     with SingleTickerProviderStateMixin {
-  final NotificationsController _controller = Get.put(NotificationsController());
-  final MarkasreadController _markAsReadController = Get.put(MarkasreadController());
+  final NotificationsController _controller = Get.put(
+    NotificationsController(),
+  );
+  final MarkasreadController _markAsReadController = Get.put(
+    MarkasreadController(),
+  );
 
   late TabController _tabController;
 
@@ -66,10 +70,9 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   Future<void> _markOneAsRead(NotificationModel notification) async {
     if (notification.isRead) return;
-    final success = await _markAsReadController.markAsRead(
-      context,
-      [notification.id.toString()],
-    );
+    final success = await _markAsReadController.markAsRead(context, [
+      notification.id.toString(),
+    ]);
     if (success) {
       notification.isRead = true;
       _controller.notifications.refresh();
@@ -77,7 +80,8 @@ class _NotificationScreenState extends State<NotificationScreen>
   }
 
   Map<String, List<NotificationModel>> _groupByDate(
-      List<NotificationModel> items) {
+    List<NotificationModel> items,
+  ) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
@@ -87,9 +91,10 @@ class _NotificationScreenState extends State<NotificationScreen>
 
     for (var n in items) {
       final date = DateTime(
-          n.createdAt.toLocal().year,
-          n.createdAt.toLocal().month,
-          n.createdAt.toLocal().day);
+        n.createdAt.toLocal().year,
+        n.createdAt.toLocal().month,
+        n.createdAt.toLocal().day,
+      );
       String key;
       if (date == today) {
         key = 'Today';
@@ -127,7 +132,9 @@ class _NotificationScreenState extends State<NotificationScreen>
                   children: [
                     _buildList(_controller.notifications.toList(), col),
                     _buildList(
-                      _controller.notifications.where((n) => !n.isRead).toList(),
+                      _controller.notifications
+                          .where((n) => !n.isRead)
+                          .toList(),
                       col,
                       emptyLabel: 'All caught up!',
                       emptySubtitle: 'No unread notifications',
@@ -169,7 +176,9 @@ class _NotificationScreenState extends State<NotificationScreen>
                     style: TextStyle(
                       fontSize: 13,
                       color: unread > 0 ? kBlue : col.textSecondary,
-                      fontWeight: unread > 0 ? FontWeight.w500 : FontWeight.w400,
+                      fontWeight: unread > 0
+                          ? FontWeight.w500
+                          : FontWeight.w400,
                     ),
                   );
                 }),
@@ -177,8 +186,7 @@ class _NotificationScreenState extends State<NotificationScreen>
             ),
           ),
           Obx(() {
-            final hasUnread =
-                _controller.notifications.any((n) => !n.isRead);
+            final hasUnread = _controller.notifications.any((n) => !n.isRead);
             return hasUnread
                 ? TextButton.icon(
                     onPressed: _markAllAsRead,
@@ -218,10 +226,7 @@ class _NotificationScreenState extends State<NotificationScreen>
         indicatorPadding: const EdgeInsets.all(4),
         labelColor: kWhite,
         unselectedLabelColor: col.textSecondary,
-        labelStyle: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
+        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         unselectedLabelStyle: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w400,
@@ -230,8 +235,9 @@ class _NotificationScreenState extends State<NotificationScreen>
           const Tab(text: 'All'),
           Tab(
             child: Obx(() {
-              final unread =
-                  _controller.notifications.where((n) => !n.isRead).length;
+              final unread = _controller.notifications
+                  .where((n) => !n.isRead)
+                  .length;
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
@@ -241,7 +247,9 @@ class _NotificationScreenState extends State<NotificationScreen>
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 1),
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         color: kRed,
                         borderRadius: BorderRadius.circular(kRadiusPill),
@@ -280,7 +288,11 @@ class _NotificationScreenState extends State<NotificationScreen>
           children: [
             SizedBox(
               height: MediaQuery.of(context).size.height * 0.6,
-              child: _buildEmptyState(col, label: emptyLabel, subtitle: emptySubtitle),
+              child: _buildEmptyState(
+                col,
+                label: emptyLabel,
+                subtitle: emptySubtitle,
+              ),
             ),
           ],
         ),
@@ -293,33 +305,33 @@ class _NotificationScreenState extends State<NotificationScreen>
       onRefresh: () => _controller.fetchNotifications(),
       color: kBlue,
       child: ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-      itemCount: grouped.entries.fold<int>(
-        0,
-        (sum, entry) => sum + 1 + entry.value.length,
-      ),
-      itemBuilder: (context, index) {
-        int cursor = 0;
-        for (final entry in grouped.entries) {
-          if (index == cursor) {
-            return _buildDateHeader(entry.key, col);
-          }
-          cursor++;
-          for (int i = 0; i < entry.value.length; i++) {
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        itemCount: grouped.entries.fold<int>(
+          0,
+          (sum, entry) => sum + 1 + entry.value.length,
+        ),
+        itemBuilder: (context, index) {
+          int cursor = 0;
+          for (final entry in grouped.entries) {
             if (index == cursor) {
-              final notification = entry.value[i];
-              return NotificationCard(
-                notification: notification,
-                isRead: notification.isRead,
-                onTap: () => _handleNotificationTap(notification),
-              );
+              return _buildDateHeader(entry.key, col);
             }
             cursor++;
+            for (int i = 0; i < entry.value.length; i++) {
+              if (index == cursor) {
+                final notification = entry.value[i];
+                return NotificationCard(
+                  notification: notification,
+                  isRead: notification.isRead,
+                  onTap: () => _handleNotificationTap(notification),
+                );
+              }
+              cursor++;
+            }
           }
-        }
-        return const SizedBox.shrink();
-      },
-    ),
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 
@@ -395,8 +407,11 @@ class _NotificationScreenState extends State<NotificationScreen>
     );
   }
 
-  Widget _buildEmptyState(AppColors col,
-      {required String label, required String subtitle}) {
+  Widget _buildEmptyState(
+    AppColors col, {
+    required String label,
+    required String subtitle,
+  }) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -444,7 +459,9 @@ class _NotificationScreenState extends State<NotificationScreen>
   }
 
   Widget _buildDetailSheet(
-      BuildContext context, NotificationModel notification) {
+    BuildContext context,
+    NotificationModel notification,
+  ) {
     final col = context.col;
     final meta = _resolveNotificationMeta(notification.title);
 
@@ -525,8 +542,11 @@ class _NotificationScreenState extends State<NotificationScreen>
                                 color: col.bg,
                                 borderRadius: BorderRadius.circular(kRadiusSM),
                               ),
-                              child: Icon(Icons.close_rounded,
-                                  color: col.textSecondary, size: 18),
+                              child: Icon(
+                                Icons.close_rounded,
+                                color: col.textSecondary,
+                                size: 18,
+                              ),
                             ),
                           ),
                         ],
@@ -557,14 +577,20 @@ class _NotificationScreenState extends State<NotificationScreen>
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.calendar_today_outlined,
-                                size: 14, color: col.textSecondary),
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              size: 14,
+                              color: col.textSecondary,
+                            ),
                             const SizedBox(width: 8),
                             Text(
-                              DateFormat('EEEE, MMM d, yyyy • h:mm a')
-                                  .format(notification.createdAt.toLocal()),
+                              DateFormat(
+                                'EEEE, MMM d, yyyy • h:mm a',
+                              ).format(notification.createdAt.toLocal()),
                               style: TextStyle(
-                                  fontSize: 13, color: col.textSecondary),
+                                fontSize: 13,
+                                color: col.textSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -583,21 +609,24 @@ class _NotificationScreenState extends State<NotificationScreen>
   _NotificationMeta _resolveNotificationMeta(String title) {
     final t = title.toLowerCase();
     if (t.contains('speed') || t.contains('overspeed')) {
-      return _NotificationMeta(
-          Icons.speed_rounded, const Color(0xFFF97316));
+      return _NotificationMeta(Icons.speed_rounded, const Color(0xFFF97316));
     }
     if (t.contains('geofence') || t.contains('fence')) {
       return _NotificationMeta(Icons.my_location_rounded, kBlue);
     }
     if (t.contains('engine') || t.contains('ignition')) {
       return _NotificationMeta(
-          Icons.power_settings_new_rounded, const Color(0xFF10B981));
+        Icons.power_settings_new_rounded,
+        const Color(0xFF10B981),
+      );
     }
     if (t.contains('alert') ||
         t.contains('warning') ||
         t.contains('violation')) {
       return _NotificationMeta(
-          Icons.warning_amber_rounded, const Color(0xFFEF4444));
+        Icons.warning_amber_rounded,
+        const Color(0xFFEF4444),
+      );
     }
     return _NotificationMeta(Icons.notifications_rounded, kBlue);
   }

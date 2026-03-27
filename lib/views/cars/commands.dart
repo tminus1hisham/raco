@@ -52,7 +52,9 @@ class _CommandsState extends State<Commands> {
   }
 
   void _showSosInfo(AppColors col) {
-    final phone = widget.device.phone.isNotEmpty ? widget.device.phone : 'Not set';
+    final phone = widget.device.phone.isNotEmpty
+        ? widget.device.phone
+        : 'Not set';
     showModalBottomSheet(
       context: context,
       backgroundColor: col.surface,
@@ -151,7 +153,10 @@ class _CommandsState extends State<Commands> {
                 ),
               );
             },
-            child: const Text('Set', style: TextStyle(color: kBlue, fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Set',
+              style: TextStyle(color: kBlue, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
@@ -181,7 +186,12 @@ class _CommandsState extends State<Commands> {
               child: ListView(
                 padding: const EdgeInsets.only(bottom: 32),
                 children: [
-                  _buildSectionHeader(col: col, title: 'Commands', icon: Icons.tune_rounded, color: kBlue),
+                  _buildSectionHeader(
+                    col: col,
+                    title: 'Commands',
+                    icon: Icons.tune_rounded,
+                    color: kBlue,
+                  ),
                   _buildCard(
                     col: col,
                     children: [
@@ -192,8 +202,10 @@ class _CommandsState extends State<Commands> {
                         title: 'Check Location',
                         subtitle: "View the vehicle's current GPS position.",
                         onTap: () {
-                          final lat = double.tryParse(widget.device.latitude) ?? 0.0;
-                          final lng = double.tryParse(widget.device.longitude) ?? 0.0;
+                          final lat =
+                              double.tryParse(widget.device.latitude) ?? 0.0;
+                          final lng =
+                              double.tryParse(widget.device.longitude) ?? 0.0;
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -220,7 +232,10 @@ class _CommandsState extends State<Commands> {
                             ? SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: engineColor),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: engineColor,
+                                ),
                               )
                             : null,
                         onTap: () => _toggleEngine(!isEngineOn),
@@ -231,7 +246,8 @@ class _CommandsState extends State<Commands> {
                         icon: Icons.sos_rounded,
                         iconColor: kRed,
                         title: 'SOS Number',
-                        subtitle: "View the emergency contact for this vehicle.",
+                        subtitle:
+                            "View the emergency contact for this vehicle.",
                         onTap: () => _showSosInfo(col),
                       ),
                       _buildDivider(col),
@@ -240,7 +256,8 @@ class _CommandsState extends State<Commands> {
                         icon: Icons.speed_rounded,
                         iconColor: const Color(0xFF6366F1),
                         title: 'Set Mileage',
-                        subtitle: "Input or adjust the vehicle odometer reading.",
+                        subtitle:
+                            "Input or adjust the vehicle odometer reading.",
                         onTap: () => _showSetMileageDialog(col),
                       ),
                     ],
@@ -350,11 +367,12 @@ class _CommandsState extends State<Commands> {
               ),
             ),
             const SizedBox(width: 8),
-            trailing ?? Icon(
-              Icons.chevron_right_rounded,
-              color: iconColor.withValues(alpha: 0.45),
-              size: 20,
-            ),
+            trailing ??
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: iconColor.withValues(alpha: 0.45),
+                  size: 20,
+                ),
           ],
         ),
       ),

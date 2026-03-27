@@ -119,36 +119,38 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   onRefresh: () => _controller.fetchTechnicianDevices(),
                   color: kBlue,
                   child: ListView.builder(
-                  itemCount: devices.length,
-                  itemBuilder: (context, index) {
-                    final device = devices[index];
-                    return CarInfoCard(
-                      expiryDate: device.certificateExpirey,
-                      isAdmin: false,
-                      carModel: "${device.type} ${device.make}",
-                      licensePlate: device.numberPlate,
-                      status: device.isDeviceOnline ? "Online" : "Offline",
-                      statusColor: device.isDeviceOnline ? kSuccessGreen : kRed,
-                      statusBackgroundColor: device.isDeviceOnline
-                          ? kSuccessGreen.withValues(alpha: 0.1)
-                          : kRed.withValues(alpha: 0.1),
-                      currentSpeed: "${device.speed} km/h",
-                      topSpeed: "",
-                      onPressed: () {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) => SelectedCarScreen(
-                        //       devices: device.toDevice(),
-                        //       carModel: device.make,
-                        //       licensePlate: device.numberPlate,
-                        //     ),
-                        //   ),
-                        // );
-                      },
-                    );
-                  },
-                ),
+                    itemCount: devices.length,
+                    itemBuilder: (context, index) {
+                      final device = devices[index];
+                      return CarInfoCard(
+                        expiryDate: device.certificateExpirey,
+                        isAdmin: false,
+                        carModel: "${device.type} ${device.make}",
+                        licensePlate: device.numberPlate,
+                        status: device.isDeviceOnline ? "Online" : "Offline",
+                        statusColor: device.isDeviceOnline
+                            ? kSuccessGreen
+                            : kRed,
+                        statusBackgroundColor: device.isDeviceOnline
+                            ? kSuccessGreen.withValues(alpha: 0.1)
+                            : kRed.withValues(alpha: 0.1),
+                        currentSpeed: "${device.speed} km/h",
+                        topSpeed: "",
+                        onPressed: () {
+                          // Navigator.push(
+                          //   context,
+                          //   MaterialPageRoute(
+                          //     builder: (context) => SelectedCarScreen(
+                          //       devices: device.toDevice(),
+                          //       carModel: device.make,
+                          //       licensePlate: device.numberPlate,
+                          //     ),
+                          //   ),
+                          // );
+                        },
+                      );
+                    },
+                  ),
                 ),
               ),
             ],

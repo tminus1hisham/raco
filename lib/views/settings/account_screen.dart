@@ -174,8 +174,9 @@ class _AccountScreenState extends State<AccountScreen> {
           child: Container(
             decoration: BoxDecoration(
               color: col.surface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
             ),
             child: SafeArea(
               top: false,
@@ -449,8 +450,9 @@ class _AccountScreenState extends State<AccountScreen> {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color:
-                                            Colors.black.withValues(alpha: 0.2),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.2,
+                                        ),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -469,16 +471,28 @@ class _AccountScreenState extends State<AccountScreen> {
 
                         const SizedBox(height: 24),
 
-                        _buildInfoRow(col, Icons.person_outline, 'Full Name',
-                            user.fullName),
+                        _buildInfoRow(
+                          col,
+                          Icons.person_outline,
+                          'Full Name',
+                          user.fullName,
+                        ),
                         const SizedBox(height: 16),
 
-                        _buildInfoRow(col, Icons.email_outlined, 'Email',
-                            user.emailAddress),
+                        _buildInfoRow(
+                          col,
+                          Icons.email_outlined,
+                          'Email',
+                          user.emailAddress,
+                        ),
                         const SizedBox(height: 16),
 
-                        _buildInfoRow(col, Icons.phone_outlined, 'Phone',
-                            user.phoneNumber),
+                        _buildInfoRow(
+                          col,
+                          Icons.phone_outlined,
+                          'Phone',
+                          user.phoneNumber,
+                        ),
                         const SizedBox(height: 32),
 
                         CustomButton(
@@ -521,7 +535,11 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Widget _buildInfoRow(
-      AppColors col, IconData icon, String label, String value) {
+    AppColors col,
+    IconData icon,
+    String label,
+    String value,
+  ) {
     return Row(
       children: [
         Container(

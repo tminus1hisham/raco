@@ -53,8 +53,6 @@ class UserModel {
     this.updatedAt,
   });
 
-
-
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] ?? 0,
@@ -311,7 +309,6 @@ class DeviceModel {
     };
   }
 }
-
 
 class RegisterModel {
   final String fullName;

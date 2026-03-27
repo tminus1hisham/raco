@@ -16,7 +16,9 @@ Future<void> CustomAlertDialog({
     useRootNavigator: true,
     barrierDismissible: false,
     builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kRadiusLG)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kRadiusLG),
+      ),
       elevation: 8,
       backgroundColor: kWhite,
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
@@ -43,11 +45,7 @@ Future<void> CustomAlertDialog({
       content: Text(
         message,
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 18,
-          color: kGrey,
-          height: 1.4,
-        ),
+        style: const TextStyle(fontSize: 18, color: kGrey, height: 1.4),
       ),
 
       actions: [

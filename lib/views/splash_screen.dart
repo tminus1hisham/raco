@@ -32,10 +32,12 @@ class _RadarSplashScreenState extends State<RadarSplashScreen>
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => widget.nextScreen,
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                widget.nextScreen,
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
             transitionDuration: const Duration(milliseconds: 800),
           ),
         );
@@ -62,7 +64,8 @@ class _RadarSplashScreenState extends State<RadarSplashScreen>
           animation: _controller,
           builder: (context, child) {
             // Pulse between 1.0 and 1.1
-            final pulseScale = 1.0 + 0.05 * math.sin(_controller.value * math.pi * 2);
+            final pulseScale =
+                1.0 + 0.05 * math.sin(_controller.value * math.pi * 2);
 
             return CustomPaint(
               painter: RadarPainter(
@@ -114,10 +117,18 @@ class RadarPainter extends CustomPainter {
     canvas.drawCircle(center, radius, linePaint);
     canvas.drawCircle(center, radius * 0.66, linePaint);
     canvas.drawCircle(center, radius * 0.33, linePaint);
-    
+
     // Draw crosshairs
-    canvas.drawLine(Offset(center.dx, center.dy - radius), Offset(center.dx, center.dy + radius), linePaint);
-    canvas.drawLine(Offset(center.dx - radius, center.dy), Offset(center.dx + radius, center.dy), linePaint);
+    canvas.drawLine(
+      Offset(center.dx, center.dy - radius),
+      Offset(center.dx, center.dy + radius),
+      linePaint,
+    );
+    canvas.drawLine(
+      Offset(center.dx - radius, center.dy),
+      Offset(center.dx + radius, center.dy),
+      linePaint,
+    );
 
     // Draw the sweeping gradient
     final sweepPaint = Paint()
@@ -132,15 +143,15 @@ class RadarPainter extends CustomPainter {
         transform: GradientRotation(sweepAngle - math.pi / 2),
       ).createShader(Rect.fromCircle(center: center, radius: radius))
       ..style = PaintingStyle.fill;
-      
+
     canvas.drawCircle(center, radius, sweepPaint);
-    
+
     // Draw leading edge line
     final edgePaint = Paint()
       ..color = radarColor.withValues(alpha: 0.7)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
-      
+
     // The peak of the gradient is at 0.98 of 2*pi, added to the rotation offset
     final edgeAngle = sweepAngle - math.pi / 2 + (math.pi * 2 * 0.98);
     final edgeX = center.dx + radius * math.cos(edgeAngle);
@@ -150,5 +161,6 @@ class RadarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant RadarPainter oldDelegate) =>
-      oldDelegate.sweepAngle != sweepAngle || oldDelegate.radarColor != radarColor;
+      oldDelegate.sweepAngle != sweepAngle ||
+      oldDelegate.radarColor != radarColor;
 }

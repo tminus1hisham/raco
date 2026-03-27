@@ -23,7 +23,9 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final AuthController _authController = Get.put(AuthController());
-  final UserResourceController _userController = Get.put(UserResourceController());
+  final UserResourceController _userController = Get.put(
+    UserResourceController(),
+  );
   String? role;
   String? userName;
   String? phone;
@@ -82,7 +84,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           slivers: [
             SliverToBoxAdapter(child: _buildProfileHeader()),
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20 ),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: 24),
@@ -324,29 +326,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 20),
                 // Divider
-                Container(
-                  height: 1,
-                  color: kWhite.withValues(alpha: 0.15),
-                ),
+                Container(height: 1, color: kWhite.withValues(alpha: 0.15)),
                 const SizedBox(height: 16),
                 // Role + Phone row
                 Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: kWhite.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(kRadiusPill),
                         border: Border.all(
-                            color: kWhite.withValues(alpha: 0.25)),
+                          color: kWhite.withValues(alpha: 0.25),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.shield_outlined,
-                              size: 12,
-                              color: kWhite.withValues(alpha: 0.90)),
+                          Icon(
+                            Icons.shield_outlined,
+                            size: 12,
+                            color: kWhite.withValues(alpha: 0.90),
+                          ),
                           const SizedBox(width: 5),
                           Text(
                             role ?? 'User',
@@ -361,9 +365,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     if (phone != null && phone!.isNotEmpty) ...[
                       const SizedBox(width: 12),
-                      Icon(Icons.phone_outlined,
-                          size: 14,
-                          color: kWhite.withValues(alpha: 0.65)),
+                      Icon(
+                        Icons.phone_outlined,
+                        size: 14,
+                        color: kWhite.withValues(alpha: 0.65),
+                      ),
                       const SizedBox(width: 5),
                       Text(
                         phone!,
@@ -406,8 +412,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: kBlue.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(kRadiusSM),
                 ),
-                child: const Icon(Icons.brightness_6_rounded,
-                    color: kBlue, size: 20),
+                child: const Icon(
+                  Icons.brightness_6_rounded,
+                  color: kBlue,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -426,8 +435,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       'Choose your preferred theme',
                       style: TextStyle(
-                          fontSize: 13,
-                          color: context.col.textSecondary),
+                        fontSize: 13,
+                        color: context.col.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -446,14 +456,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Row(
                 children: [
                   _themeOption(
-                      'System', Icons.brightness_auto_rounded,
-                      ThemeMode.system, ctrl),
+                    'System',
+                    Icons.brightness_auto_rounded,
+                    ThemeMode.system,
+                    ctrl,
+                  ),
                   _themeOption(
-                      'Light', Icons.light_mode_rounded,
-                      ThemeMode.light, ctrl),
+                    'Light',
+                    Icons.light_mode_rounded,
+                    ThemeMode.light,
+                    ctrl,
+                  ),
                   _themeOption(
-                      'Dark', Icons.dark_mode_rounded,
-                      ThemeMode.dark, ctrl),
+                    'Dark',
+                    Icons.dark_mode_rounded,
+                    ThemeMode.dark,
+                    ctrl,
+                  ),
                 ],
               ),
             );
@@ -577,14 +596,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       subtitle,
                       style: TextStyle(
-                          fontSize: 13,
-                          color: context.col.textSecondary),
+                        fontSize: 13,
+                        color: context.col.textSecondary,
+                      ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded,
-                  color: context.col.border, size: 20),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: context.col.border,
+                size: 20,
+              ),
             ],
           ),
         ),
@@ -625,10 +648,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           decoration: BoxDecoration(
             color: kRed.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(kRadiusMD),
-            border: Border.all(
-              color: kRed.withValues(alpha: 0.20),
-              width: 1,
-            ),
+            border: Border.all(color: kRed.withValues(alpha: 0.20), width: 1),
           ),
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,

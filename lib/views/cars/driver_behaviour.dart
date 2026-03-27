@@ -116,305 +116,314 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
                 col: col,
                 children: [
                   Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Driver Behaviour Score (Last 7 Days)',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: col.textPrimary,
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Driver Behaviour Score (Last 7 Days)',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: col.textPrimary,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        height: 200,
-                        child: LineChart(
-                          LineChartData(
-                            gridData: FlGridData(
-                              show: true,
-                              drawVerticalLine: false,
-                              horizontalInterval: 20,
-                              getDrawingHorizontalLine: (value) {
-                                return FlLine(
-                                  color: col.divider,
-                                  strokeWidth: 1,
-                                );
-                              },
-                            ),
-                            titlesData: FlTitlesData(
-                              show: true,
-                              rightTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: false),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          height: 200,
+                          child: LineChart(
+                            LineChartData(
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                                horizontalInterval: 20,
+                                getDrawingHorizontalLine: (value) {
+                                  return FlLine(
+                                    color: col.divider,
+                                    strokeWidth: 1,
+                                  );
+                                },
                               ),
-                              topTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: false),
-                              ),
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  reservedSize: 30,
-                                  interval: 1,
-                                  getTitlesWidget:
-                                      (double value, TitleMeta meta) {
-                                        final style = TextStyle(
-                                          color: col.textSecondary,
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 12,
-                                        );
-                                        Widget text;
-                                        switch (value.toInt()) {
-                                          case 0:
-                                            text = Text('Wed', style: style);
-                                            break;
-                                          case 1:
-                                            text = Text('Thu', style: style);
-                                            break;
-                                          case 2:
-                                            text = Text('Fri', style: style);
-                                            break;
-                                          case 3:
-                                            text = Text('Sat', style: style);
-                                            break;
-                                          case 4:
-                                            text = Text('Sun', style: style);
-                                            break;
-                                          case 5:
-                                            text = Text('Mon', style: style);
-                                            break;
-                                          case 6:
-                                            text = Text('Tue', style: style);
-                                            break;
-                                          default:
-                                            text = Text('', style: style);
-                                            break;
-                                        }
-                                        return SideTitleWidget(
-                                          axisSide: meta.axisSide,
-                                          child: text,
-                                        );
-                                      },
+                              titlesData: FlTitlesData(
+                                show: true,
+                                rightTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
                                 ),
-                              ),
-                              leftTitles: AxisTitles(
-                                axisNameWidget: Text(
-                                  'Score',
-                                  style: TextStyle(
-                                    color: col.textSecondary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                topTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
                                 ),
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  interval: 20,
-                                  reservedSize: 42,
-                                  getTitlesWidget:
-                                      (double value, TitleMeta meta) {
-                                        return Text(
-                                          value.toInt().toString(),
-                                          style: TextStyle(
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 30,
+                                    interval: 1,
+                                    getTitlesWidget:
+                                        (double value, TitleMeta meta) {
+                                          final style = TextStyle(
                                             color: col.textSecondary,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 12,
-                                          ),
-                                        );
-                                      },
+                                          );
+                                          Widget text;
+                                          switch (value.toInt()) {
+                                            case 0:
+                                              text = Text('Wed', style: style);
+                                              break;
+                                            case 1:
+                                              text = Text('Thu', style: style);
+                                              break;
+                                            case 2:
+                                              text = Text('Fri', style: style);
+                                              break;
+                                            case 3:
+                                              text = Text('Sat', style: style);
+                                              break;
+                                            case 4:
+                                              text = Text('Sun', style: style);
+                                              break;
+                                            case 5:
+                                              text = Text('Mon', style: style);
+                                              break;
+                                            case 6:
+                                              text = Text('Tue', style: style);
+                                              break;
+                                            default:
+                                              text = Text('', style: style);
+                                              break;
+                                          }
+                                          return SideTitleWidget(
+                                            axisSide: meta.axisSide,
+                                            child: text,
+                                          );
+                                        },
+                                  ),
+                                ),
+                                leftTitles: AxisTitles(
+                                  axisNameWidget: Text(
+                                    'Score',
+                                    style: TextStyle(
+                                      color: col.textSecondary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    interval: 20,
+                                    reservedSize: 42,
+                                    getTitlesWidget:
+                                        (double value, TitleMeta meta) {
+                                          return Text(
+                                            value.toInt().toString(),
+                                            style: TextStyle(
+                                              color: col.textSecondary,
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 12,
+                                            ),
+                                          );
+                                        },
+                                  ),
                                 ),
                               ),
-                            ),
-                            borderData: FlBorderData(show: false),
-                            minX: 0,
-                            maxX: 6,
-                            minY: 0,
-                            maxY: 100,
-                            lineBarsData: [
-                              LineChartBarData(
-                                spots: const [
-                                  FlSpot(0, 88),
-                                  FlSpot(1, 84),
-                                  FlSpot(2, 80),
-                                  FlSpot(3, 76),
-                                  FlSpot(4, 78),
-                                  FlSpot(5, 70),
-                                  FlSpot(6, 68),
-                                ],
-                                isCurved: true,
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF4285F4),
-                                    Color(0xFF4285F4),
+                              borderData: FlBorderData(show: false),
+                              minX: 0,
+                              maxX: 6,
+                              minY: 0,
+                              maxY: 100,
+                              lineBarsData: [
+                                LineChartBarData(
+                                  spots: const [
+                                    FlSpot(0, 88),
+                                    FlSpot(1, 84),
+                                    FlSpot(2, 80),
+                                    FlSpot(3, 76),
+                                    FlSpot(4, 78),
+                                    FlSpot(5, 70),
+                                    FlSpot(6, 68),
                                   ],
-                                ),
-                                barWidth: 3,
-                                isStrokeCapRound: true,
-                                dotData: FlDotData(
-                                  show: true,
-                                  getDotPainter:
-                                      (spot, percent, barData, index) =>
-                                          FlDotCirclePainter(
-                                            radius: 4,
-                                            color: const Color(0xFF4285F4),
-                                            strokeWidth: 2,
-                                            strokeColor: col.surface,
-                                          ),
-                                ),
-                                belowBarData: BarAreaData(
-                                  show: true,
+                                  isCurved: true,
                                   gradient: const LinearGradient(
                                     colors: [
-                                      Color(0x1A4285F4),
-                                      Color(0x0D4285F4),
+                                      Color(0xFF4285F4),
+                                      Color(0xFF4285F4),
                                     ],
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
+                                  ),
+                                  barWidth: 3,
+                                  isStrokeCapRound: true,
+                                  dotData: FlDotData(
+                                    show: true,
+                                    getDotPainter:
+                                        (spot, percent, barData, index) =>
+                                            FlDotCirclePainter(
+                                              radius: 4,
+                                              color: const Color(0xFF4285F4),
+                                              strokeWidth: 2,
+                                              strokeColor: col.surface,
+                                            ),
+                                  ),
+                                  belowBarData: BarAreaData(
+                                    show: true,
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0x1A4285F4),
+                                        Color(0x0D4285F4),
+                                      ],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 30),
-                      Text(
-                        'Risky Events Per Day',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: col.textPrimary,
+                        const SizedBox(height: 30),
+                        Text(
+                          'Risky Events Per Day',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: col.textPrimary,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        height: 200,
-                        child: BarChart(
-                          BarChartData(
-                            alignment: BarChartAlignment.spaceAround,
-                            maxY: 6,
-                            barTouchData: BarTouchData(enabled: false),
-                            titlesData: FlTitlesData(
-                              show: true,
-                              rightTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: false),
-                              ),
-                              topTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: false),
-                              ),
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  reservedSize: 30,
-                                  getTitlesWidget:
-                                      (double value, TitleMeta meta) {
-                                        final style = TextStyle(
-                                          color: col.textSecondary,
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 12,
-                                        );
-                                        Widget text;
-                                        switch (value.toInt()) {
-                                          case 0:
-                                            text = Text('Wed', style: style);
-                                            break;
-                                          case 1:
-                                            text = Text('Thu', style: style);
-                                            break;
-                                          case 2:
-                                            text = Text('Fri', style: style);
-                                            break;
-                                          case 3:
-                                            text = Text('Sat', style: style);
-                                            break;
-                                          case 4:
-                                            text = Text('Sun', style: style);
-                                            break;
-                                          case 5:
-                                            text = Text('Mon', style: style);
-                                            break;
-                                          case 6:
-                                            text = Text('Tue', style: style);
-                                            break;
-                                          default:
-                                            text = Text('', style: style);
-                                            break;
-                                        }
-                                        return SideTitleWidget(
-                                          axisSide: meta.axisSide,
-                                          child: text,
-                                        );
-                                      },
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          height: 200,
+                          child: BarChart(
+                            BarChartData(
+                              alignment: BarChartAlignment.spaceAround,
+                              maxY: 6,
+                              barTouchData: BarTouchData(enabled: false),
+                              titlesData: FlTitlesData(
+                                show: true,
+                                rightTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
                                 ),
-                              ),
-                              leftTitles: AxisTitles(
-                                axisNameWidget: Text(
-                                  'Events',
-                                  style: TextStyle(
-                                    color: col.textSecondary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                topTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
                                 ),
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  interval: 2,
-                                  reservedSize: 42,
-                                  getTitlesWidget:
-                                      (double value, TitleMeta meta) {
-                                        return Text(
-                                          value.toInt().toString(),
-                                          style: TextStyle(
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 30,
+                                    getTitlesWidget:
+                                        (double value, TitleMeta meta) {
+                                          final style = TextStyle(
                                             color: col.textSecondary,
                                             fontWeight: FontWeight.w500,
                                             fontSize: 12,
-                                          ),
-                                        );
-                                      },
+                                          );
+                                          Widget text;
+                                          switch (value.toInt()) {
+                                            case 0:
+                                              text = Text('Wed', style: style);
+                                              break;
+                                            case 1:
+                                              text = Text('Thu', style: style);
+                                              break;
+                                            case 2:
+                                              text = Text('Fri', style: style);
+                                              break;
+                                            case 3:
+                                              text = Text('Sat', style: style);
+                                              break;
+                                            case 4:
+                                              text = Text('Sun', style: style);
+                                              break;
+                                            case 5:
+                                              text = Text('Mon', style: style);
+                                              break;
+                                            case 6:
+                                              text = Text('Tue', style: style);
+                                              break;
+                                            default:
+                                              text = Text('', style: style);
+                                              break;
+                                          }
+                                          return SideTitleWidget(
+                                            axisSide: meta.axisSide,
+                                            child: text,
+                                          );
+                                        },
+                                  ),
+                                ),
+                                leftTitles: AxisTitles(
+                                  axisNameWidget: Text(
+                                    'Events',
+                                    style: TextStyle(
+                                      color: col.textSecondary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    interval: 2,
+                                    reservedSize: 42,
+                                    getTitlesWidget:
+                                        (double value, TitleMeta meta) {
+                                          return Text(
+                                            value.toInt().toString(),
+                                            style: TextStyle(
+                                              color: col.textSecondary,
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 12,
+                                            ),
+                                          );
+                                        },
+                                  ),
                                 ),
                               ),
+                              borderData: FlBorderData(show: false),
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                                horizontalInterval: 2,
+                                getDrawingHorizontalLine: (value) {
+                                  return FlLine(
+                                    color: col.divider,
+                                    strokeWidth: 1,
+                                  );
+                                },
+                              ),
+                              barGroups: [
+                                _buildBarGroup(0, 0.5, 0.5, 0),
+                                _buildBarGroup(1, 1.5, 0.5, 0),
+                                _buildBarGroup(2, 2, 1, 0.5),
+                                _buildBarGroup(3, 1, 1, 0.5),
+                                _buildBarGroup(4, 1.5, 0.5, 0),
+                                _buildBarGroup(5, 2, 1, 0.5),
+                                _buildBarGroup(6, 2.5, 1, 0.5),
+                              ],
                             ),
-                            borderData: FlBorderData(show: false),
-                            gridData: FlGridData(
-                              show: true,
-                              drawVerticalLine: false,
-                              horizontalInterval: 2,
-                              getDrawingHorizontalLine: (value) {
-                                return FlLine(
-                                  color: col.divider,
-                                  strokeWidth: 1,
-                                );
-                              },
-                            ),
-                            barGroups: [
-                              _buildBarGroup(0, 0.5, 0.5, 0),
-                              _buildBarGroup(1, 1.5, 0.5, 0),
-                              _buildBarGroup(2, 2, 1, 0.5),
-                              _buildBarGroup(3, 1, 1, 0.5),
-                              _buildBarGroup(4, 1.5, 0.5, 0),
-                              _buildBarGroup(5, 2, 1, 0.5),
-                              _buildBarGroup(6, 2.5, 1, 0.5),
-                            ],
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildLegendItem(
-                              'Overspeed', const Color(0xFFFF5722), col),
-                          const SizedBox(width: 20),
-                          _buildLegendItem(
-                              'Harsh Braking', const Color(0xFFF57C00), col),
-                          const SizedBox(width: 20),
-                          _buildLegendItem(
-                              'Rapid Acc', const Color(0xFFFFB74D), col),
-                        ],
-                      ),
-                    ],
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildLegendItem(
+                              'Overspeed',
+                              const Color(0xFFFF5722),
+                              col,
+                            ),
+                            const SizedBox(width: 20),
+                            _buildLegendItem(
+                              'Harsh Braking',
+                              const Color(0xFFF57C00),
+                              col,
+                            ),
+                            const SizedBox(width: 20),
+                            _buildLegendItem(
+                              'Rapid Acc',
+                              const Color(0xFFFFB74D),
+                              col,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -515,10 +524,7 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
     );
   }
 
-  Widget _buildCard({
-    required AppColors col,
-    required List<Widget> children,
-  }) {
+  Widget _buildCard({required AppColors col, required List<Widget> children}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(

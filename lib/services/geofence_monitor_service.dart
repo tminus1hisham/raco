@@ -44,8 +44,12 @@ class GeofenceMonitorService {
     for (final geofence in geofences) {
       final centerLat = double.tryParse(geofence.latitude) ?? 0.0;
       final centerLng = double.tryParse(geofence.longitude) ?? 0.0;
-      final distance =
-          haversineDistance(vehicleLat, vehicleLng, centerLat, centerLng);
+      final distance = haversineDistance(
+        vehicleLat,
+        vehicleLng,
+        centerLat,
+        centerLng,
+      );
       _insideState[geofence.id] = distance <= geofence.radius.toDouble();
       _consecutiveOutCount[geofence.id] = 0;
     }
@@ -66,14 +70,19 @@ class GeofenceMonitorService {
     for (final geofence in geofences) {
       final centerLat = double.tryParse(geofence.latitude) ?? 0.0;
       final centerLng = double.tryParse(geofence.longitude) ?? 0.0;
-      final distance =
-          haversineDistance(vehicleLat, vehicleLng, centerLat, centerLng);
+      final distance = haversineDistance(
+        vehicleLat,
+        vehicleLng,
+        centerLat,
+        centerLng,
+      );
       final isInsideNow = distance <= geofence.radius.toDouble();
 
       if (isInsideNow) {
         // Reset out-counter and mark as inside
         _consecutiveOutCount[geofence.id] = 0;
-        final wasOutside = _insideState.containsKey(geofence.id) &&
+        final wasOutside =
+            _insideState.containsKey(geofence.id) &&
             !_insideState[geofence.id]!;
         _insideState[geofence.id] = true;
 
@@ -96,12 +105,7 @@ class GeofenceMonitorService {
           } else if (previousState == true) {
             // Confirmed transition: inside → outside = BREACH
             _insideState[geofence.id] = false;
-            _maybeTriggerBreach(
-              geofence,
-              vehicleLat,
-              vehicleLng,
-              numberPlate,
-            );
+            _maybeTriggerBreach(geofence, vehicleLat, vehicleLng, numberPlate);
           }
           // else: vehicle was already outside — no-op
         }
@@ -127,8 +131,7 @@ class GeofenceMonitorService {
   ) {
     final now = DateTime.now();
     final lastBreach = _lastBreachTime[geofence.id];
-    if (lastBreach != null &&
-        now.difference(lastBreach) < _debounceDuration) {
+    if (lastBreach != null && now.difference(lastBreach) < _debounceDuration) {
       // Still within debounce window — suppress
       return;
     }
@@ -165,11 +168,9 @@ class GeofenceMonitorService {
     const R = 6371000.0;
     final dLat = _toRad(lat2 - lat1);
     final dLng = _toRad(lng2 - lng1);
-    final a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_toRad(lat1)) *
-            cos(_toRad(lat2)) *
-            sin(dLng / 2) *
-            sin(dLng / 2);
+    final a =
+        sin(dLat / 2) * sin(dLat / 2) +
+        cos(_toRad(lat1)) * cos(_toRad(lat2)) * sin(dLng / 2) * sin(dLng / 2);
     return R * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
 

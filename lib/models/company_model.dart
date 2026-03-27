@@ -13,7 +13,11 @@ class CompanyModel {
     return CompanyModel(
       success: json['success'] ?? false,
       message: json['message'] ?? '',
-      data: (json['data'] as List?)?.map((company) => Company.fromJson(company)).toList() ?? [],
+      data:
+          (json['data'] as List?)
+              ?.map((company) => Company.fromJson(company))
+              .toList() ??
+          [],
     );
   }
 }
@@ -22,10 +26,7 @@ class Company {
   final String fullName;
   final String phoneNumber;
 
-  Company({
-    required this.fullName,
-    required this.phoneNumber,
-  });
+  Company({required this.fullName, required this.phoneNumber});
 
   factory Company.fromJson(Map<String, dynamic> json) {
     return Company(
@@ -35,9 +36,6 @@ class Company {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'fullName': fullName,
-      'phoneNumber': phoneNumber,
-    };
+    return {'fullName': fullName, 'phoneNumber': phoneNumber};
   }
 }

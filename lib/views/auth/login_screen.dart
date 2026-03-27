@@ -8,7 +8,7 @@ import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/settings/privacy_policy.dart';
 import 'package:atom/views/settings/terms_and_conditions.dart';
-import 'package:atom/widgets/buttons/custom_button.dart';
+import 'package:atom/widgets/buttons/primary_gradient_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -251,11 +251,10 @@ class _LoginScreenState extends State<LoginScreen>
           Row(
             children: [
               Expanded(
-                child: CustomButton(
-                  callBackFunction: _login,
-                  label: "Login",
-                  backgroundColor: kBlue,
-                  txtColor: kWhite,
+                child: PrimaryGradientButton(
+                  onPressed: _login,
+                  text: "Login",
+                  icon: Icons.login_rounded,
                 ),
               ),
               // if (isAvailable) ...[

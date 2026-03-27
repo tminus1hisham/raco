@@ -443,8 +443,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   color: kBlue,
                   child: ListView.builder(
                     itemCount: _reportsController.reports.length,
-                    itemBuilder: (context, index) =>
-                        _buildReportCard(_reportsController.reports[index], col),
+                    itemBuilder: (context, index) => _buildReportCard(
+                      _reportsController.reports[index],
+                      col,
+                    ),
                   ),
                 );
               }),

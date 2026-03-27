@@ -46,10 +46,11 @@ class _ChangePasswordState extends State<ChangePassword> {
     }
 
     changePasswordController.phoneNumber.value = phoneNumber;
-    changePasswordController.currentPassword.value =
-        currentPasswordController.text.trim();
-    changePasswordController.newPassword.value =
-        newPasswordController.text.trim();
+    changePasswordController.currentPassword.value = currentPasswordController
+        .text
+        .trim();
+    changePasswordController.newPassword.value = newPasswordController.text
+        .trim();
 
     bool success = await changePasswordController.changePassword(context);
 

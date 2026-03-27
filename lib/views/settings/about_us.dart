@@ -89,10 +89,16 @@ class AboutUs extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             _buildContactItem(
-                                Icons.phone, '+254 798 032 158', col),
+                              Icons.phone,
+                              '+254 798 032 158',
+                              col,
+                            ),
                             const SizedBox(height: 8),
                             _buildContactItem(
-                                Icons.pin_drop, 'Nairobi, Kenya', col),
+                              Icons.pin_drop,
+                              'Nairobi, Kenya',
+                              col,
+                            ),
                           ],
                         ),
                       ),
@@ -153,10 +159,7 @@ class AboutUs extends StatelessWidget {
       children: [
         Icon(icon, size: 16, color: kBlue),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(fontSize: 14, color: col.textPrimary),
-        ),
+        Text(text, style: TextStyle(fontSize: 14, color: col.textPrimary)),
       ],
     );
   }

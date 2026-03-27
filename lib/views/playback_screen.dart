@@ -28,7 +28,8 @@ class PlaybackScreen extends StatefulWidget {
   PlaybackScreenState createState() => PlaybackScreenState();
 }
 
-class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderStateMixin {
+class PlaybackScreenState extends State<PlaybackScreen>
+    with TickerProviderStateMixin {
   MapboxMap? _mapboxMap;
   final PlaybackController controller = Get.put(PlaybackController());
 
@@ -36,7 +37,12 @@ class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderState
   AnimationController? _markerAnimController;
   Animation<double>? _markerAnimation;
   Position? _lastPosition;
-  double _startLng = 0, _startLat = 0, _endLng = 0, _endLat = 0, _startBearing = 0, _endBearing = 0;
+  double _startLng = 0,
+      _startLat = 0,
+      _endLng = 0,
+      _endLat = 0,
+      _startBearing = 0,
+      _endBearing = 0;
   int _currentIndex = 0;
   bool _isPlaying = false;
   double _playbackSpeed = 0.5;
@@ -123,21 +129,34 @@ class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderState
 
     if (lineCoords.isEmpty) return;
 
-    _polylineAnnotationManager ??=
-        await _mapboxMap!.annotations.createPolylineAnnotationManager();
+    _polylineAnnotationManager ??= await _mapboxMap!.annotations
+        .createPolylineAnnotationManager();
 
     try {
       _polylineAnnotationManager?.deleteAll();
     } catch (_) {}
 
-    await _polylineAnnotationManager!.create(
-      PolylineAnnotationOptions(
-        geometry: LineString(coordinates: lineCoords),
-        lineColor: 0xFF2563EB,
-        lineWidth: 3.5,
-        lineOpacity: 0.85,
-      ),
-    );
+    final List<PolylineAnnotationOptions> segments = [];
+    final int segmentCount = lineCoords.length - 1;
+
+    for (int i = 0; i < segmentCount; i++) {
+      final double progress = i / segmentCount;
+      // Fade opacity from tail (older history) to head (latest history)
+      final opacity = 0.15 + (progress * 0.85);
+
+      segments.add(
+        PolylineAnnotationOptions(
+          geometry: LineString(coordinates: [lineCoords[i], lineCoords[i + 1]]),
+          lineColor: 0xFF2563EB, // kBlue roughly
+          lineWidth: 4.5,
+          lineOpacity: opacity,
+        ),
+      );
+    }
+
+    if (segments.isNotEmpty) {
+      await _polylineAnnotationManager!.createMulti(segments);
+    }
   }
 
   Future<void> _generateConditionalMarkers(List<DeviceRecord> history) async {
@@ -151,7 +170,9 @@ class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderState
     _vehicleAnnotation = null;
     _annotationManager = await _mapboxMap!.annotations
         .createPointAnnotationManager();
-    await _annotationManager!.setIconRotationAlignment(IconRotationAlignment.MAP);
+    await _annotationManager!.setIconRotationAlignment(
+      IconRotationAlignment.MAP,
+    );
     await _annotationManager!.setIconPitchAlignment(IconPitchAlignment.MAP);
 
     final startRec = history.first;
@@ -202,6 +223,7 @@ class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderState
         image: _carMarkerIcon!,
         iconSize: _iconSizeForZoom(_currentZoom),
         iconRotate: bearing,
+        iconOpacity: 0.0,
       ),
     );
 
@@ -231,10 +253,7 @@ class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderState
     }
   }
 
-  void _updateVehicleMarker(
-    int index,
-    List<DeviceRecord> history,
-  ) {
+  void _updateVehicleMarker(int index, List<DeviceRecord> history) {
     if (_vehicleAnnotation == null || _annotationManager == null) return;
     if (index < 0 || index >= history.length) return;
 
@@ -266,18 +285,20 @@ class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderState
 
     final startPosition = _lastPosition!;
     final startBearing = _currentBearing;
-    
+
     _lastPosition = newPosition;
     _currentBearing = newBearing;
 
     final double dist = _haversineDistance(
-       startPosition.lat.toDouble(), startPosition.lng.toDouble(),
-       newPosition.lat.toDouble(), newPosition.lng.toDouble()
+      startPosition.lat.toDouble(),
+      startPosition.lng.toDouble(),
+      newPosition.lat.toDouble(),
+      newPosition.lng.toDouble(),
     );
     // Dynamic duration based on physical distance (10 ms per meter at 1.0x speed)
     final int targetDurationMs = (dist * 10 ~/ _playbackSpeed).toInt();
     final int durationMs = targetDurationMs.clamp(50, 3000);
-    
+
     if (_markerAnimController == null) {
       _markerAnimController = AnimationController(
         vsync: this,
@@ -290,20 +311,24 @@ class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderState
       int lastFrameTime = 0;
       _markerAnimation!.addListener(() {
         if (_vehicleAnnotation == null || _annotationManager == null) return;
-        
+
         final now = DateTime.now().millisecondsSinceEpoch;
-        if (now - lastFrameTime < 32) return; // Throttle to ~30 FPS to stabilize Mapbox renderer
+        if (now - lastFrameTime < 32)
+          return; // Throttle to ~30 FPS to stabilize Mapbox renderer
         lastFrameTime = now;
 
         final t = _markerAnimation!.value;
-        
+
         final currentLng = _startLng + (_endLng - _startLng) * t;
         final currentLat = _startLat + (_endLat - _startLat) * t;
-        
-        final bearingDiff = ((_endBearing - _startBearing + 180) % 360) - 180;
-        final interpolatedBearing = (_startBearing + bearingDiff * t + 360) % 360;
 
-        _vehicleAnnotation!.geometry = Point(coordinates: Position(currentLng, currentLat));
+        final bearingDiff = ((_endBearing - _startBearing + 180) % 360) - 180;
+        final interpolatedBearing =
+            (_startBearing + bearingDiff * t + 360) % 360;
+
+        _vehicleAnnotation!.geometry = Point(
+          coordinates: Position(currentLng, currentLat),
+        );
         _vehicleAnnotation!.iconRotate = interpolatedBearing;
         _annotationManager!.update(_vehicleAnnotation!);
       });
@@ -525,15 +550,23 @@ class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderState
 
   // ─── BEARING / IGNITION HELPERS ──────────────────────────────────────────
 
-  double _haversineDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _haversineDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
     const R = 6371e3; // metres
     final phi1 = lat1 * math.pi / 180;
     final phi2 = lat2 * math.pi / 180;
     final deltaPhi = (lat2 - lat1) * math.pi / 180;
     final deltaLambda = (lon2 - lon1) * math.pi / 180;
-    final a = math.sin(deltaPhi / 2) * math.sin(deltaPhi / 2) +
-        math.cos(phi1) * math.cos(phi2) *
-            math.sin(deltaLambda / 2) * math.sin(deltaLambda / 2);
+    final a =
+        math.sin(deltaPhi / 2) * math.sin(deltaPhi / 2) +
+        math.cos(phi1) *
+            math.cos(phi2) *
+            math.sin(deltaLambda / 2) *
+            math.sin(deltaLambda / 2);
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return R * c;
   }
@@ -597,6 +630,10 @@ class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderState
 
   void _startPlayback(List<DeviceRecord> history) {
     if (_isPlaying || history.isEmpty) return;
+    if (_vehicleAnnotation != null && _annotationManager != null) {
+      _vehicleAnnotation!.iconOpacity = 1.0;
+      _annotationManager!.update(_vehicleAnnotation!);
+    }
     setState(() {
       _isPlaying = true;
       _currentIndex = 0;
@@ -942,7 +979,8 @@ class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderState
         return Stack(
           children: [
             MapWidget(
-              styleUri: _mapStyleUri ??
+              styleUri:
+                  _mapStyleUri ??
                   (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS),
               cameraOptions: CameraOptions(center: currentPoint, zoom: 15.0),
               onCameraChangeListener: (CameraChangedEventData data) async {
@@ -969,16 +1007,18 @@ class PlaybackScreenState extends State<PlaybackScreen> with TickerProviderState
             // ── Map style switcher ─────────────────────────────
             Positioned(
               right: 16,
-              top: 110,
+              top: 140,
               child: MapStyleSwitcherButton(
                 mapboxMap: _mapboxMap,
-                currentStyleUri: _mapStyleUri ??
+                currentStyleUri:
+                    _mapStyleUri ??
                     (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS),
                 onStyleChanged: (uri) async {
                   setState(() => _mapStyleUri = uri);
                   if (controller.history.isNotEmpty) {
                     await _generateConditionalMarkers(
-                        controller.history.toList());
+                      controller.history.toList(),
+                    );
                   }
                 },
               ),

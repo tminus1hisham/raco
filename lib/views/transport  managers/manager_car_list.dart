@@ -248,11 +248,7 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.directions_car_outlined,
-              size: 64,
-              color: kLightGrey,
-            ),
+            Icon(Icons.directions_car_outlined, size: 64, color: kLightGrey),
             const SizedBox(height: 16),
             Text(
               'No cars available',
@@ -271,26 +267,26 @@ class _ManagerCarListScreenState extends State<ManagerCarListScreen>
       onRefresh: () => _controller.fetchDevices(),
       color: kBlue,
       child: ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: filteredCars.length,
-      itemBuilder: (context, index) {
-        final car = filteredCars[index];
-        final isSelected = _selectedCarIds.contains(car.id);
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: filteredCars.length,
+        itemBuilder: (context, index) {
+          final car = filteredCars[index];
+          final isSelected = _selectedCarIds.contains(car.id);
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: SelectableCarCard(
-                onCheckboxChanged: (_) => _toggleCarSelection(car.id),
-                car: car,
-                isSelected: isSelected,
-                onCardTap: () => _toggleCarSelection(car.id),
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: SelectableCarCard(
+                  onCheckboxChanged: (_) => _toggleCarSelection(car.id),
+                  car: car,
+                  isSelected: isSelected,
+                  onCardTap: () => _toggleCarSelection(car.id),
+                ),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
       ),
     );
   }

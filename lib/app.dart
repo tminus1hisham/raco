@@ -67,8 +67,9 @@ class _MyAppState extends State<MyApp> {
 
         final bool isAuthenticated = snapshot.data![0] as bool;
         final String? savedThemeStr = snapshot.data![2] as String?;
-        final ThemeMode initialThemeMode =
-            ThemeController.modeFromString(savedThemeStr);
+        final ThemeMode initialThemeMode = ThemeController.modeFromString(
+          savedThemeStr,
+        );
 
         // Register ThemeController with the loaded mode so the settings
         // screen shows the correct selection immediately (no flash).

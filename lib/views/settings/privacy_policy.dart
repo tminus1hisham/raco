@@ -45,14 +45,20 @@ class PrivacyPolicy extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         "Effective Date: 30/10/2025\nLast Updated: 10/11/2025",
-                        style: TextStyle(fontSize: 14, color: col.textSecondary),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: col.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 20),
 
                       Text(
                         "ATOMIOT (\"we,\" \"our,\" or \"us\") operates the Orca mobile and web application (\"the App\") to help fleet managers monitor vehicle speed, performance, and driver behavior. This Privacy Policy explains how we collect, use, protect, and share your information when you use our app and services.",
                         style: TextStyle(
-                            fontSize: 14, height: 1.5, color: col.textPrimary),
+                          fontSize: 14,
+                          height: 1.5,
+                          color: col.textPrimary,
+                        ),
                       ),
 
                       const SizedBox(height: 24),
@@ -188,29 +194,27 @@ class PrivacyPolicy extends StatelessWidget {
                             Text(
                               "For privacy concerns or questions, contact us at:",
                               style: TextStyle(
-                                  fontSize: 16, color: col.textPrimary),
+                                fontSize: 16,
+                                color: col.textPrimary,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             const Text(
                               "Email: info@atomiot.live",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: kBlue,
-                              ),
+                              style: TextStyle(fontSize: 16, color: kBlue),
                             ),
                             const SizedBox(height: 8),
                             const Text(
                               "Phone: +254 798 032 158",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: kBlue,
-                              ),
+                              style: TextStyle(fontSize: 16, color: kBlue),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               "Nairobi, Kenya",
                               style: TextStyle(
-                                  fontSize: 16, color: col.textPrimary),
+                                fontSize: 16,
+                                color: col.textPrimary,
+                              ),
                             ),
                           ],
                         ),

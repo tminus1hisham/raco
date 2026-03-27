@@ -382,11 +382,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                       ],
                     ),
                   ),
-                  Icon(
-                    Icons.keyboard_arrow_down,
-                    color: col.border,
-                    size: 20,
-                  ),
+                  Icon(Icons.keyboard_arrow_down, color: col.border, size: 20),
                 ],
               ),
             ),
@@ -472,10 +468,14 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                                         vertical: 3,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: speedColor.withValues(alpha: 0.10),
+                                        color: speedColor.withValues(
+                                          alpha: 0.10,
+                                        ),
                                         borderRadius: BorderRadius.circular(20),
                                         border: Border.all(
-                                          color: speedColor.withValues(alpha: 0.25),
+                                          color: speedColor.withValues(
+                                            alpha: 0.25,
+                                          ),
                                         ),
                                       ),
                                       child: Row(
@@ -632,8 +632,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                             setState(() => isDownloading = true);
                             try {
                               final path =
-                                  await ViolationsPdfService
-                                      .generateAndSaveReportPdf(
+                                  await ViolationsPdfService.generateAndSaveReportPdf(
                                     _violationsController.violations,
                                     widget.numberPlate,
                                     _selectedViolation!,
@@ -719,8 +718,10 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                         color: kBlue,
                         child: ListView.builder(
                           itemCount: _filteredViolations.length,
-                          itemBuilder: (context, index) =>
-                              _buildViolationCard(_filteredViolations[index], col),
+                          itemBuilder: (context, index) => _buildViolationCard(
+                            _filteredViolations[index],
+                            col,
+                          ),
                         ),
                       ),
                     ),

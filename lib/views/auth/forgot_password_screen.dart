@@ -92,10 +92,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Enter your phone number to reset password',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: kGrey,
-                      ),
+                      style: TextStyle(fontSize: 16, color: kGrey),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 40),

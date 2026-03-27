@@ -82,7 +82,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
             borderRadius: BorderRadius.circular(kRadiusPill),
             boxShadow: [
               BoxShadow(
-                color: kGrey.withValues(alpha:0.1),
+                color: kGrey.withValues(alpha: 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -94,7 +94,7 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha:0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 40, color: color),
@@ -620,24 +620,18 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   Future<void> _loadPairedDevices() async {
     try {
-      List<bt_serial.BluetoothDevice> devices =
-          await _bluetoothSerial.getPairedDevices();
+      List<bt_serial.BluetoothDevice> devices = await _bluetoothSerial
+          .getPairedDevices();
       setState(() {
         _pairedDevices = devices;
-        _devices = _getFilteredDevices();
+        // Don't pre-populate _devices — paired devices may not be nearby.
+        // The list is populated only during an active scan.
       });
     } catch (e) {
       _showError('Failed to load paired devices: $e');
     }
   }
 
-  List<bt_serial.BluetoothDevice> _getFilteredDevices() {
-    // Filter to only show Atom Speed devices
-    return _pairedDevices.where((device) {
-      final name = device.name.toLowerCase();
-      return name.contains('atom speed');
-    }).toList();
-  }
 
   Future<void> _startScanning() async {
     if (_isScanning) return;
@@ -648,6 +642,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
     setState(() {
       _isScanning = true;
+      // Clear stale results — keep only the currently connected device
+      _devices =
+          _isConnected && _selectedDevice != null ? [_selectedDevice!] : [];
     });
 
     try {
@@ -921,11 +918,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                   color: kRed.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.warning_rounded,
-                  size: 36,
-                  color: kRed,
-                ),
+                child: const Icon(Icons.warning_rounded, size: 36, color: kRed),
               ),
               const SizedBox(height: 20),
               Text(
@@ -1143,7 +1136,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: kBlue.withValues(alpha:0.1),
+                color: kBlue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(kRadiusSM),
               ),
               child: Column(
@@ -1192,7 +1185,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
             child: Text('Done', style: TextStyle(color: kBlue)),
           ),
         ],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kRadiusLG)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadiusLG),
+        ),
         elevation: 8,
         backgroundColor: context.col.surface,
       ),
@@ -1281,7 +1276,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   Widget _buildCalibrationModal() {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kRadiusLG)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kRadiusLG),
+      ),
       child: Container(
         padding: const EdgeInsets.all(20),
         constraints: BoxConstraints(
@@ -1330,7 +1327,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                       horizontal: 16,
                     ),
                     decoration: BoxDecoration(
-                      color: kBlue.withValues(alpha:0.1),
+                      color: kBlue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(kRadiusMD),
                     ),
                     child: Column(
@@ -1376,7 +1373,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         style: ElevatedButton.styleFrom(
                           shape: CircleBorder(),
                           padding: const EdgeInsets.all(12),
-                          backgroundColor: kBlue.withValues(alpha:0.1),
+                          backgroundColor: kBlue.withValues(alpha: 0.1),
                           foregroundColor: kBlue,
                           minimumSize: Size(48, 48),
                         ),
@@ -1452,7 +1449,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         style: ElevatedButton.styleFrom(
                           shape: CircleBorder(),
                           padding: const EdgeInsets.all(12),
-                          backgroundColor: kBlue.withValues(alpha:0.1),
+                          backgroundColor: kBlue.withValues(alpha: 0.1),
                           foregroundColor: kBlue,
                           minimumSize: Size(48, 48),
                         ),
@@ -1466,7 +1463,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
                   Text(
                     'Adjust frequency (${MIN_FREQUENCY}-${MAX_FREQUENCY}Hz, 1Hz steps)',
-                    style: TextStyle(color: context.col.textSecondary, fontSize: 12),
+                    style: TextStyle(
+                      color: context.col.textSecondary,
+                      fontSize: 12,
+                    ),
                   ),
 
                   Padding(
@@ -1556,9 +1556,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha:0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(kRadiusMD),
-                      border: Border.all(color: Colors.orange.withValues(alpha:0.3)),
+                      border: Border.all(
+                        color: Colors.orange.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -1717,41 +1719,51 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           _showRegistrationSuccessDialog(response);
         });
       } else {
-        // Show error from API
-        final errorMessage = response['message'] ?? 'Registration failed';
-        _showError(errorMessage);
+        final errorMessage =
+            response['message'] ?? response['error'] ?? 'Registration failed';
+        final statusCode = response['statusCode'] as int? ?? 0;
+
+        final isDuplicate =
+            statusCode == 409 ||
+            errorMessage.toLowerCase().contains('already exist') ||
+            errorMessage.toLowerCase().contains('already registered') ||
+            errorMessage.toLowerCase().contains('duplicate') ||
+            errorMessage.toLowerCase().contains('conflict');
+
+        if (isDuplicate) {
+          _showErrorDialog(
+            title: 'Already Registered',
+            message:
+                'This company or device is already registered in the system.\n\nPlease verify the company name, serial number, and registration number before trying again.',
+            icon: Icons.domain_disabled_rounded,
+            iconColor: Colors.orange,
+          );
+        } else {
+          _showErrorDialog(
+            title: 'Registration Failed',
+            message: errorMessage,
+          );
+        }
       }
     } catch (e) {
       // Hide loading
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       debugPrint('Registration error: $e');
 
-      // Extract error message from exception
-      String errorMessage = 'Registration failed';
+      String errorMessage = 'An unexpected error occurred. Please try again.';
 
-      if (e is Map<String, dynamic>) {
-        // If exception is a Map (from API response)
-        errorMessage = e['message'] ?? e['error'] ?? errorMessage;
-      } else if (e is String) {
-        // If exception is a String
+      if (e is String) {
         errorMessage = e;
       } else if (e is Exception || e is Error) {
-        // If exception is an Exception or Error object
         errorMessage = e.toString();
-
-        // Try to extract more specific message
         final match = RegExp(r'Exception:\s*(.+)$').firstMatch(errorMessage);
         if (match != null && match.groupCount >= 1) {
           errorMessage = match.group(1) ?? errorMessage;
         }
       }
 
-      // Show the error message
-      _showError(errorMessage);
-
-      // Keep modal open so user can fix errors
-      // Don't set _showRegistrationForm = false
+      _showErrorDialog(title: 'Registration Failed', message: errorMessage);
     }
   }
 
@@ -1857,7 +1869,80 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         content: Text(message),
         backgroundColor: kRed,
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showErrorDialog({
+    required String title,
+    required String message,
+    IconData icon = Icons.error_outline_rounded,
+    Color iconColor = kRed,
+  }) {
+    if (!mounted) return;
+    final col = context.col;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadiusLG),
+        ),
+        backgroundColor: col.surface,
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 36, color: iconColor),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: col.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: col.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: iconColor,
+                    foregroundColor: kWhite,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(kRadiusMD),
+                    ),
+                  ),
+                  child: const Text('OK', style: TextStyle(fontSize: 15)),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1885,7 +1970,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         borderRadius: BorderRadius.circular(kRadiusMD),
         boxShadow: [
           BoxShadow(
-            color: kGrey.withValues(alpha:0.1),
+            color: kGrey.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1898,14 +1983,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           height: 40,
           decoration: BoxDecoration(
             color: isConnected
-                ? kBlue.withValues(alpha:0.1)
-                : kGrey.withValues(alpha:0.1),
+                ? kBlue.withValues(alpha: 0.1)
+                : kGrey.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            Icons.bluetooth,
-            color: isConnected ? kBlue : kGrey,
-          ),
+          child: Icon(Icons.bluetooth, color: isConnected ? kBlue : kGrey),
         ),
         title: Text(
           deviceName,
@@ -1978,7 +2060,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   Widget _buildRegistrationForm() {
     return Dialog(
       insetPadding: const EdgeInsets.all(20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kRadiusPill)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kRadiusPill),
+      ),
       child: Container(
         width: double.infinity,
         constraints: BoxConstraints(
@@ -1999,11 +2083,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.developer_board,
-                    color: kWhite,
-                    size: 24,
-                  ),
+                  const Icon(Icons.developer_board, color: kWhite, size: 24),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
@@ -2016,11 +2096,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      color: kWhite,
-                      size: 24,
-                    ),
+                    icon: const Icon(Icons.close, color: kWhite, size: 24),
                     onPressed: () {
                       setState(() {
                         _showRegistrationForm = false;
@@ -2047,9 +2123,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: kBlue.withValues(alpha:0.1),
+                          color: kBlue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(kRadiusSM),
-                          border: Border.all(color: kBlue.withValues(alpha:0.3)),
+                          border: Border.all(
+                            color: kBlue.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -2159,7 +2237,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                 border: Border.all(color: context.col.border),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: kBlack.withValues(alpha:0.1),
+                                    color: kBlack.withValues(alpha: 0.1),
                                     blurRadius: 10,
                                     offset: Offset(0, 4),
                                   ),
@@ -2213,7 +2291,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                                   company['phone']!,
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    color: context.col.textSecondary,
+                                                    color: context
+                                                        .col
+                                                        .textSecondary,
                                                   ),
                                                 ),
                                               ),
@@ -2228,7 +2308,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                                   company['email']!,
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    color: context.col.textSecondary,
+                                                    color: context
+                                                        .col
+                                                        .textSecondary,
                                                   ),
                                                 ),
                                               ),
@@ -2771,9 +2853,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            kWhite,
-                          ),
+                          valueColor: AlwaysStoppedAnimation<Color>(kWhite),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -2805,10 +2885,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: kWhite.withValues(alpha:0.1),
+                          color: kWhite.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(kRadiusLG),
                           border: Border.all(
-                            color: kWhite.withValues(alpha:0.3),
+                            color: kWhite.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
@@ -2840,7 +2920,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                         ? 'Connected to ${_selectedDevice?.name ?? "Unknown"}'
                                         : 'Tap scan to find Atom Speed devices',
                                     style: TextStyle(
-                                      color: kWhite.withValues(alpha:0.8),
+                                      color: kWhite.withValues(alpha: 0.8),
                                       fontSize: 14,
                                     ),
                                   ),
@@ -2850,10 +2930,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                             if (_isConnected)
                               IconButton(
                                 onPressed: _disconnectDevice,
-                                icon: const Icon(
-                                  Icons.link_off,
-                                  color: kWhite,
-                                ),
+                                icon: const Icon(Icons.link_off, color: kWhite),
                                 tooltip: 'Disconnect',
                               ),
                           ],
@@ -2870,7 +2947,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           borderRadius: BorderRadius.circular(kRadiusMD),
                           boxShadow: [
                             BoxShadow(
-                              color: kBlack.withValues(alpha:0.1),
+                              color: kBlack.withValues(alpha: 0.1),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -2909,7 +2986,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
                                       color: _isScanning
-                                          ? kBlue.withValues(alpha:0.7)
+                                          ? kBlue.withValues(alpha: 0.7)
                                           : kBlue,
                                     ),
                                   ),
@@ -2926,10 +3003,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           padding: const EdgeInsets.only(top: 12),
                           child: Text(
                             'Found ${_devices.length} Atom Speed device(s)',
-                            style: const TextStyle(
-                              color: kWhite,
-                              fontSize: 14,
-                            ),
+                            style: const TextStyle(color: kWhite, fontSize: 14),
                           ),
                         ),
 
@@ -2945,7 +3019,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                 borderRadius: BorderRadius.circular(kRadiusMD),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: kBlack.withValues(alpha:0.2),
+                                    color: kBlack.withValues(alpha: 0.2),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),
@@ -2955,7 +3029,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                 color: Colors.transparent,
                                 child: InkWell(
                                   onTap: _prepareCalibration,
-                                  borderRadius: BorderRadius.circular(kRadiusMD),
+                                  borderRadius: BorderRadius.circular(
+                                    kRadiusMD,
+                                  ),
                                   child: Padding(
                                     padding: const EdgeInsets.all(16),
                                     child: Row(
@@ -2991,10 +3067,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: kWhite.withValues(alpha:0.1),
+                            color: kWhite.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(kRadiusLG),
                             border: Border.all(
-                              color: kWhite.withValues(alpha:0.3),
+                              color: kWhite.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Column(
@@ -3040,8 +3116,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                 height: 120,
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: kBlack.withValues(alpha:0.2),
-                                  borderRadius: BorderRadius.circular(kRadiusMD),
+                                  color: kBlack.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(
+                                    kRadiusMD,
+                                  ),
                                 ),
                                 child: SingleChildScrollView(
                                   child: Text(
@@ -3065,7 +3143,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                 // Devices List Section
                 Expanded(
                   child: Container(
-                    decoration:  BoxDecoration(
+                    decoration: BoxDecoration(
                       color: col.surface,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(30),
@@ -3112,14 +3190,16 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                 icon: const Icon(Icons.refresh, size: 20),
                                 label: const Text('Refresh'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: kBlue.withValues(alpha:0.1),
+                                  backgroundColor: kBlue.withValues(alpha: 0.1),
                                   foregroundColor: kBlue,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 12,
                                     vertical: 8,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(kRadiusSM),
+                                    borderRadius: BorderRadius.circular(
+                                      kRadiusSM,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -3246,7 +3326,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               });
             },
             child: Container(
-              color: kBlack.withValues(alpha:0.5),
+              color: kBlack.withValues(alpha: 0.5),
               width: double.infinity,
               height: double.infinity,
             ),
@@ -3268,7 +3348,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               }
             },
             child: Container(
-              color: kBlack.withValues(alpha:0.5),
+              color: kBlack.withValues(alpha: 0.5),
               width: double.infinity,
               height: double.infinity,
             ),
