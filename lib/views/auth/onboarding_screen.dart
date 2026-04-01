@@ -1,7 +1,7 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
-import 'package:atom/widgets/buttons/custom_button.dart';
+import 'package:atom/widgets/buttons/primary_gradient_button.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -160,8 +160,8 @@ class _OnboardingState extends State<Onboarding> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  CustomButton(
-                    callBackFunction: () {
+                  PrimaryGradientButton(
+                    onPressed: () {
                       if (activeIndex == onboardingItems.length - 1) {
                         _handleSignIn();
                       } else {
@@ -172,11 +172,9 @@ class _OnboardingState extends State<Onboarding> {
                         );
                       }
                     },
-                    label: activeIndex == onboardingItems.length - 1
+                    text: activeIndex == onboardingItems.length - 1
                         ? 'Sign in'
                         : 'Next',
-                    backgroundColor: kBlue,
-                    txtColor: kWhite,
                   ),
 
                   const SizedBox(height: 10),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:mqtt_client/mqtt_client.dart';
@@ -100,6 +101,24 @@ class MqttService {
     } else {
       print('Not connected to MQTT broker');
       initializeMqtt();
+    }
+  }
+
+  // Publish an engine start/stop command to the device
+  // Topic: orca/cmd/{numberPlate}
+  // Payload: {"cmd": "engine_on" | "engine_off", "numberPlate": "..."}
+  Future<bool> sendEngineCommand(String numberPlate, bool turnOn) async {
+    final topic = 'orca/cmd/$numberPlate';
+    final payload = jsonEncode({
+      'cmd': turnOn ? 'engine_on' : 'engine_off',
+      'numberPlate': numberPlate,
+    });
+    try {
+      await publishMessage(topic, payload);
+      return true;
+    } catch (e) {
+      print('MQTT engine command failed: $e');
+      return false;
     }
   }
 

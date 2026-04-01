@@ -2,7 +2,7 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/reset_password_controller.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
-import 'package:atom/widgets/buttons/custom_button.dart';
+import 'package:atom/widgets/buttons/primary_gradient_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -101,13 +101,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       const SizedBox(height: 30),
 
                       // Continue button
-                      CustomButton(
-                        callBackFunction: () {
-                          _handleContinue();
-                        },
-                        label: 'Continue',
-                        backgroundColor: kBlue,
-                        txtColor: kWhite,
+                      PrimaryGradientButton(
+                        onPressed: _handleContinue,
+                        text: 'Continue',
                       ),
 
                       const SizedBox(height: 10),

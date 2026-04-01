@@ -5,6 +5,7 @@ import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/custom_alert.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
+import 'package:atom/widgets/glass_container.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -316,17 +317,16 @@ class _CarInfoCardState extends State<CarInfoCard> {
         right: kSpaceXL,
         top: kSpaceSM,
       ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: kSpaceXL,
-          vertical: kSpaceLG,
-        ),
-        decoration: BoxDecoration(
-          color: context.col.surface,
-          borderRadius: BorderRadius.circular(kRadiusLG),
-          boxShadow: [kShadowSM],
-        ),
-        child: Column(
+      child: GlassContainer(
+        borderRadius: BorderRadius.circular(kRadiusLG),
+        blur: 16.0,
+        opacity: 0.6,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: kSpaceXL,
+            vertical: kSpaceLG,
+          ),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Only this Row is tappable
@@ -450,6 +450,6 @@ class _CarInfoCardState extends State<CarInfoCard> {
           ],
         ),
       ),
-    );
+    ));
   }
 }

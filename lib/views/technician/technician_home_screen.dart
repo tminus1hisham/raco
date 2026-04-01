@@ -117,6 +117,13 @@ class _TechnicianHomeScreenState extends State<TechnicianHomeScreen> {
   }
 }
 
+class _DetailRow {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _DetailRow({required this.icon, required this.label, required this.value});
+}
+
 class ConnectDeviceScreen extends StatefulWidget {
   const ConnectDeviceScreen({super.key});
 
@@ -624,14 +631,19 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           .getPairedDevices();
       setState(() {
         _pairedDevices = devices;
-        // Don't pre-populate _devices — paired devices may not be nearby.
-        // The list is populated only during an active scan.
+        _devices = _getFilteredDevices();
       });
     } catch (e) {
       _showError('Failed to load paired devices: $e');
     }
   }
 
+  List<bt_serial.BluetoothDevice> _getFilteredDevices() {
+    return _pairedDevices.where((device) {
+      final name = device.name.toLowerCase();
+      return name.contains('atom speed');
+    }).toList();
+  }
 
   Future<void> _startScanning() async {
     if (_isScanning) return;
@@ -642,9 +654,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
     setState(() {
       _isScanning = true;
-      // Clear stale results — keep only the currently connected device
-      _devices =
-          _isConnected && _selectedDevice != null ? [_selectedDevice!] : [];
+      // Reset to paired ATOM Speed devices; scan will add any newly discovered ones
+      _devices = _getFilteredDevices();
     });
 
     try {
@@ -1106,90 +1117,120 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   }
 
   void _showCalibrationSuccessModal() {
+    final col = context.col;
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.check_circle, color: kSuccessGreen, size: 24),
-            SizedBox(width: 8),
-            Text(
-              'Calibration Successful',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: kSuccessGreen,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Speed calibration completed successfully!',
-              style: TextStyle(fontSize: 14),
-            ),
-            SizedBox(height: 12),
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: kBlue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(kRadiusSM),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.speed, size: 16, color: kBlue),
-                      SizedBox(width: 8),
-                      Text(
-                        'Calibrated Frequency:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: context.col.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    '$_selectedFrequency Hz',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: kBlue,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'What would you like to do next?',
-              style: TextStyle(fontSize: 12, color: context.col.textSecondary),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              setState(() {
-                _showCalibrationModal = false;
-                _isFuelCalibrationMode = false;
-              });
-            },
-            child: Text('Done', style: TextStyle(color: kBlue)),
-          ),
-        ],
+      builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(kRadiusLG),
         ),
-        elevation: 8,
-        backgroundColor: context.col.surface,
+        backgroundColor: col.surface,
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: kSuccessGreen.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  size: 44,
+                  color: kSuccessGreen,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Calibration Successful',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: col.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Speed calibration completed successfully.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: col.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: kBlue.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(kRadiusMD),
+                  border: Border.all(color: kBlue.withValues(alpha: 0.2)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.speed_rounded, size: 16, color: kBlue),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Calibrated Frequency',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: col.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '$_selectedFrequency Hz',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: kBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    setState(() {
+                      _showCalibrationModal = false;
+                      _isFuelCalibrationMode = false;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kSuccessGreen,
+                    foregroundColor: kWhite,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(kRadiusMD),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Done',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1734,7 +1775,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           _showErrorDialog(
             title: 'Already Registered',
             message:
-                'This company or device is already registered in the system.\n\nPlease verify the company name, serial number, and registration number before trying again.',
+                'This serial number is already registered in the system.\n\nPlease verify the company name, serial number, and registration number before trying again.',
             icon: Icons.domain_disabled_rounded,
             iconColor: Colors.orange,
           );
@@ -1801,35 +1842,145 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   }
 
   void _showRegistrationSuccessDialog(Map<String, dynamic> response) {
+    final col = context.col;
+
+    final details = <_DetailRow>[
+      if (response['deviceId'] != null)
+        _DetailRow(
+          icon: Icons.device_hub_rounded,
+          label: 'Device ID',
+          value: '${response['deviceId']}',
+        ),
+      if (response['certificateNumber'] != null)
+        _DetailRow(
+          icon: Icons.verified_rounded,
+          label: 'Certificate No.',
+          value: '${response['certificateNumber']}',
+        ),
+      if (response['registrationNumber'] != null)
+        _DetailRow(
+          icon: Icons.pin_rounded,
+          label: 'Registration No.',
+          value: '${response['registrationNumber']}',
+        ),
+    ];
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Registration Successful'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Device has been registered successfully!'),
-            const SizedBox(height: 16),
-            if (response['deviceId'] != null)
-              Text('Device ID: ${response['deviceId']}'),
-            if (response['certificateNumber'] != null)
-              Text('Certificate: ${response['certificateNumber']}'),
-            if (response['registrationNumber'] != null)
-              Text('Registration: ${response['registrationNumber']}'),
-          ],
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadiusLG),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Optionally clear form or navigate
-              _clearForm();
-            },
-            child: const Text('OK'),
+        backgroundColor: col.surface,
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: kSuccessGreen.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.how_to_reg_rounded,
+                  size: 44,
+                  color: kSuccessGreen,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Registration Successful',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: col.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'The device has been registered successfully.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: col.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+              if (details.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: kSuccessGreen.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(kRadiusMD),
+                    border: Border.all(color: kSuccessGreen.withValues(alpha: 0.2)),
+                  ),
+                  child: Column(
+                    children: details
+                        .map(
+                          (d) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 5),
+                            child: Row(
+                              children: [
+                                Icon(d.icon, size: 16, color: kSuccessGreen),
+                                const SizedBox(width: 10),
+                                Text(
+                                  d.label,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: col.textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  d.value,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: col.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _clearForm();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kSuccessGreen,
+                    foregroundColor: kWhite,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(kRadiusMD),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Done',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

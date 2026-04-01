@@ -21,6 +21,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/delete_account_model.dart';
 import 'local_storage_service.dart';
+import 'mqtt_client.dart';
 
 class ApiService {
   static void _handleAuthError(int statusCode) async {
@@ -527,6 +528,12 @@ class ApiService {
   }
 
   static Future<bool> sendEngineCommand(String numberPlate, bool start) async {
+    // 1. Publish directly to the device via MQTT so the command arrives instantly.
+    //    The device subscribes to orca/cmd/{numberPlate} and acts on the payload.
+    final mqttOk = await MqttService().sendEngineCommand(numberPlate, start);
+
+    // 2. Notify the backend via HTTP so server-side state (ignitionStatus) is
+    //    updated and visible to other users / the dashboard.
     try {
       final String token = await StorageService.getData('access_token');
       final response = await http.post(
@@ -540,7 +547,9 @@ class ApiService {
       _handleAuthError(response.statusCode);
       return response.statusCode == 200;
     } catch (_) {
-      return false;
+      // Fall back to the MQTT result if HTTP fails — the device may still
+      // have received the command directly.
+      return mqttOk;
     }
   }
 

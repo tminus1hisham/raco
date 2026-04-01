@@ -21,11 +21,11 @@ class GlassContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // In dark mode, white with low opacity creates a frosted glass effect.
-    // In light mode, white with high opacity or black with low opacity works.
+    // Dark mode: white at very low alpha so the blur shows through on a dark bg.
+    // Light mode: white at the caller's opacity (clamped to [0, 1]).
     final color = isDark
-        ? Colors.white.withValues(alpha: opacity)
-        : Colors.white.withValues(alpha: opacity + 0.3);
+        ? Colors.white.withValues(alpha: opacity.clamp(0.0, 1.0) * 0.12)
+        : Colors.white.withValues(alpha: opacity.clamp(0.0, 1.0));
 
     return ClipRRect(
       borderRadius: borderRadius ?? BorderRadius.zero,
@@ -35,11 +35,10 @@ class GlassContainer extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             borderRadius: borderRadius,
-            border:
-                border ??
+            border: border ??
                 Border.all(
                   color: isDark
-                      ? Colors.white.withValues(alpha: 0.1)
+                      ? Colors.white.withValues(alpha: 0.14)
                       : Colors.white.withValues(alpha: 0.5),
                 ),
           ),

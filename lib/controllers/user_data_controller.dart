@@ -12,7 +12,7 @@ class UserResourceController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchUserProfile();
+    WidgetsBinding.instance.addPostFrameCallback((_) => fetchUserProfile());
   }
 
   Future<void> fetchUserProfile() async {

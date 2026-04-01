@@ -2,7 +2,7 @@ import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
-import 'package:atom/widgets/buttons/custom_button.dart';
+import 'package:atom/widgets/buttons/destructive_gradient_button.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
@@ -236,8 +236,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
           ),
           const SizedBox(height: 10),
 
-          CustomButton(
-            callBackFunction: () {
+          DestructiveGradientButton(
+            onPressed: () {
               if (selectedReason == '' || selectedReason.isEmpty) {
                 showCupertinoDialog(
                   context: context,
@@ -263,9 +263,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                 );
               }
             },
-            label: "Delete Account",
-            backgroundColor: kRed,
-            txtColor: kWhite,
+            text: "Delete Account",
           ),
           const SizedBox(height: 10),
           CustomBorderButton(

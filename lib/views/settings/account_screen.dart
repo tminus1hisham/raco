@@ -7,7 +7,7 @@ import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/services/upload_image_service.dart';
 import 'package:atom/views/camera_screen.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
-import 'package:atom/widgets/buttons/custom_button.dart';
+import 'package:atom/widgets/buttons/primary_gradient_button.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
@@ -262,8 +262,8 @@ class _AccountScreenState extends State<AccountScreen> {
                       ),
                       const SizedBox(height: 32),
 
-                      CustomButton(
-                        callBackFunction: () async {
+                      PrimaryGradientButton(
+                        onPressed: () async {
                           FocusScope.of(context).unfocus();
 
                           final user = controller.user.value;
@@ -313,11 +313,9 @@ class _AccountScreenState extends State<AccountScreen> {
                             updateUserDataController.isLoading(false);
                           }
                         },
-                        label: updateUserDataController.isLoading.value
+                        text: updateUserDataController.isLoading.value
                             ? "Updating ..."
                             : "Save Changes",
-                        backgroundColor: kBlue,
-                        txtColor: kWhite,
                       ),
                     ],
                   ),
@@ -495,12 +493,10 @@ class _AccountScreenState extends State<AccountScreen> {
                         ),
                         const SizedBox(height: 32),
 
-                        CustomButton(
-                          callBackFunction: () =>
+                        PrimaryGradientButton(
+                          onPressed: () =>
                               _showEditProfileModal(context),
-                          label: "Edit Profile",
-                          backgroundColor: kBlue,
-                          txtColor: kWhite,
+                          text: "Edit Profile",
                         ),
                         const SizedBox(height: 10),
 

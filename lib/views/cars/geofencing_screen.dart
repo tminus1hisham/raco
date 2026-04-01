@@ -111,6 +111,29 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     });
   }
 
+  // ── Annotation manager lifecycle ──────────────────────────────────────────
+  // Called on EVERY style load (initial creation + style switches).
+  // loadStyleURI destroys all native managers immediately, so references must
+  // be nulled before a style change and recreated here once the style is ready.
+
+  Future<void> _setupAnnotationManagers() async {
+    _pointAnnotationManager = null;
+    _circleAnnotationManager = null;
+    if (mapboxMap == null || !mounted) return;
+
+    final circleManager =
+        await mapboxMap!.annotations.createCircleAnnotationManager();
+    if (!mounted) return;
+    _circleAnnotationManager = circleManager;
+
+    final pointManager =
+        await mapboxMap!.annotations.createPointAnnotationManager();
+    if (!mounted) return;
+    _pointAnnotationManager = pointManager;
+
+    await _refreshMapAnnotations();
+  }
+
   // ── Map markers ───────────────────────────────────────────────────────────
 
   void _updateMapMarkers() {
@@ -578,19 +601,10 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
               ),
               onMapCreated: (MapboxMap map) {
                 mapboxMap = map;
-                map.annotations.createCircleAnnotationManager().then((manager) {
-                  _circleAnnotationManager = manager;
-                  if (circles.isNotEmpty) {
-                    manager.createMulti(circles);
-                  }
-                });
-                map.annotations.createPointAnnotationManager().then((manager) {
-                  _pointAnnotationManager = manager;
-                  if (markers.isNotEmpty) {
-                    manager.createMulti(markers);
-                  }
-                });
+                // Managers are created in onStyleLoadedListener so they are
+                // recreated on every style change, not just the first load.
               },
+              onStyleLoadedListener: (_) => _setupAnnotationManagers(),
               onTapListener: (context) => _onMapTap(context.point),
             ),
           ),
@@ -601,7 +615,14 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
           child: MapStyleSwitcherButton(
             mapboxMap: mapboxMap,
             currentStyleUri: styleUri,
-            onStyleChanged: (uri) => setState(() => _mapStyleUri = uri),
+            onStyleChanged: (uri) {
+              // Null managers immediately — they are invalidated the moment
+              // loadStyleURI is called on the native side. They will be
+              // recreated by _setupAnnotationManagers via onStyleLoadedListener.
+              _pointAnnotationManager = null;
+              _circleAnnotationManager = null;
+              setState(() => _mapStyleUri = uri);
+            },
           ),
         ),
       ],

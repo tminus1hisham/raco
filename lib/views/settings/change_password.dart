@@ -3,7 +3,7 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/change_password_controller.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
-import 'package:atom/widgets/buttons/custom_button.dart';
+import 'package:atom/widgets/buttons/primary_gradient_button.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
@@ -201,11 +201,9 @@ class _ChangePasswordState extends State<ChangePassword> {
 
           const SizedBox(height: 32),
 
-          CustomButton(
-            callBackFunction: _changePassword,
-            label: "Update Password",
-            backgroundColor: kBlue,
-            txtColor: kWhite,
+          PrimaryGradientButton(
+            onPressed: _changePassword,
+            text: "Update Password",
           ),
           const SizedBox(height: 10),
 

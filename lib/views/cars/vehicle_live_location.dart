@@ -11,7 +11,6 @@ import 'package:atom/services/mqtt_client.dart';
 import 'package:atom/widgets/map/map_style_switcher.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle, ByteData;
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -37,7 +36,6 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
     with SingleTickerProviderStateMixin {
   MapboxMap? mapboxMap;
   String? _mapStyleUri;
-  bool isLoading = true;
   final MqttService _mqttService = MqttService();
 
   double _bearing = 0.0;
@@ -50,6 +48,10 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
 
   PointAnnotationManager? _annotationManager;
   PointAnnotation? _vehicleAnnotation;
+
+  // Shared across screen visits — decoding the PNG once saves ~100–200 ms on
+  // every subsequent open.
+  static Uint8List? _cachedCarIcon;
 
   late AnimationController _moveController;
   void Function()? _moveListener;
@@ -68,7 +70,9 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
     _animLng = widget.longitude;
     _moveController = AnimationController(vsync: this);
     _initGeofenceMonitor();
-    _loadCarIcon().then((_) => _subscribeToVehicleTopic());
+    // Subscribe immediately — no need to wait for the icon to load first.
+    _subscribeToVehicleTopic();
+    _loadCarIcon();
   }
 
   Future<void> _initGeofenceMonitor() async {
@@ -147,9 +151,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
       );
 
       _animateMarkerTo(lat, lng);
-    } catch (e) {
-      print('❌ Error parsing message: $e');
-    }
+    } catch (_) {}
   }
 
   double _convertToDecimalDegrees(String coord, String direction) {
@@ -230,8 +232,18 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
   // ─── Icon loading ─────────────────────────────────────────────────────────
 
   Future<void> _loadCarIcon() async {
-    carIcon = await _resizeAndLoadIcon('assets/green_car.png', 140);
-    setState(() => isLoading = false);
+    if (_cachedCarIcon != null) {
+      carIcon = _cachedCarIcon;
+    } else {
+      carIcon = await _resizeAndLoadIcon('assets/green_car.png', 140);
+      _cachedCarIcon = carIcon;
+    }
+    if (!mounted) return;
+    // If the annotation already exists (map loaded before icon), update it.
+    if (_vehicleAnnotation != null && _annotationManager != null) {
+      _vehicleAnnotation!.image = carIcon;
+      await _annotationManager!.update(_vehicleAnnotation!);
+    }
   }
 
   Future<Uint8List> _resizeAndLoadIcon(String assetPath, int width) async {
@@ -254,75 +266,59 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
     final col = context.col;
     final isDark = context.isDark;
     return Scaffold(
-      body: isLoading
-          ? Center(
-              child: LoadingAnimationWidget.threeArchedCircle(
-                color: kBlue,
-                size: 50,
+      body: Stack(
+        children: [
+          // ── Map ────────────────────────────────────────────
+          Positioned.fill(
+            child: MapWidget(
+              styleUri:
+                  _mapStyleUri ??
+                  (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS),
+              cameraOptions: CameraOptions(
+                center: Point(
+                  coordinates: Position(widget.longitude, widget.latitude),
+                ),
+                zoom: _currentZoom,
               ),
-            )
-          : Stack(
-              children: [
-                // ── Map ────────────────────────────────────────────
-                Positioned.fill(
-                  child: MapWidget(
-                    styleUri:
-                        _mapStyleUri ??
-                        (isDark
-                            ? MapboxStyles.DARK
-                            : MapboxStyles.MAPBOX_STREETS),
-                    cameraOptions: CameraOptions(
-                      center: Point(
-                        coordinates: Position(
-                          widget.longitude,
-                          widget.latitude,
-                        ),
-                      ),
-                      zoom: _currentZoom,
-                    ),
-                    onMapCreated: (MapboxMap map) {
-                      _annotationManager = null;
-                      _vehicleAnnotation = null;
-                      mapboxMap = map;
-                      // Annotation setup happens in onStyleLoadedListener
-                      // (fires on both initial load and every style change).
-                    },
-                    onStyleLoadedListener: (_) => _setupAnnotations(),
-                  ),
-                ),
-
-                // ── Header ─────────────────────────────────────────
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 8,
-                  left: 0,
-                  right: 0,
-                  child: _buildHeader(col),
-                ),
-
-                // ── Map style switcher ─────────────────────────────
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 100,
-                  right: 16,
-                  child: MapStyleSwitcherButton(
-                    mapboxMap: mapboxMap,
-                    currentStyleUri:
-                        _mapStyleUri ??
-                        (isDark
-                            ? MapboxStyles.DARK
-                            : MapboxStyles.MAPBOX_STREETS),
-                    onStyleChanged: (uri) => setState(() => _mapStyleUri = uri),
-                  ),
-                ),
-
-                // ── Speed / status card ────────────────────────────
-                Positioned(
-                  bottom: 24,
-                  left: 16,
-                  right: 16,
-                  child: _buildInfoCard(col),
-                ),
-              ],
+              onMapCreated: (MapboxMap map) {
+                _annotationManager = null;
+                _vehicleAnnotation = null;
+                mapboxMap = map;
+              },
+              onStyleLoadedListener: (_) => _setupAnnotations(),
             ),
+          ),
+
+          // ── Header ─────────────────────────────────────────
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 0,
+            right: 0,
+            child: _buildHeader(col),
+          ),
+
+          // ── Map style switcher ─────────────────────────────
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 100,
+            right: 16,
+            child: MapStyleSwitcherButton(
+              mapboxMap: mapboxMap,
+              currentStyleUri:
+                  _mapStyleUri ??
+                  (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS),
+              onStyleChanged: (uri) => setState(() => _mapStyleUri = uri),
+            ),
+          ),
+
+          // ── Speed / status card ────────────────────────────
+          Positioned(
+            bottom: 24,
+            left: 16,
+            right: 16,
+            child: _buildInfoCard(col),
+          ),
+        ],
+      ),
     );
   }
 

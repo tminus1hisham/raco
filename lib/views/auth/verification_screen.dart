@@ -1,6 +1,6 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/views/auth/reset_password_screen.dart';
-import 'package:atom/widgets/buttons/custom_button.dart';
+import 'package:atom/widgets/buttons/primary_gradient_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -126,13 +126,10 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                 const SizedBox(height: 60),
 
                 // Verify button
-                CustomButton(
-                  callBackFunction: () {
-                    _handleVerify();
-                  },
-                  label: 'Verify Now',
-                  backgroundColor: kBlue,
-                  txtColor: kWhite,
+                PrimaryGradientButton(
+                  onPressed: _handleVerify,
+                  text: 'Verify Now',
+                  icon: Icons.check_circle_outline,
                 ),
 
                 const SizedBox(height: 20),

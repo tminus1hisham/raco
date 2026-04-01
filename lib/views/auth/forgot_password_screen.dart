@@ -3,7 +3,7 @@ import 'package:atom/controllers/forgot_password_controller.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/auth/verification_screen.dart';
 import 'package:atom/widgets/buttons/custom_border_button.dart';
-import 'package:atom/widgets/buttons/custom_button.dart';
+import 'package:atom/widgets/buttons/primary_gradient_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -109,11 +109,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       isRequired: true,
                     ),
                     const SizedBox(height: 40),
-                    CustomButton(
-                      callBackFunction: _handleContinue,
-                      label: 'Continue',
-                      backgroundColor: kBlue,
-                      txtColor: kWhite,
+                    PrimaryGradientButton(
+                      onPressed: _handleContinue,
+                      text: 'Continue',
                     ),
                     const SizedBox(height: 10),
                     CustomBorderButton(

@@ -11,6 +11,7 @@ import 'package:atom/views/settings/contact_us.dart';
 import 'package:atom/views/settings/delete_account.dart';
 import 'package:atom/views/settings/privacy_policy.dart';
 import 'package:atom/views/transport%20%20managers/manager_screen.dart';
+import 'package:atom/widgets/buttons/destructive_gradient_button.dart';
 import 'package:atom/widgets/modal/custom_alert.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -626,47 +627,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ─── Sign out ────────────────────────────────────────────────────────────
 
   Widget _buildSignOutButton() {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(kRadiusMD),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(kRadiusMD),
-        onTap: () {
-          showCupertinoDialog(
-            context: context,
-            builder: (context) => ActionDialog(
-              title: 'Sign Out',
-              message: 'Are you sure you want to sign out?',
-              confirmText: 'Sign Out',
-              cancelText: 'Cancel',
-              onConfirm: () => _authController.logout(context),
-            ),
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: kRed.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(kRadiusMD),
-            border: Border.all(color: kRed.withValues(alpha: 0.20), width: 1),
+    return DestructiveGradientButton(
+      icon: Icons.logout_rounded,
+      text: 'Sign Out',
+      onPressed: () {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => ActionDialog(
+            title: 'Sign Out',
+            message: 'Are you sure you want to sign out?',
+            confirmText: 'Sign Out',
+            cancelText: 'Cancel',
+            onConfirm: () => _authController.logout(context),
           ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.logout_rounded, color: kRed, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Sign Out',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: kRed,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

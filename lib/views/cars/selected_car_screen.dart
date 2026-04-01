@@ -84,6 +84,24 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     }
   }
 
+  Future<void> _confirmAndToggleEngine(bool turnOn) async {
+    if (!turnOn) {
+      await showCupertinoDialog(
+        context: context,
+        builder: (_) => ActionDialog(
+          title: 'Turn Off Engine?',
+          message:
+              'Are you sure you want to remotely turn off the engine for ${widget.licensePlate}? The vehicle will be immobilised.',
+          confirmText: 'Turn Off',
+          cancelText: 'Cancel',
+          onConfirm: () => _toggleEngine(false),
+        ),
+      );
+    } else {
+      await _toggleEngine(true);
+    }
+  }
+
   Future<void> _toggleEngine(bool turnOn) async {
     if (_engineToggling) return;
     setState(() {
@@ -1026,7 +1044,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
           else
             Switch(
               value: isEngineOn,
-              onChanged: _toggleEngine,
+              onChanged: _confirmAndToggleEngine,
               activeColor: kSuccessGreen,
             ),
         ],

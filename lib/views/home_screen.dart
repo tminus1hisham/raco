@@ -50,13 +50,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final DeviceController _controller = Get.put(DeviceController());
   Map<String, Uint8List> customIcons = {};
 
+  // Decoded PNG bytes are expensive to produce; cache them for the lifetime of
+  // the app so revisiting this screen skips the decode entirely.
+  static final Map<String, Uint8List> _iconCache = {};
+
   final TextEditingController _searchController = TextEditingController();
   List<Device> _filteredDevices = [];
 
   bool _isDataReady = false;
-  Timer? _pollingTimer;
-  int _countdown = 10;
-  bool _isRefreshing = false;
   bool _hasFitAllCars = false;
   String? _trackedCarPlate;
 
@@ -70,31 +71,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _breathingController.addListener(_updateBreathingCircle);
 
     _initializeData();
-    _startPolling();
   }
 
-  void _startPolling() {
-    _pollingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_countdown > 0) {
-          _countdown--;
-        } else {
-          _refreshData();
-          _countdown = 20;
-        }
-      });
-    });
-  }
-
+  // Called by _CountdownRefreshButton. Returns a Future so the button can
+  // show its own spinner while the fetch is in flight — no parent setState
+  // needed for the loading indicator.
   Future<void> _refreshData() async {
-    setState(() => _isRefreshing = true);
     try {
       await _controller.fetchDevices(silent: true);
       final devices = _controller.devicesModel.value?.devices ?? [];
-      setState(() {
-        _filteredDevices = devices;
-        _isRefreshing = false;
-      });
+      if (!mounted) return;
+      setState(() => _filteredDevices = devices);
 
       await _updateVehicleAnnotations(devices);
 
@@ -111,15 +98,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           );
         }
       }
-    } catch (e) {
-      setState(() => _isRefreshing = false);
-    }
+    } catch (_) {}
   }
 
   Future<void> _initializeData() async {
     try {
       await _loadCustomIcons();
       await _controller.fetchDevices();
+      if (!mounted) return;
       final devices = _controller.devicesModel.value?.devices ?? [];
       setState(() {
         _filteredDevices = devices;
@@ -127,6 +113,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       });
       _getUserLocation();
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         _updateVehicleAnnotations(devices);
         if (!_hasFitAllCars && devices.isNotEmpty) {
           _fitAllCarsOnMap(devices);
@@ -135,8 +122,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       });
     } catch (e) {
       print('Error initializing data: $e');
+      if (!mounted) return;
     } finally {
-      setState(() => _isDataReady = true);
+      if (mounted) setState(() => _isDataReady = true);
     }
   }
 
@@ -386,13 +374,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _loadCustomIcons() async {
+    if (_iconCache.isNotEmpty) {
+      customIcons = Map.of(_iconCache);
+      return;
+    }
     customIcons['green'] = await _resizeAndLoadIcon(
       'assets/green_car.png',
       140,
     );
     customIcons['blue'] = await _resizeAndLoadIcon('assets/blue_car.png', 70);
     customIcons['red'] = await _resizeAndLoadIcon('assets/red_car.png', 90);
-    setState(() {});
+    _iconCache.addAll(customIcons);
   }
 
   Future<void> _getUserLocation() async {
@@ -434,6 +426,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           accuracy: LocationAccuracy.high,
         ),
       );
+      if (!mounted) return;
       setState(() {
         userLocation = Point(
           coordinates: Position(currentPos.longitude, currentPos.latitude),
@@ -442,6 +435,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       });
     } catch (e) {
       print('Error getting location: $e');
+      if (!mounted) return;
       setState(() => isLoadingLocation = false);
     }
   }
@@ -624,7 +618,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _pollingTimer?.cancel();
     _searchController.dispose();
     _breathingController.dispose();
     super.dispose();
@@ -712,48 +705,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         body: TabBarView(
           physics: const NeverScrollableScrollPhysics(),
           children: [
-            _isDataReady
-                ? Obx(() {
-                    if (_controller.isLoading.value) {
-                      return Center(
-                        child: LoadingAnimationWidget.fourRotatingDots(
-                          color: kBlue,
-                          size: 50,
-                        ),
-                      );
-                    }
-                    return Stack(
-                      children: [
-                        _buildMap(),
-                        // Search bar
-                        Positioned(
-                          top: 10,
-                          left: 16,
-                          right: 68,
-                          child: _buildSearchBar(),
-                        ),
-                        // Map controls (right side)
-                        Positioned(
-                          right: 12,
-                          top: 10,
-                          child: _buildMapControls(),
-                        ),
-                        // Status bar (bottom)
-                        Positioned(
-                          bottom: 16,
-                          left: 16,
-                          right: 16,
-                          child: _buildStatusBar(),
-                        ),
-                      ],
-                    );
-                  })
-                : Center(
-                    child: LoadingAnimationWidget.fourRotatingDots(
-                      color: kBlue,
-                      size: 50,
+            // Map starts rendering immediately so tiles load in parallel with
+            // data. Controls and markers appear once _isDataReady is true.
+            Stack(
+              children: [
+                _buildMap(),
+                if (_isDataReady) ...[
+                  Positioned(
+                    top: 10,
+                    left: 16,
+                    right: 68,
+                    child: _buildSearchBar(),
+                  ),
+                  Positioned(
+                    right: 12,
+                    top: 10,
+                    child: _buildMapControls(),
+                  ),
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: _buildStatusBar(),
+                  ),
+                ],
+                if (!_isDataReady)
+                  Container(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    child: Center(
+                      child: LoadingAnimationWidget.fourRotatingDots(
+                        color: kBlue,
+                        size: 50,
+                      ),
                     ),
                   ),
+              ],
+            ),
             CarsScreen(),
           ],
         ),
@@ -964,30 +951,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           () => _fitAllCarsOnMap(_filteredDevices),
         ),
         const SizedBox(height: 8),
-        // Countdown / refresh
+        // Countdown / refresh — lives in its own widget so its 1-second timer
+        // only rebuilds itself, not the entire home screen.
         _controlContainer(
-          child: _isRefreshing
-              ? const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: kBlue,
-                  ),
-                )
-              : IconButton(
-                  icon: Text(
-                    '$_countdown',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: _countdown <= 3 ? kRed : kBlue,
-                    ),
-                  ),
-                  onPressed: () {
-                    setState(() => _countdown = 10);
-                    _refreshData();
-                  },
-                ),
+          child: _CountdownRefreshButton(
+            onRefresh: _refreshData,
+            intervalSeconds: 20,
+          ),
         ),
       ],
     );
@@ -1360,6 +1330,85 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Countdown refresh button ──────────────────────────────────────────────────
+// Manages its own 1-second timer so only this tiny widget rebuilds each tick,
+// not the entire HomeScreen.
+
+class _CountdownRefreshButton extends StatefulWidget {
+  final Future<void> Function() onRefresh;
+  final int intervalSeconds;
+
+  const _CountdownRefreshButton({
+    required this.onRefresh,
+    this.intervalSeconds = 20,
+  });
+
+  @override
+  State<_CountdownRefreshButton> createState() =>
+      _CountdownRefreshButtonState();
+}
+
+class _CountdownRefreshButtonState extends State<_CountdownRefreshButton> {
+  late int _countdown;
+  bool _isRefreshing = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _countdown = widget.intervalSeconds;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (_countdown > 0) {
+        setState(() => _countdown--);
+      } else {
+        setState(() => _countdown = widget.intervalSeconds);
+        _triggerRefresh();
+      }
+    });
+  }
+
+  Future<void> _triggerRefresh() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    try {
+      await widget.onRefresh();
+    } finally {
+      if (mounted) setState(() => _isRefreshing = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isRefreshing) {
+      return const Padding(
+        padding: EdgeInsets.all(12),
+        child: CircularProgressIndicator(strokeWidth: 2, color: kBlue),
+      );
+    }
+    return IconButton(
+      icon: Text(
+        '$_countdown',
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.bold,
+          color: _countdown <= 3 ? kRed : kBlue,
+        ),
+      ),
+      onPressed: () {
+        setState(() => _countdown = widget.intervalSeconds);
+        _triggerRefresh();
+      },
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
 import 'package:atom/utils/utils.dart';
-import 'package:atom/widgets/buttons/custom_button.dart';
+import 'package:atom/widgets/buttons/primary_gradient_button.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
 import 'package:flutter/material.dart';
@@ -133,15 +133,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
 
             const SizedBox(height: 20),
-            CustomButton(
-              callBackFunction: () {
+            PrimaryGradientButton(
+              onPressed: () {
                 if (_agreeToTerms) {
                   _handleSignUp();
                 }
               },
-              label: "Sign Up",
-              backgroundColor: _agreeToTerms ? kBlue : kGrey,
-              txtColor: kWhite,
+              text: "Sign Up",
             ),
           ],
         ),

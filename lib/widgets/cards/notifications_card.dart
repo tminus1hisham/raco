@@ -1,6 +1,7 @@
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/models/notifications_model.dart';
+import 'package:atom/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
 
 class NotificationCard extends StatelessWidget {
@@ -45,10 +46,117 @@ class NotificationCard extends StatelessWidget {
     final col = context.col;
     final meta = _resolveMeta(notification.title);
 
+    Widget cardContent = Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(kRadiusMD),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: meta.color.withValues(alpha: isRead ? 0.08 : 0.14),
+                  borderRadius: BorderRadius.circular(kRadiusSM),
+                ),
+                child: Icon(
+                  meta.icon,
+                  color: meta.color.withValues(alpha: isRead ? 0.6 : 1.0),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            notification.title,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: isRead
+                                  ? FontWeight.w500
+                                  : FontWeight.w700,
+                              color: col.textPrimary,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatTimestamp(notification.createdAt),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isRead ? col.border : col.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      notification.message,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isRead
+                            ? col.textSecondary
+                            : col.textPrimary.withValues(alpha: 0.75),
+                        height: 1.45,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (!isRead) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: meta.color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(kRadiusPill),
+                        ),
+                        child: Text(
+                          'New',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: meta.color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!isRead) {
+      cardContent = GlassContainer(
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        blur: 16.0,
+        opacity: 0.08,
+        child: cardContent,
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: isRead ? col.surface : kBlue.withValues(alpha: 0.07),
+        color: isRead ? col.surface : Colors.transparent,
         borderRadius: BorderRadius.circular(kRadiusMD),
         border: Border(
           left: BorderSide(
@@ -56,106 +164,11 @@ class NotificationCard extends StatelessWidget {
             width: 3,
           ),
         ),
-        boxShadow: [kShadowSM],
+        boxShadow: [if (isRead) kShadowSM],
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(kRadiusMD),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(kRadiusMD),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: meta.color.withValues(alpha: isRead ? 0.08 : 0.14),
-                    borderRadius: BorderRadius.circular(kRadiusSM),
-                  ),
-                  child: Icon(
-                    meta.icon,
-                    color: meta.color.withValues(alpha: isRead ? 0.6 : 1.0),
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              notification.title,
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: isRead
-                                    ? FontWeight.w500
-                                    : FontWeight.w700,
-                                color: col.textPrimary,
-                                height: 1.3,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _formatTimestamp(notification.createdAt),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isRead ? col.border : col.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        notification.message,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: isRead
-                              ? col.textSecondary
-                              : col.textPrimary.withValues(alpha: 0.75),
-                          height: 1.45,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (!isRead) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: meta.color.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(kRadiusPill),
-                          ),
-                          child: Text(
-                            'New',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: meta.color,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      child: cardContent,
     );
+
   }
 
   String _formatTimestamp(DateTime timestamp) {

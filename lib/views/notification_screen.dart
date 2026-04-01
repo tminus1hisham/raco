@@ -4,6 +4,7 @@ import 'package:atom/controllers/markAsRead_contoller.dart';
 import 'package:atom/controllers/notifcations_controller.dart';
 import 'package:atom/models/notifications_model.dart';
 import 'package:atom/widgets/cards/notifications_card.dart';
+import 'package:atom/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -470,11 +471,10 @@ class _NotificationScreenState extends State<NotificationScreen>
       minChildSize: 0.4,
       maxChildSize: 0.85,
       builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: col.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
+        return GlassContainer(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          blur: 16.0,
+          opacity: 0.5, // semi-opaque surface
           child: Column(
             children: [
               // Handle bar

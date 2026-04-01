@@ -48,8 +48,8 @@ final kShadowLG = BoxShadow(
 // const String BASE_URL = 'https://tracking-api.greenthumb.co.ke/v1/api';
 // const String base_url = 'https://tracking-api.greenthumb.co.ke/api';
 
-const String BASE_URL = 'https://staging-api.ndai.africa/v1/api';
-const String base_url = 'https://staging-api.ndai.africa/api';
+const String BASE_URL = 'https://uat-orca-api.atomiot.live/v1/api';
+const String base_url = 'https://uat-orca-api.atomiot.live/v1/api';
 
 // const String base_url = 'https://staging-api.ndai.africa/v1/api';
 
