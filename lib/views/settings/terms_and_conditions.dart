@@ -1,5 +1,7 @@
+import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/widgets/custom_header.dart';
+import 'package:atom/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
 
 class TermsAndConditions extends StatelessWidget {
@@ -7,8 +9,9 @@ class TermsAndConditions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Scaffold(
-      backgroundColor: kBgGrey,
+      backgroundColor: col.bg,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,12 +191,10 @@ class TermsAndConditions extends StatelessWidget {
 
                       const SizedBox(height: 20),
 
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: kDivider,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                      GlassContainer(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: const [
@@ -225,6 +226,7 @@ class TermsAndConditions extends StatelessWidget {
                               style: TextStyle(fontSize: 16),
                             ),
                           ],
+                        ),
                         ),
                       ),
 

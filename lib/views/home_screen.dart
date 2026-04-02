@@ -5,12 +5,14 @@ import 'dart:ui' as ui;
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/device_controller.dart';
+import 'package:atom/controllers/dashboard_controller.dart';
 import 'package:atom/models/vehicle_model.dart';
+import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/utils/utils.dart';
+import 'package:atom/views/cars/commands.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/views/cars/vehicle_live_location.dart';
 import 'package:atom/views/playback_screen.dart';
-import 'package:atom/views/violations_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle, ByteData;
 import 'package:geolocator/geolocator.dart' hide Position;
@@ -41,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   PointAnnotationManager? _annotationManager;
   final Map<String, PointAnnotation> _vehicleAnnotations = {};
   String? _selectedVehiclePlate;
+  Offset? _bannerScreenPos;
 
   CircleAnnotationManager? _circleAnnotationManager;
   CircleAnnotation? _breathingCircle;
@@ -60,6 +63,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isDataReady = false;
   bool _hasFitAllCars = false;
   String? _trackedCarPlate;
+  bool _isLoggedIn = false;
+  bool _showSearchOverlay = false;
+  String _userName = 'Demo';
+  String? _selectedGroup;
 
   @override
   void initState() {
@@ -70,7 +77,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     )..repeat();
     _breathingController.addListener(_updateBreathingCircle);
 
+    _checkLoginState();
     _initializeData();
+  }
+
+  Future<void> _checkLoginState() async {
+    final token = await StorageService.getData('access_token');
+    final name = await StorageService.getData('userName');
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = token != null && token.toString().isNotEmpty;
+        _userName = (name != null && name.toString().isNotEmpty) ? name.toString() : 'Demo';
+      });
+    }
+  }
+
+  void _applyFilters() {
+    final all = _controller.devicesModel.value?.devices ?? [];
+    var filtered = _selectedGroup == null
+        ? List<Device>.from(all)
+        : all.where((d) => d.group == _selectedGroup).toList();
+    final q = _searchController.text;
+    if (q.isNotEmpty) {
+      filtered = filtered
+          .where(
+            (d) => d.numberPlate.toLowerCase().contains(q.toLowerCase()),
+          )
+          .toList();
+    }
+    setState(() => _filteredDevices = filtered);
   }
 
   // Called by _CountdownRefreshButton. Returns a Future so the button can
@@ -79,14 +114,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _refreshData() async {
     try {
       await _controller.fetchDevices(silent: true);
-      final devices = _controller.devicesModel.value?.devices ?? [];
       if (!mounted) return;
-      setState(() => _filteredDevices = devices);
-
-      await _updateVehicleAnnotations(devices);
+      _applyFilters();
+      await _updateVehicleAnnotations(_filteredDevices);
 
       if (_trackedCarPlate != null) {
-        final tracked = devices
+        final tracked = _filteredDevices
             .where((d) => d.numberPlate == _trackedCarPlate)
             .firstOrNull;
         if (tracked != null && mapboxMap != null) {
@@ -106,17 +139,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       await _loadCustomIcons();
       await _controller.fetchDevices();
       if (!mounted) return;
-      final devices = _controller.devicesModel.value?.devices ?? [];
-      setState(() {
-        _filteredDevices = devices;
-        _isDataReady = true;
-      });
+      setState(() => _isDataReady = true);
+      _applyFilters();
       _getUserLocation();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _updateVehicleAnnotations(devices);
-        if (!_hasFitAllCars && devices.isNotEmpty) {
-          _fitAllCarsOnMap(devices);
+        _updateVehicleAnnotations(_filteredDevices);
+        if (!_hasFitAllCars && _filteredDevices.isNotEmpty) {
+          _fitAllCarsOnMap(_filteredDevices);
           _hasFitAllCars = true;
         }
       });
@@ -142,11 +172,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // ─── Map layer setup ─────────────────────────────────────────────────────
-  // Called from onStyleLoadedListener so it runs on EVERY style load (initial
-  // map creation AND any subsequent style changes via loadStyleURI).
-  // loadStyleURI destroys all native annotation managers immediately, so Dart
-  // references must be nulled BEFORE the call and recreated here.
-
   Future<void> _setupMapLayers() async {
     _vehicleAnnotations.clear();
     _breathingCircle = null;
@@ -154,7 +179,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _annotationManager = null;
     if (mapboxMap == null || !mounted) return;
 
-    // Circles underneath, points on top.
     final circleManager =
         await mapboxMap!.annotations.createCircleAnnotationManager();
     if (!mounted) return;
@@ -169,8 +193,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // ─── Icon & annotation helpers ───────────────────────────────────────────
 
-  /// Returns the pre-loaded Uint8List icon for a device based on its status.
-  /// green = moving online, blue = idle online, red = offline.
   Uint8List? _getImageForDevice(Device device) {
     if (!device.isDeviceOnline) return customIcons['red'];
     if (device.ignitionStatus == 1) return customIcons['green'];
@@ -180,7 +202,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _updateVehicleAnnotations(List<Device> devices) async {
     if (_annotationManager == null) return;
 
-    // Remove stale annotations
     final newPlates = devices.map((d) => d.numberPlate).toSet();
     final toRemove = _vehicleAnnotations.keys
         .where((p) => !newPlates.contains(p))
@@ -232,7 +253,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _filteredDevices.isEmpty)
       return;
 
-    // Throttle frame rendering to ~24 FPS to avoid Mapbox channel overload
     final now = DateTime.now().millisecondsSinceEpoch;
     if (now - _lastFrameRenderTime < 41) return;
     _lastFrameRenderTime = now;
@@ -246,7 +266,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final lng = double.tryParse(device.longitude) ?? 36.8163;
     final progress = _breathingController.value;
 
-    // Circle scales up from 10 to 40 radius, opacity fades from 0.6 to 0.0
     final currentRadius = 10.0 + (progress * 30.0);
     final currentOpacity = (0.6 * (1.0 - progress)).clamp(0.0, 1.0);
 
@@ -255,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _breathingCircle = await _circleAnnotationManager!.create(
           CircleAnnotationOptions(
             geometry: Point(coordinates: Position(lng, lat)),
-            circleColor: 0xFF287ec3, // kBlue roughly
+            circleColor: 0xFF287ec3,
             circleRadius: currentRadius,
             circleOpacity: currentOpacity,
             circleStrokeWidth: 1.5,
@@ -271,14 +290,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         await _circleAnnotationManager!.update(_breathingCircle!);
       }
     } catch (_) {
-      // Channel became invalid (map recreated/style changed); reset so it
-      // reinitialises cleanly on the next animation frame.
       _breathingCircle = null;
       _circleAnnotationManager = null;
     }
   }
 
-  /// Hit-test the tapped map point against known vehicle positions.
   void _onMapTapped(Point tappedPoint) {
     final tapLat = tappedPoint.coordinates.lat.toDouble();
     final tapLng = tappedPoint.coordinates.lng.toDouble();
@@ -298,12 +314,46 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
     }
 
-    // ~0.0005° ≈ 55 m – reasonable tap target radius at zoom 14-16
     if (nearest != null && minDist < 0.0005) {
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().isNavVisible.value = false;
+      }
       setState(() => _selectedVehiclePlate = nearest!.numberPlate);
       _updateVehicleAnnotations(_filteredDevices);
-      _showVehicleBottomSheet(nearest);
+      _focusOnDevice(nearest);
+      _updateBannerPosition();
     }
+  }
+
+  void _focusOnDevice(Device device) {
+    if (mapboxMap == null) return;
+    final lat = double.tryParse(device.latitude) ?? -1.2842;
+    final lng = double.tryParse(device.longitude) ?? 36.8163;
+    mapboxMap!.flyTo(
+      CameraOptions(center: Point(coordinates: Position(lng, lat)), zoom: 15.0),
+      null,
+    );
+  }
+
+  Future<void> _updateBannerPosition() async {
+    if (mapboxMap == null || _selectedVehiclePlate == null) {
+      if (mounted && _bannerScreenPos != null) {
+        setState(() => _bannerScreenPos = null);
+      }
+      return;
+    }
+    final device = _filteredDevices.firstWhereOrNull(
+      (d) => d.numberPlate == _selectedVehiclePlate,
+    );
+    if (device == null) return;
+    final lat = double.tryParse(device.latitude) ?? -1.2842;
+    final lng = double.tryParse(device.longitude) ?? 36.8163;
+    try {
+      final sc = await mapboxMap!.pixelForCoordinate(
+        Point(coordinates: Position(lng, lat)),
+      );
+      if (mounted) setState(() => _bannerScreenPos = Offset(sc.x, sc.y));
+    } catch (_) {}
   }
 
   // ─── Vehicle navigation ───────────────────────────────────────────────────
@@ -463,9 +513,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _applyMapStyle(String style) {
     Navigator.pop(context);
-    // Null references BEFORE loadStyleURI — the native side destroys managers
-    // immediately when loadStyleURI is called, not when the Future resolves.
-    // onStyleLoadedListener will recreate them once the new style is ready.
     _vehicleAnnotations.clear();
     _breathingCircle = null;
     _circleAnnotationManager = null;
@@ -595,16 +642,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _showVehicleBottomSheet(Device device) {
-    setState(() => _selectedVehiclePlate = device.numberPlate);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildVehicleBottomSheet(device),
-    );
-  }
-
   void _focusOnSearchedCar(Device device) {
     if (mapboxMap == null) return;
     final lat = double.tryParse(device.latitude) ?? -1.2842;
@@ -618,6 +655,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    if (Get.isRegistered<DashboardController>()) {
+      Get.find<DashboardController>().isNavVisible.value = true;
+    }
     _searchController.dispose();
     _breathingController.dispose();
     super.dispose();
@@ -629,121 +669,290 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
+      initialIndex: 1,
       child: Scaffold(
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(80),
-          child: AppBar(
-            backgroundColor: context.col.bg,
-            elevation: 0,
-            toolbarHeight: 40,
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(40),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: context.col.bg,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      spreadRadius: 1,
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TabBar(
-                  indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(kRadiusSM),
-                    color: kBlue,
-                    boxShadow: [
-                      BoxShadow(
-                        color: kBlue.withValues(alpha: 0.3),
-                        spreadRadius: 1,
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: const EdgeInsets.all(4),
-                  labelColor: kWhite,
-                  unselectedLabelColor: context.col.textSecondary,
-                  labelStyle: const TextStyle(
-                    fontSize: 14,
+        appBar: _buildAppBar(),
+        body: TabBarView(
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            CarsScreen(),
+            _buildMapTab(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(80),
+      child: AppBar(
+        backgroundColor: context.col.bg,
+        elevation: 0,
+        toolbarHeight: 40,
+        title: Obx(() {
+          final model = _controller.devicesModel.value;
+          final total = model?.totalDevices ?? 0;
+          final online = model?.onlineDevices ?? 0;
+          final groups = (model?.devices
+                      .map((d) => d.group)
+                      .where((g) => g.isNotEmpty)
+                      .toSet()
+                      .toList() ??
+                  [])
+            ..sort();
+          final label = _selectedGroup == null
+              ? '$_userName[$total/$online]'
+              : '$_userName · $_selectedGroup';
+          return PopupMenuButton<String?>(
+            onSelected: (group) {
+              setState(() => _selectedGroup = group);
+              _applyFilters();
+              _updateVehicleAnnotations(_filteredDevices);
+            },
+            offset: const Offset(0, 40),
+            color: context.col.surface,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
+                    color: context.col.textPrimary,
                   ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  tabs: const [
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.map_outlined, size: 18),
-                          SizedBox(width: 6),
-                          Text('Map'),
-                        ],
-                      ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: context.col.textPrimary,
+                  size: 20,
+                ),
+              ],
+            ),
+            itemBuilder: (_) => [
+              PopupMenuItem<String?>(
+                value: null,
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 20,
+                      child: _selectedGroup == null
+                          ? const Icon(Icons.check, size: 16, color: kBlue)
+                          : null,
                     ),
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.list_alt_outlined, size: 18),
-                          SizedBox(width: 6),
-                          Text('List'),
-                        ],
+                    const SizedBox(width: 6),
+                    Text(
+                      'All [$total/$online]',
+                      style: TextStyle(
+                        color: context.col.textPrimary,
+                        fontWeight: _selectedGroup == null
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                   ],
                 ),
               ),
+              ...groups.map((g) {
+                final gDevices =
+                    model?.devices.where((d) => d.group == g).toList() ?? [];
+                final gTotal = gDevices.length;
+                final gOnline = gDevices.where((d) => d.isDeviceOnline).length;
+                return PopupMenuItem<String?>(
+                  value: g,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        child: _selectedGroup == g
+                            ? const Icon(Icons.check, size: 16, color: kBlue)
+                            : null,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '$g [$gTotal/$gOnline]',
+                        style: TextStyle(
+                          color: context.col.textPrimary,
+                          fontWeight: _selectedGroup == g
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          );
+        }),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search, color: context.col.textPrimary, size: 22),
+            onPressed: () =>
+                setState(() => _showSearchOverlay = !_showSearchOverlay),
+          ),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(40),
+          child: Container(
+            decoration: BoxDecoration(
+              color: context.col.bg,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  spreadRadius: 1,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TabBar(
+              indicator: BoxDecoration(
+                borderRadius: BorderRadius.circular(kRadiusSM),
+                color: kBlue,
+                boxShadow: [
+                  BoxShadow(
+                    color: kBlue.withValues(alpha: 0.3),
+                    spreadRadius: 1,
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicatorPadding: const EdgeInsets.all(4),
+              labelColor: kWhite,
+              unselectedLabelColor: context.col.textSecondary,
+              labelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              tabs: const [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.menu, size: 18),
+                      SizedBox(width: 6),
+                      Text('List'),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.location_on_outlined, size: 18),
+                      SizedBox(width: 6),
+                      Text('Map'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        body: TabBarView(
-          physics: const NeverScrollableScrollPhysics(),
-          children: [
-            // Map starts rendering immediately so tiles load in parallel with
-            // data. Controls and markers appear once _isDataReady is true.
-            Stack(
-              children: [
-                _buildMap(),
-                if (_isDataReady) ...[
+      ),
+    );
+  }
+
+  // ─── Map tab ──────────────────────────────────────────────────────────────
+
+  Widget _buildMapTab() {
+    final selectedDevice = _selectedVehiclePlate != null
+        ? _filteredDevices.firstWhereOrNull(
+            (d) => d.numberPlate == _selectedVehiclePlate,
+          )
+        : null;
+
+    return Column(
+      children: [
+        if (!_isLoggedIn) _buildLoginBanner(),
+        Expanded(
+          child: Stack(
+            children: [
+              _buildMap(),
+              if (_isDataReady) ...[
+                if (_showSearchOverlay)
                   Positioned(
                     top: 10,
-                    left: 16,
-                    right: 68,
-                    child: _buildSearchBar(),
-                  ),
-                  Positioned(
-                    right: 12,
-                    top: 10,
-                    child: _buildMapControls(),
-                  ),
-                  Positioned(
-                    bottom: 16,
                     left: 16,
                     right: 16,
-                    child: _buildStatusBar(),
+                    child: _buildSearchBar(),
                   ),
-                ],
-                if (!_isDataReady)
-                  Container(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    child: Center(
-                      child: LoadingAnimationWidget.fourRotatingDots(
-                        color: kBlue,
-                        size: 50,
-                      ),
+                Positioned(
+                  right: 12,
+                  top: _showSearchOverlay ? 70 : 10,
+                  child: _buildRightControls(),
+                ),
+                Positioned(
+                  bottom: 16,
+                  left: 0,
+                  right: 0,
+                  child: _buildBottomMapControls(),
+                ),
+                if (selectedDevice != null && _bannerScreenPos != null)
+                  _buildVehicleMapBanner(selectedDevice, _bannerScreenPos!),
+              ],
+              if (!_isDataReady)
+                Container(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  child: Center(
+                    child: LoadingAnimationWidget.fourRotatingDots(
+                      color: kBlue,
+                      size: 50,
                     ),
                   ),
-              ],
-            ),
-            CarsScreen(),
-          ],
+                ),
+            ],
+          ),
         ),
+        if (selectedDevice != null) _buildVehicleInfoCard(selectedDevice),
+        if (selectedDevice != null) _buildVehicleNavBar(selectedDevice),
+      ],
+    );
+  }
+
+  // ─── Login banner ─────────────────────────────────────────────────────────
+
+  Widget _buildLoginBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: const Color(0xFF2D2D2D),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Manage Vehicles after login',
+              style: const TextStyle(color: kWhite, fontSize: 13),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pushNamed(context, '/login'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kBlue,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(kRadiusSM),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Login',
+              style: TextStyle(
+                color: kWhite,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -764,8 +973,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       styleUri: _currentMapStyle,
       cameraOptions: CameraOptions(center: initialPosition, zoom: currentZoom),
       onMapCreated: (MapboxMap map) {
-        // Null stale references immediately. Annotation setup is handled by
-        // onStyleLoadedListener (fires on initial load and every style change).
         _vehicleAnnotations.clear();
         _breathingCircle = null;
         _circleAnnotationManager = null;
@@ -776,69 +983,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       onTapListener: (MapContentGestureContext context) {
         _onMapTapped(context.point);
       },
+      onCameraChangeListener: (_) => _updateBannerPosition(),
     );
   }
-
-  // ─── Status bar ───────────────────────────────────────────────────────────
-
-  Widget _buildStatusBar() {
-    final model = _controller.devicesModel.value;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        color: context.col.surface.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(kRadiusPill),
-        boxShadow: [kShadowMD],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildStatChip(
-            'Total',
-            '${model?.totalDevices ?? _filteredDevices.length}',
-            kBlue,
-          ),
-          _buildStatDivider(),
-          _buildStatChip(
-            'Online',
-            '${model?.onlineDevices ?? 0}',
-            kSuccessGreen,
-          ),
-          _buildStatDivider(),
-          _buildStatChip(
-            'Moving',
-            '${model?.inMotion ?? 0}',
-            const Color(0xFFF39C12),
-          ),
-          _buildStatDivider(),
-          _buildStatChip('Offline', '${model?.offlineDevices ?? 0}', kRed),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatChip(String label, String count, Color color) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          count,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: 10, color: context.col.textSecondary),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatDivider() =>
-      Container(height: 28, width: 1, color: context.col.border);
 
   // ─── Search bar ───────────────────────────────────────────────────────────
 
@@ -878,16 +1025,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
               onChanged: (query) {
-                final all = _controller.devicesModel.value?.devices ?? [];
-                setState(() {
-                  _filteredDevices = all
-                      .where(
-                        (d) => d.numberPlate.toLowerCase().contains(
-                          query.toLowerCase(),
-                        ),
-                      )
-                      .toList();
-                });
+                _applyFilters();
                 if (_filteredDevices.length == 1) {
                   _focusOnSearchedCar(_filteredDevices.first);
                 }
@@ -900,10 +1038,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               _searchController.clear();
               FocusScope.of(context).unfocus();
               setState(() {
-                _filteredDevices =
-                    _controller.devicesModel.value?.devices ?? [];
                 _trackedCarPlate = null;
+                _showSearchOverlay = false;
               });
+              _applyFilters();
             },
           ),
         ],
@@ -911,66 +1049,117 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ─── Map controls ─────────────────────────────────────────────────────────
+  // ─── Right-side map controls (layers / users / A) ─────────────────────────
 
-  Widget _buildMapControls() {
+  Widget _buildRightControls() {
     return Column(
       children: [
-        _iconBtn(Icons.add, _zoomIn),
+        _mapControlBtn(Icons.layers_outlined, _showMapStyleSelector),
         const SizedBox(height: 8),
-        _iconBtn(Icons.remove, _zoomOut),
+        _mapControlBtn(Icons.people_outline, () {}),
         const SizedBox(height: 8),
-        _iconBtn(Icons.layers_outlined, _showMapStyleSelector),
-        const SizedBox(height: 8),
-        // My location
-        _controlContainer(
-          child: isLoadingLocation
-              ? const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: kBlue,
-                  ),
-                )
-              : IconButton(
-                  icon: Icon(
-                    Icons.my_location,
-                    color: userLocation != null ? kBlue : kGrey,
-                    size: 20,
-                  ),
-                  onPressed: _moveToUserLocation,
-                ),
-        ),
-        const SizedBox(height: 8),
-        _iconBtn(Icons.keyboard_arrow_up_rounded, _showPreviousVehicle),
-        const SizedBox(height: 8),
-        _iconBtn(Icons.keyboard_arrow_down_outlined, _showNextVehicle),
-        const SizedBox(height: 8),
-        _iconBtn(
-          Icons.center_focus_strong,
-          () => _fitAllCarsOnMap(_filteredDevices),
-        ),
-        const SizedBox(height: 8),
-        // Countdown / refresh — lives in its own widget so its 1-second timer
-        // only rebuilds itself, not the entire home screen.
-        _controlContainer(
-          child: _CountdownRefreshButton(
-            onRefresh: _refreshData,
-            intervalSeconds: 20,
-          ),
-        ),
+        _mapControlBtnLabel('A', () => _fitAllCarsOnMap(_filteredDevices)),
       ],
     );
   }
 
-  Widget _iconBtn(IconData icon, VoidCallback onTap) => _controlContainer(
-    child: IconButton(
-      icon: Icon(icon, color: context.col.textSecondary, size: 20),
-      onPressed: onTap,
-    ),
-  );
+  // ─── Bottom map controls (refresh+GPS | arrows | zoom) ────────────────────
 
-  Widget _controlContainer({required Widget child}) => Container(
+  Widget _buildBottomMapControls() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // Left: countdown + GPS
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _mapControlContainer(
+                child: _CountdownRefreshButton(
+                  onRefresh: _refreshData,
+                  intervalSeconds: 20,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _mapControlBtn(
+                isLoadingLocation ? null : Icons.my_location,
+                _moveToUserLocation,
+                isLoading: isLoadingLocation,
+                activeColor: userLocation != null ? kBlue : kGrey,
+              ),
+            ],
+          ),
+          // Center: prev / next arrows
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _mapControlBtn(Icons.chevron_left, _showPreviousVehicle),
+                const SizedBox(width: 8),
+                _mapControlBtn(Icons.chevron_right, _showNextVehicle),
+              ],
+            ),
+          ),
+          // Right: zoom
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _mapControlBtn(Icons.add, _zoomIn),
+              const SizedBox(height: 8),
+              _mapControlBtn(Icons.remove, _zoomOut),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mapControlBtn(
+    IconData? icon,
+    VoidCallback? onTap, {
+    bool isLoading = false,
+    Color? activeColor,
+  }) =>
+      _mapControlContainer(
+        child: isLoading
+            ? const Padding(
+                padding: EdgeInsets.all(12),
+                child: CircularProgressIndicator(strokeWidth: 2, color: kBlue),
+              )
+            : IconButton(
+                icon: Icon(
+                  icon,
+                  color: activeColor ?? context.col.textSecondary,
+                  size: 20,
+                ),
+                onPressed: onTap,
+              ),
+      );
+
+  Widget _mapControlBtnLabel(String label, VoidCallback onTap) =>
+      _mapControlContainer(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(kRadiusSM),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: context.col.textSecondary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+  Widget _mapControlContainer({required Widget child}) => Container(
     width: 44,
     height: 44,
     decoration: BoxDecoration(
@@ -981,350 +1170,404 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     child: child,
   );
 
-  // ─── Vehicle bottom sheet ─────────────────────────────────────────────────
+  // ─── Floating vehicle banner (above marker) ──────────────────────────────
 
-  Widget _buildVehicleBottomSheet(Device device) {
+  Widget _buildVehicleMapBanner(Device device, Offset screenPos) {
+    const bannerWidth = 200.0;
+    const cardHeight = 108.0;
+    const arrowSize = 8.0;
+
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Center banner horizontally on the marker, keep it within screen bounds
+    final double left =
+        (screenPos.dx - bannerWidth / 2).clamp(8.0, screenWidth - bannerWidth - 8.0);
+    // Place banner above the marker icon (~30 px gap)
+    final double top = screenPos.dy - cardHeight - arrowSize - 30;
+
     final bool isOnline = device.isDeviceOnline;
     final bool isMoving = device.ignitionStatus == 1 && isOnline;
-    final Color statusColor = isMoving
-        ? kSuccessGreen
-        : isOnline
-        ? kBlue
-        : kRed;
-    final String statusLabel = isMoving
-        ? 'Moving'
-        : isOnline
-        ? 'Idle'
-        : 'Offline';
+    final String statusLabel =
+        !isOnline ? 'Offline' : (isMoving ? 'Moving' : 'Idle');
+    final Color statusColor =
+        !isOnline ? kRed : (isMoving ? kSuccessGreen : kBlue);
 
-    return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      decoration: BoxDecoration(
-        color: context.col.surface,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(kRadiusLG),
-        ),
-      ),
+    return Positioned(
+      left: left,
+      top: top.clamp(8.0, double.infinity),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Drag handle
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: context.col.border,
-              borderRadius: BorderRadius.circular(kRadiusSM),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Header ──────────────────────────────────────────
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Vehicle icon ring
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(kRadiusMD),
-                        border: Border.all(
-                          color: statusColor.withValues(alpha: 0.4),
-                          width: 2,
-                        ),
-                      ),
-                      child:
-                          customIcons[isMoving
-                                  ? 'green'
-                                  : isOnline
-                                  ? 'blue'
-                                  : 'red'] !=
-                              null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(
-                                kRadiusMD - 2,
-                              ),
-                              child: Image.memory(
-                                customIcons[isMoving
-                                    ? 'green'
-                                    : isOnline
-                                    ? 'blue'
-                                    : 'red']!,
-                                fit: BoxFit.contain,
-                              ),
-                            )
-                          : Icon(
-                              Icons.directions_car,
-                              color: statusColor,
-                              size: 28,
-                            ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            device.numberPlate,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: context.col.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            '${device.type} ${device.make}'.trim().isEmpty
-                                ? 'Vehicle'
-                                : '${device.type} ${device.make}'.trim(),
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: context.col.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Status badge + close
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: const Icon(
-                            Icons.close,
-                            color: kGrey,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(kRadiusPill),
-                            border: Border.all(
-                              color: statusColor.withValues(alpha: 0.35),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: statusColor,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                statusLabel,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: statusColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // ── Stats row ────────────────────────────────────────
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: context.col.bg,
-                    borderRadius: BorderRadius.circular(kRadiusMD),
+          Material(
+            color: Colors.transparent,
+            child: Container(
+              width: bannerWidth,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: context.col.surface,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.18),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header: plate + close
+                  Row(
                     children: [
-                      _infoTile(
-                        Icons.speed_rounded,
-                        '${device.speed} km/h',
-                        'Speed',
+                      Expanded(
+                        child: Text(
+                          device.numberPlate,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: context.col.textPrimary,
+                          ),
+                        ),
                       ),
-                      _vDivider(),
-                      _infoTile(
-                        Icons.access_time_rounded,
-                        _utils.formatTime(device.updatedAt),
-                        'Updated',
-                      ),
-                      _vDivider(),
-                      _infoTile(
-                        Icons.signal_cellular_alt,
-                        '${device.signalStrength}%',
-                        'Signal',
+                      GestureDetector(
+                        onTap: () {
+                          if (Get.isRegistered<DashboardController>()) {
+                            Get.find<DashboardController>().isNavVisible.value = true;
+                          }
+                          setState(() {
+                            _selectedVehiclePlate = null;
+                            _bannerScreenPos = null;
+                            _breathingCircle = null;
+                          });
+                          _updateVehicleAnnotations(_filteredDevices);
+                        },
+                        child: Icon(
+                          Icons.close,
+                          size: 14,
+                          color: context.col.textSecondary,
+                        ),
                       ),
                     ],
                   ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // ── Action buttons ───────────────────────────────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: _actionBtn(
-                        icon: Icons.location_on_rounded,
-                        label: 'Live Track',
-                        color: kSuccessGreen,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => VehicleLocationScreen(
-                                latitude:
-                                    double.tryParse(device.latitude) ?? -1.2842,
-                                longitude:
-                                    double.tryParse(device.longitude) ??
-                                    36.8163,
-                                deviceId: device.deviceId,
-                                numberPlate: device.numberPlate,
-                              ),
-                            ),
-                          );
-                        },
+                  const SizedBox(height: 5),
+                  // Status + signal strength
+                  Row(
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _actionBtn(
-                        icon: Icons.route_rounded,
-                        label: 'Playback',
-                        color: kBlue,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PlaybackScreen(
-                                numberPlate: device.numberPlate,
-                              ),
-                            ),
-                          );
-                        },
+                      const SizedBox(width: 4),
+                      Text(
+                        statusLabel,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: statusColor,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _actionBtn(
-                        icon: Icons.info_outline_rounded,
-                        label: 'Details',
-                        color: kGrey,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => SelectedCarScreen(
-                                devices: device,
-                                carModel: '${device.type} ${device.make}',
-                                licensePlate: device.numberPlate,
-                              ),
-                            ),
-                          );
-                        },
+                      const Spacer(),
+                      Icon(
+                        Icons.signal_cellular_alt,
+                        size: 13,
+                        color: context.col.textSecondary,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _actionBtn(
-                        icon: Icons.warning_amber_rounded,
-                        label: 'Violations',
-                        color: kRed,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ViolationsScreen(
-                                numberPlate: device.numberPlate,
-                              ),
-                            ),
-                          );
-                        },
+                      const SizedBox(width: 2),
+                      Text(
+                        '${device.signalStrength}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: context.col.textSecondary,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  // Speed
+                  Row(
+                    children: [
+                      Icon(Icons.speed, size: 13, color: kBlue),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${device.speed} km/h',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: context.col.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  // Location
+                  Row(
+                    children: [
+                      Icon(Icons.location_on, size: 13, color: kBlue),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          device.location.trim().isEmpty
+                              ? 'Location unavailable'
+                              : device.location,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: context.col.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
+          ),
+          // Down-pointing arrow
+          CustomPaint(
+            painter: _DownArrowPainter(color: context.col.surface),
+            size: const Size(14, arrowSize),
           ),
         ],
       ),
     );
   }
 
-  Widget _infoTile(IconData icon, String value, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: kBlue, size: 18),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: context.col.textPrimary,
+  // ─── Vehicle info card (inline) ───────────────────────────────────────────
+
+  Widget _buildVehicleInfoCard(Device device) {
+    final bool isOnline = device.isDeviceOnline;
+    final bool isMoving = device.ignitionStatus == 1 && isOnline;
+    final Color speedColor = isMoving ? kSuccessGreen : context.col.textSecondary;
+
+    return Container(
+      color: context.col.surface,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 32,
+              height: 3,
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: context.col.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           ),
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: 10, color: context.col.textSecondary),
-        ),
-      ],
+          // Header: name + speed + signal + close
+          Row(
+            children: [
+              Text(
+                device.numberPlate,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: context.col.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Speed:${device.speed}km/h',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: speedColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: kSuccessGreen,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${device.signalStrength}',
+                  style: const TextStyle(
+                    color: kWhite,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                Icons.battery_5_bar,
+                color: context.col.textSecondary,
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: () {
+                  if (Get.isRegistered<DashboardController>()) {
+                    Get.find<DashboardController>().isNavVisible.value = true;
+                  }
+                  setState(() {
+                    _selectedVehiclePlate = null;
+                    _bannerScreenPos = null;
+                    _breathingCircle = null;
+                  });
+                  _updateVehicleAnnotations(_filteredDevices);
+                },
+                child: Icon(
+                  Icons.close,
+                  color: context.col.textSecondary,
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Location row
+          Row(
+            children: [
+              Icon(Icons.location_on, color: kBlue, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  device.location.trim().isEmpty
+                      ? 'Location unavailable'
+                      : device.location,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.col.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Timestamp row
+          Row(
+            children: [
+              Icon(
+                Icons.access_time,
+                color: context.col.textSecondary,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _utils.formatTime(device.updatedAt),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: context.col.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _vDivider() =>
-      Container(width: 1, height: 36, color: context.col.divider);
+  // ─── Vehicle bottom navigation bar ────────────────────────────────────────
 
-  Widget _actionBtn({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(kRadiusMD),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Column(
+  Widget _buildVehicleNavBar(Device device) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.col.surface,
+        boxShadow: [kShadowMD],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Icon(icon, color: color, size: 20),
+            _navBarItem(Icons.directions_car, 'Details', kBlue, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SelectedCarScreen(
+                    devices: device,
+                    carModel: '${device.type} ${device.make}'.trim(),
+                    licensePlate: device.numberPlate,
+                  ),
+                ),
+              );
+            }),
+            _navBarItem(Icons.route_rounded, 'Playback', kSuccessGreen, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      PlaybackScreen(numberPlate: device.numberPlate),
+                ),
+              );
+            }),
+            _navBarItem(Icons.gps_fixed, 'Tracking', const Color(0xFFF39C12), () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => VehicleLocationScreen(
+                    latitude: double.tryParse(device.latitude) ?? -1.2842,
+                    longitude: double.tryParse(device.longitude) ?? 36.8163,
+                    deviceId: device.deviceId,
+                    numberPlate: device.numberPlate,
+                  ),
+                ),
+              );
+            }),
+            _navBarItem(Icons.terminal, 'Command', kBlue, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => Commands(device: device),
+                ),
+              );
+            }),
+            _navBarItem(Icons.grid_on_rounded, 'Fence', kSuccessGreen, () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Geofence coming soon')),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navBarItem(
+    IconData icon,
+    String label,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: kWhite, size: 24),
+            ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
-                color: color,
-                fontWeight: FontWeight.w600,
+                fontSize: 11,
+                color: context.col.textPrimary,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -1334,9 +1577,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 }
 
+// ── Down-arrow painter (banner pointer) ──────────────────────────────────────
+
+class _DownArrowPainter extends CustomPainter {
+  final Color color;
+  const _DownArrowPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_DownArrowPainter old) => old.color != color;
+}
+
 // ── Countdown refresh button ──────────────────────────────────────────────────
-// Manages its own 1-second timer so only this tiny widget rebuilds each tick,
-// not the entire HomeScreen.
 
 class _CountdownRefreshButton extends StatefulWidget {
   final Future<void> Function() onRefresh;

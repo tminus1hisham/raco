@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:lottie/lottie.dart';
+import 'package:atom/widgets/glass_container.dart';
 
 class ChangePassword extends StatefulWidget {
   @override
@@ -124,19 +125,10 @@ class _ChangePasswordState extends State<ChangePassword> {
   }
 
   Widget _buildPasswordForm(AppColors col) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: col.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return GlassContainer(
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -216,6 +208,7 @@ class _ChangePasswordState extends State<ChangePassword> {
             txtColor: col.textPrimary,
           ),
         ],
+      ),
       ),
     );
   }

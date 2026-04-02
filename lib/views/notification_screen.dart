@@ -28,7 +28,7 @@ class _NotificationScreenState extends State<NotificationScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _controller.fetchNotifications();
   }
 
@@ -140,6 +140,33 @@ class _NotificationScreenState extends State<NotificationScreen>
                       emptyLabel: 'All caught up!',
                       emptySubtitle: 'No unread notifications',
                     ),
+                    _buildList(
+                      _controller.notifications.where((n) {
+                        final t = n.title.toLowerCase();
+                        return t.contains('geofence') || t.contains('fence');
+                      }).toList(),
+                      col,
+                      emptyLabel: 'No geofence alerts',
+                      emptySubtitle: 'You have no geofence notifications',
+                    ),
+                    _buildList(
+                      _controller.notifications.where((n) {
+                        final t = n.title.toLowerCase();
+                        return t.contains('battery') || t.contains('power');
+                      }).toList(),
+                      col,
+                      emptyLabel: 'No battery alerts',
+                      emptySubtitle: 'You have no battery notifications',
+                    ),
+                    _buildList(
+                      _controller.notifications.where((n) {
+                        final t = n.title.toLowerCase();
+                        return t.contains('speed') || t.contains('overspeed');
+                      }).toList(),
+                      col,
+                      emptyLabel: 'No speed alerts',
+                      emptySubtitle: 'You have no speed notifications',
+                    ),
                   ],
                 );
               }),
@@ -219,6 +246,7 @@ class _NotificationScreenState extends State<NotificationScreen>
       ),
       child: TabBar(
         controller: _tabController,
+        isScrollable: true,
         indicator: BoxDecoration(
           color: kBlue,
           borderRadius: BorderRadius.circular(kRadiusSM),
@@ -269,6 +297,9 @@ class _NotificationScreenState extends State<NotificationScreen>
               );
             }),
           ),
+          const Tab(text: 'Geofence'),
+          const Tab(text: 'Battery'),
+          const Tab(text: 'Speed'),
         ],
       ),
     );
@@ -613,6 +644,12 @@ class _NotificationScreenState extends State<NotificationScreen>
     }
     if (t.contains('geofence') || t.contains('fence')) {
       return _NotificationMeta(Icons.my_location_rounded, kBlue);
+    }
+    if (t.contains('battery') || t.contains('power')) {
+      return _NotificationMeta(
+        Icons.battery_alert_rounded,
+        const Color(0xFFEF4444),
+      );
     }
     if (t.contains('engine') || t.contains('ignition')) {
       return _NotificationMeta(

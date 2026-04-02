@@ -1,6 +1,7 @@
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/widgets/custom_header.dart';
+import 'package:atom/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
@@ -132,23 +133,10 @@ class _ContactUsState extends State<ContactUs> {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: col.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-            border: Border.all(
-              color: col.border.withValues(alpha: 0.5),
-              width: 1,
-            ),
-          ),
+        child: GlassContainer(
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               Container(
@@ -190,6 +178,7 @@ class _ContactUsState extends State<ContactUs> {
                 color: col.border,
               ),
             ],
+          ),
           ),
         ),
       ),

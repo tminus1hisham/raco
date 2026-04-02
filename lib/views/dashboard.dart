@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:atom/controllers/dashboard_controller.dart';
+
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/notifcations_controller.dart';
@@ -25,6 +27,7 @@ class Dashboard extends StatefulWidget {
 class _DashboardState extends State<Dashboard> {
   int _selectedIndex = 0;
   String? role;
+  late final DashboardController _dashboardController = Get.put(DashboardController());
   late NotificationsController _notificationsController;
   late List<Widget> _screens;
 
@@ -88,10 +91,10 @@ class _DashboardState extends State<Dashboard> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
+    return Obx(() => Scaffold(
       body: IndexedStack(index: _selectedIndex, children: _screens),
-      bottomNavigationBar: _buildBottomNav(),
-    );
+      bottomNavigationBar: _dashboardController.isNavVisible.value ? _buildBottomNav() : const SizedBox.shrink(),
+    ));
   }
 
   Widget _buildBottomNav() {

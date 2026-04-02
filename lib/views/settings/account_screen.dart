@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:atom/widgets/glass_container.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({Key? key}) : super(key: key);
@@ -171,12 +172,9 @@ class _AccountScreenState extends State<AccountScreen> {
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: col.surface,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
+          child: GlassContainer(
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(20),
             ),
             child: SafeArea(
               top: false,
@@ -374,21 +372,13 @@ class _AccountScreenState extends State<AccountScreen> {
                     },
                   ),
                   const SizedBox(height: 10),
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: col.surface,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: GlassContainer(
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
+                      child: Padding(
+                        padding: const EdgeInsets.all(15),
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Stack(
@@ -509,6 +499,8 @@ class _AccountScreenState extends State<AccountScreen> {
                           txtColor: col.textPrimary,
                         ),
                       ],
+                    ),
+                    ),
                     ),
                   ),
                 ],

@@ -1,6 +1,7 @@
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/widgets/custom_header.dart';
+import 'package:atom/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
 
 class AboutUs extends StatelessWidget {
@@ -58,12 +59,10 @@ class AboutUs extends StatelessWidget {
                       const SizedBox(height: 32),
 
                       // Contact Section
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: kBlue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                      GlassContainer(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -100,6 +99,7 @@ class AboutUs extends StatelessWidget {
                               col,
                             ),
                           ],
+                        ),
                         ),
                       ),
                       const SizedBox(height: 24),

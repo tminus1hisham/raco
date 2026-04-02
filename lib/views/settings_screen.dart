@@ -12,6 +12,7 @@ import 'package:atom/views/settings/delete_account.dart';
 import 'package:atom/views/settings/privacy_policy.dart';
 import 'package:atom/views/transport%20%20managers/manager_screen.dart';
 import 'package:atom/widgets/buttons/destructive_gradient_button.dart';
+import 'package:atom/widgets/glass_container.dart';
 import 'package:atom/widgets/modal/custom_alert.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -394,13 +395,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ─── Appearance card ─────────────────────────────────────────────────────
 
   Widget _buildAppearanceCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.col.surface,
-        borderRadius: BorderRadius.circular(kRadiusMD),
-        boxShadow: [kShadowSM],
-      ),
+    return GlassContainer(
+      borderRadius: BorderRadius.circular(kRadiusMD),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -451,7 +449,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: context.col.bg,
+                color: context.col.bg.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(kRadiusMD),
               ),
               child: Row(
@@ -479,6 +477,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             );
           }),
         ],
+      ),
       ),
     );
   }
@@ -542,16 +541,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ─── Card ────────────────────────────────────────────────────────────────
 
   Widget _buildCard(List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.col.surface,
-        borderRadius: BorderRadius.circular(kRadiusMD),
-        boxShadow: [kShadowSM],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(kRadiusMD),
-        child: Column(children: children),
-      ),
+    return GlassContainer(
+      borderRadius: BorderRadius.circular(kRadiusMD),
+      child: Column(children: children),
     );
   }
 

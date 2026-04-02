@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:atom/config/app_theme.dart';
+import 'package:http/http.dart' as http;
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/playback_controller.dart';
 import 'package:atom/models/playback_model.dart';
@@ -18,6 +20,9 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 import '../widgets/map/map_style_switcher.dart';
 import '../widgets/modal/custom_alert.dart';
+
+const _kMapboxToken =
+    'pk.eyJ1Ijoic2h1bGVkcml2ZSIsImEiOiJjbWx0azl0c2gwMTBrM2NzaDVmMnV4a2Q2In0.4nKQxxM4e2DcmF110KhyyA';
 
 class PlaybackScreen extends StatefulWidget {
   final String numberPlate;
@@ -61,6 +66,12 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
   // When true the map bearing rotates to match the vehicle heading.
   bool _headingUp = false;
+
+  // When true the map switches to Standard style with 82° pitch (3D immersive).
+  bool _isImmersiveMode = false;
+  // Stores the style and zoom active before entering immersive for restoration.
+  String? _preImmersiveStyleUri;
+  double _preImmersiveZoom = 15.0;
 
   // Tracks whether the vehicle marker has been made visible (play pressed at
   // least once). Used to restore opacity correctly after a style switch.
@@ -132,15 +143,66 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
   // ─── MAP RENDERING ────────────────────────────────────────────────────────
 
+  /// Calls the Mapbox Map Matching API to snap [history] GPS points onto the
+  /// actual road network. Chunks the history into batches of 50 (API max is
+  /// 100; 50 keeps URLs short and avoids rate-limit bursts). Falls back to the
+  /// raw GPS position for any chunk whose API call fails.
+  Future<List<Position>> _fetchMatchedRoute(List<DeviceRecord> history) async {
+    const int chunkSize = 50;
+    final valid = history.where((r) => r.hasValidCoords).toList();
+    if (valid.isEmpty) return [];
+
+    final matched = <Position>[];
+
+    for (int i = 0; i < valid.length; i += chunkSize) {
+      final chunk = valid.sublist(
+        i,
+        (i + chunkSize).clamp(0, valid.length),
+      );
+      // Map Matching requires at least 2 points.
+      if (chunk.length < 2) {
+        matched.addAll(chunk.map((r) => Position(r.lngD, r.latD)));
+        continue;
+      }
+
+      final coords = chunk.map((r) => '${r.lngD},${r.latD}').join(';');
+      final uri = Uri.parse(
+        'https://api.mapbox.com/matching/v5/mapbox/driving/$coords'
+        '?geometries=geojson&tidy=true&access_token=$_kMapboxToken',
+      );
+
+      try {
+        final response = await http.get(uri);
+        if (response.statusCode == 200) {
+          final body = jsonDecode(response.body) as Map<String, dynamic>;
+          final matchings = body['matchings'] as List?;
+          if (matchings != null && matchings.isNotEmpty) {
+            final rawCoords =
+                matchings[0]['geometry']['coordinates'] as List;
+            matched.addAll(
+              rawCoords.map<Position>((c) => Position(
+                (c[0] as num).toDouble(),
+                (c[1] as num).toDouble(),
+              )),
+            );
+            continue;
+          }
+        }
+      } catch (_) {}
+
+      // Fallback: use raw GPS coords for this chunk.
+      matched.addAll(chunk.map((r) => Position(r.lngD, r.latD)));
+    }
+
+    return matched;
+  }
+
   Future<void> _drawRoute(List<DeviceRecord> history) async {
     if (_mapboxMap == null || history.isEmpty) return;
 
-    // Use pre-parsed doubles — no string parsing on this hot path.
-    final lineCoords = history
-        .where((r) => r.hasValidCoords)
-        .map((r) => Position(r.lngD, r.latD))
-        .toList();
-
+    // Fetch road-snapped coordinates from the Map Matching API.
+    // Falls back to straight GPS lines for any chunk that fails.
+    final lineCoords = await _fetchMatchedRoute(history);
     if (lineCoords.isEmpty) return;
 
     _polylineAnnotationManager ??= await _mapboxMap!.annotations
@@ -150,9 +212,6 @@ class PlaybackScreenState extends State<PlaybackScreen>
       _polylineAnnotationManager?.deleteAll();
     } catch (_) {}
 
-    // Single polyline annotation instead of N-1 segments.
-    // Previous approach created one PolylineAnnotationOptions per GPS point
-    // (e.g. 500 points → 499 Mapbox objects), which was the primary render bottleneck.
     await _polylineAnnotationManager!.create(
       PolylineAnnotationOptions(
         geometry: LineString(coordinates: lineCoords),
@@ -243,13 +302,14 @@ class PlaybackScreenState extends State<PlaybackScreen>
   Future<void> _switchMapStyle(String styleUri) async {
     setState(() => _mapStyleUri = styleUri);
     if (_mapboxMap == null) return;
-    await _mapboxMap!.loadStyleURI(styleUri);
-    // Style reload invalidates all annotation managers — null them so
-    // _generateConditionalMarkers creates fresh ones. Marker bitmaps are
-    // still cached (_startMarkerImg etc.) so canvas re-render is skipped.
+    // Null annotation refs BEFORE the style load completes.
+    // The animation listener checks these refs at the top of every tick; if
+    // they are null it early-returns — preventing it from updating stale
+    // annotation handles on the incoming style and leaving ghost markers.
     _polylineAnnotationManager = null;
     _annotationManager = null;
     _vehicleAnnotation = null;
+    await _mapboxMap!.loadStyleURI(styleUri);
     final history = controller.history.toList();
     if (history.isEmpty) return;
     await _generateConditionalMarkers(history);
@@ -266,6 +326,47 @@ class PlaybackScreenState extends State<PlaybackScreen>
         _vehicleAnnotation!.iconRotate = _currentBearing;
         _vehicleAnnotation!.iconOpacity = 1.0;
         await _annotationManager!.update(_vehicleAnnotation!);
+      }
+    }
+  }
+
+  Future<void> _toggleImmersiveMode({required bool isDark}) async {
+    if (_isImmersiveMode) {
+      // ── Exit immersive ────────────────────────────────────────────────────
+      setState(() => _isImmersiveMode = false);
+      final restoreStyle = _preImmersiveStyleUri ??
+          (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS);
+      final restoreZoom = _preImmersiveZoom;
+      _preImmersiveStyleUri = null;
+      await _switchMapStyle(restoreStyle);
+      await _mapboxMap?.flyTo(
+        CameraOptions(pitch: 0.0, bearing: 0.0, zoom: restoreZoom),
+        MapAnimationOptions(duration: 1200, startDelay: 0),
+      );
+    } else {
+      // ── Enter immersive ───────────────────────────────────────────────────
+      _preImmersiveStyleUri = _mapStyleUri ??
+          (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS);
+      _preImmersiveZoom = _currentZoom;
+      setState(() => _isImmersiveMode = true);
+      await _switchMapStyle(MapboxStyles.STANDARD);
+      final history = controller.history;
+      if (history.isNotEmpty) {
+        final rec = history[_currentIndex.clamp(0, history.length - 1)];
+        if (rec.hasValidCoords) {
+          await _mapboxMap?.flyTo(
+            CameraOptions(
+              center: Point(coordinates: Position(rec.lngD, rec.latD)),
+              // 82° pitch + zoom 18 places the camera at near-building eye-level,
+              // looking almost horizontally along the road — matching the
+              // "elevated building" perspective of Google's immersive view.
+              pitch: 82.0,
+              zoom: 18.0,
+              bearing: _currentBearing,
+            ),
+            MapAnimationOptions(duration: 2500, startDelay: 0),
+          );
+        }
       }
     }
   }
@@ -349,11 +450,17 @@ class PlaybackScreenState extends State<PlaybackScreen>
         // Camera tracks the interpolated vehicle position every frame.
         // setCamera (instantaneous) is used instead of easeTo — calling
         // easeTo 60×/second stacks overlapping animations and causes lag.
+        // In immersive mode: lock pitch to 82° and zoom to 18 every frame so
+        // user pinch-zoom or SDK corrections cannot flatten the view mid-playback.
         try {
           _mapboxMap?.setCamera(
             CameraOptions(
               center: Point(coordinates: Position(currentLng, currentLat)),
-              bearing: _headingUp ? interpolatedBearing : null,
+              bearing: (_headingUp || _isImmersiveMode)
+                  ? interpolatedBearing
+                  : null,
+              pitch: _isImmersiveMode ? 82.0 : null,
+              zoom: _isImmersiveMode ? 18.0 : null,
             ),
           );
         } catch (_) {}
@@ -717,6 +824,17 @@ class PlaybackScreenState extends State<PlaybackScreen>
     setState(() => _playbackSpeed = newSpeed);
   }
 
+  void _seekTo(int index, List<DeviceRecord> history) {
+    if (history.isEmpty) return;
+    final clamped = index.clamp(0, history.length - 1);
+    _pausePlayback();
+    _markerAnimController?.stop();
+    _lastPosition = null;
+    setState(() => _currentIndex = clamped);
+    _currentIndexNotifier.value = clamped;
+    _updateVehicleMarker(clamped, history);
+  }
+
   void _playNextSegment(List<DeviceRecord> history) {
     if (!_isPlaying || _currentIndex >= history.length - 1) {
       setState(() => _isPlaying = false);
@@ -837,76 +955,63 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
   // ─── WIDGETS ─────────────────────────────────────────────────────────────
 
-  Widget _buildDatePickerButton({
+  Widget _buildDateChip({
     required AppColors col,
     required String label,
     required DateTime? selectedDate,
     required VoidCallback onTap,
-    required IconData icon,
   }) {
+    final hasDate = selectedDate != null;
     return Expanded(
-      child: SizedBox(
-        height: 80,
-        child: Material(
-          color: col.surface,
-          borderRadius: BorderRadius.circular(kRadiusMD),
-          elevation: 2,
-          shadowColor: Colors.black.withValues(alpha: 0.1),
-          child: InkWell(
-            onTap: onTap,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: hasDate
+                ? kBlue.withValues(alpha: 0.08)
+                : col.border.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(kRadiusMD),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(kRadiusMD),
-                border: Border.all(
-                  color: selectedDate != null
-                      ? kBlue.withValues(alpha: 0.3)
-                      : col.border.withValues(alpha: 0.5),
-                  width: 1.5,
+            border: Border.all(
+              color: hasDate ? kBlue.withValues(alpha: 0.45) : col.border,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.event_rounded,
+                size: 14,
+                color: hasDate ? kBlue : col.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: col.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      hasDate
+                          ? _dateFormat.format(selectedDate)
+                          : 'Pick date',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: hasDate ? col.textPrimary : col.textSecondary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    icon,
-                    color: selectedDate != null ? kBlue : col.textSecondary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: col.textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          selectedDate != null
-                              ? _dateFormat.format(selectedDate)
-                              : 'Select date',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: selectedDate != null
-                                ? col.textPrimary
-                                : col.textSecondary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.keyboard_arrow_down, color: col.border, size: 20),
-                ],
-              ),
-            ),
+            ],
           ),
         ),
       ),
@@ -980,7 +1085,20 @@ class PlaybackScreenState extends State<PlaybackScreen>
               currentStyleUri:
                   _mapStyleUri ??
                   (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS),
-              onStyleChanged: (uri) => _switchMapStyle(uri),
+              onStyleChanged: (uri) {
+                // Manually switching styles exits immersive mode so the
+                // pitch/bearing state stays consistent.
+                if (_isImmersiveMode) {
+                  setState(() {
+                    _isImmersiveMode = false;
+                    _preImmersiveStyleUri = null;
+                  });
+                  _mapboxMap?.setCamera(
+                    CameraOptions(pitch: 0.0, bearing: 0.0),
+                  );
+                }
+                _switchMapStyle(uri);
+              },
             ),
           ),
 
@@ -1017,6 +1135,42 @@ class PlaybackScreenState extends State<PlaybackScreen>
                   child: Icon(
                     Icons.navigation,
                     color: _headingUp ? kBlue : col.textPrimary,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // ── Immersive 3D mode toggle ───────────────────────────────────────
+          Positioned(
+            right: 16,
+            top: 252, // heading button top(196) + height(44) + gap(12)
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              shadowColor: Colors.black.withValues(alpha: 0.2),
+              child: InkWell(
+                onTap: () => _toggleImmersiveMode(isDark: isDark),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _isImmersiveMode
+                        ? kBlue.withValues(alpha: 0.15)
+                        : col.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _isImmersiveMode ? kBlue : Colors.transparent,
+                      width: _isImmersiveMode ? 1.5 : 0,
+                    ),
+                  ),
+                  child: Icon(
+                    _isImmersiveMode
+                        ? Icons.map_rounded
+                        : Icons.threed_rotation,
+                    color: _isImmersiveMode ? kBlue : col.textPrimary,
                     size: 22,
                   ),
                 ),
@@ -1067,20 +1221,26 @@ class PlaybackScreenState extends State<PlaybackScreen>
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
                           children: [
-                            _buildDatePickerButton(
+                            _buildDateChip(
                               col: col,
                               label: 'Start Date',
                               selectedDate: _startDate,
                               onTap: () => _pickStartDate(context),
-                              icon: Icons.calendar_today,
                             ),
-                            const SizedBox(width: 12),
-                            _buildDatePickerButton(
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
+                              child: Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 16,
+                                color: col.textSecondary,
+                              ),
+                            ),
+                            _buildDateChip(
                               col: col,
                               label: 'End Date',
                               selectedDate: _endDate,
                               onTap: () => _pickEndDate(context),
-                              icon: Icons.event,
                             ),
                           ],
                         ),
@@ -1095,83 +1255,134 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
             return Stack(
               children: [
-                // ── Info panel — rebuilt only when index changes, not on every setState ──
+                // ── Info panel — rebuilt only when index changes ──
                 Positioned(
                   top: 16,
                   left: 16,
-                  right: 16,
+                  right: 80,
                   child: ValueListenableBuilder<int>(
                     valueListenable: _currentIndexNotifier,
                     builder: (_, idx, __) {
                       final rec = historyList[idx];
                       final ignition = _getIgnitionStatus(rec);
-                      return Material(
-                        elevation: 4,
-                        borderRadius: BorderRadius.circular(kRadiusMD),
-                        child: Container(
-                          padding: const EdgeInsets.all(kSpaceLG),
-                          decoration: BoxDecoration(
-                            color: col.surface,
-                            borderRadius: BorderRadius.circular(kRadiusMD),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      final speed =
+                          double.tryParse(rec.spd.toString()) ?? 0.0;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: col.surface.withValues(alpha: 0.96),
+                          borderRadius: BorderRadius.circular(kRadiusLG),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.12),
+                              blurRadius: 14,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    rec.rg,
+                                    widget.numberPlate,
                                     style: const TextStyle(
-                                      fontSize: 18,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
                                     ),
                                   ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.speed_rounded,
+                                        size: 13,
+                                        color: col.textSecondary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${speed.toStringAsFixed(0)} km/h',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: speed > 0
+                                              ? kBlue
+                                              : col.textSecondary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Icon(
+                                        Icons.access_time_rounded,
+                                        size: 13,
+                                        color: col.textSecondary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          _utils.formatTime(
+                                            rec.createdAt.toString(),
+                                          ),
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: col.textSecondary,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: ignition == 1
+                                    ? kSuccessGreen.withValues(alpha: 0.12)
+                                    : col.border.withValues(alpha: 0.25),
+                                borderRadius:
+                                    BorderRadius.circular(kRadiusPill),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
+                                    width: 6,
+                                    height: 6,
                                     decoration: BoxDecoration(
                                       color: ignition == 1
-                                          ? kSuccessGreen.withValues(alpha: 0.15)
-                                          : col.border.withValues(alpha: 0.4),
-                                      borderRadius: BorderRadius.circular(kRadiusMD),
+                                          ? kSuccessGreen
+                                          : col.textSecondary,
+                                      shape: BoxShape.circle,
                                     ),
-                                    child: Text(
-                                      ignition == 1 ? 'ON' : 'OFF',
-                                      style: TextStyle(
-                                        color: ignition == 1
-                                            ? kSuccessGreen
-                                            : col.textSecondary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                      ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    ignition == 1 ? 'Moving' : 'Idle',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: ignition == 1
+                                          ? kSuccessGreen
+                                          : col.textSecondary,
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _InfoItem(
-                                      icon: Icons.speed,
-                                      label: "Speed",
-                                      value: "${rec.spd} km/h",
-                                    ),
-                                  ),
-                                  _InfoItem(
-                                    icon: Icons.access_alarms_sharp,
-                                    label: "Time",
-                                    value: _utils.formatTime(
-                                      rec.createdAt.toString(),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -1180,157 +1391,202 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
             // ── Bottom controls panel ──────────────────────────
             Positioned(
-              bottom: 20,
+              bottom: 16,
               left: 16,
               right: 16,
-              child: Material(
-                elevation: 8,
-                borderRadius: BorderRadius.circular(kRadiusLG),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: kSpaceLG,
-                    horizontal: kSpaceXL,
-                  ),
-                  decoration: BoxDecoration(
-                    color: col.surface,
-                    borderRadius: BorderRadius.circular(kRadiusLG),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          _buildDatePickerButton(
-                            col: col,
-                            label: 'Start Date',
-                            selectedDate: _startDate,
-                            onTap: () => _pickStartDate(context),
-                            icon: Icons.calendar_today,
-                          ),
-                          const SizedBox(width: 12),
-                          _buildDatePickerButton(
-                            col: col,
-                            label: 'End Date',
-                            selectedDate: _endDate,
-                            onTap: () => _pickEndDate(context),
-                            icon: Icons.event,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                decoration: BoxDecoration(
+                  color: col.surface,
+                  borderRadius: BorderRadius.circular(kRadiusLG),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Date row
+                    Row(
+                      children: [
+                        _buildDateChip(
+                          col: col,
+                          label: 'Start Date',
+                          selectedDate: _startDate,
+                          onTap: () => _pickStartDate(context),
                         ),
-                        decoration: BoxDecoration(
-                          color: kBlue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(kRadiusSM),
-                        ),
-                        child: Text(
-                          '${_playbackSpeed.toStringAsFixed(1)}x',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: kBlue,
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 8),
+                          child: Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 16,
+                            color: col.textSecondary,
                           ),
                         ),
-                      ),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.fast_rewind_sharp,
+                        _buildDateChip(
+                          col: col,
+                          label: 'End Date',
+                          selectedDate: _endDate,
+                          onTap: () => _pickEndDate(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // Progress scrubber
+                    ValueListenableBuilder<int>(
+                      valueListenable: _currentIndexNotifier,
+                      builder: (_, idx, __) {
+                        final total = historyList.length;
+                        return SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            activeTrackColor: kBlue,
+                            inactiveTrackColor:
+                                col.border.withValues(alpha: 0.5),
+                            thumbColor: kBlue,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 6,
+                            ),
+                            overlayColor: kBlue.withValues(alpha: 0.15),
+                            overlayShape: const RoundSliderOverlayShape(
+                              overlayRadius: 14,
+                            ),
+                            trackHeight: 3,
+                          ),
+                          child: Slider(
+                            value: idx.toDouble(),
+                            min: 0,
+                            max: (total - 1).toDouble().clamp(1, double.infinity),
+                            onChanged: (val) =>
+                                _seekTo(val.round(), historyList),
+                          ),
+                        );
+                      },
+                    ),
+                    // Transport controls
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Slower
+                        _PlaybackIconButton(
+                          icon: Icons.remove_rounded,
+                          onPressed: () => _updatePlaybackSpeed(
+                            (_playbackSpeed - 1).clamp(0.5, 5.0),
+                          ),
+                          col: col,
+                        ),
+                        // Restart
+                        _PlaybackIconButton(
+                          icon: Icons.skip_previous_rounded,
+                          onPressed: () => _seekTo(0, historyList),
+                          col: col,
+                        ),
+                        // Play / Pause — large centre button
+                        GestureDetector(
+                          onTap: () => _isPlaying
+                              ? _pausePlayback()
+                              : (_currentIndex == 0
+                                    ? _startPlayback(historyList)
+                                    : _resumePlayback(historyList)),
+                          child: Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
                               color: kBlue,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: kBlue.withValues(alpha: 0.35),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              _isPlaying
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                              color: kWhite,
                               size: 30,
                             ),
-                            onPressed: () {
-                              _updatePlaybackSpeed(
-                                (_playbackSpeed - 1).clamp(0.5, 5.0),
-                              );
-                            },
                           ),
-                          Expanded(
-                            child: SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                activeTrackColor: kBlue,
-                                inactiveTrackColor: col.border,
-                                thumbColor: kBlue,
-                                overlayColor: kBlue.withValues(alpha: 0.2),
-                                trackHeight: 3,
-                              ),
-                              child: Slider(
-                                value: _playbackSpeed,
-                                min: 0.1,
-                                max: 5.0,
-                                divisions: 9,
-                                label: '${_playbackSpeed.toStringAsFixed(1)}x',
-                                onChanged: _updatePlaybackSpeed,
-                              ),
-                            ),
+                        ),
+                        // Stop / reset
+                        _PlaybackIconButton(
+                          icon: Icons.stop_rounded,
+                          onPressed: _stopPlayback,
+                          col: col,
+                          color: kRed,
+                        ),
+                        // Faster
+                        _PlaybackIconButton(
+                          icon: Icons.add_rounded,
+                          onPressed: () => _updatePlaybackSpeed(
+                            (_playbackSpeed + 1).clamp(0.5, 5.0),
                           ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.fast_forward,
+                          col: col,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    // Speed badge + clear
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: kBlue.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(kRadiusPill),
+                          ),
+                          child: Text(
+                            '${_playbackSpeed.toStringAsFixed(1)}× speed',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                               color: kBlue,
-                              size: 30,
                             ),
-                            onPressed: () {
-                              _updatePlaybackSpeed(
-                                (_playbackSpeed + 1).clamp(0.5, 5.0),
-                              );
-                            },
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _ControlButton(
-                            icon: _isPlaying ? Icons.pause : Icons.play_arrow,
-                            onPressed: () => _isPlaying
-                                ? _pausePlayback()
-                                : (_currentIndex == 0
-                                      ? _startPlayback(history)
-                                      : _resumePlayback(history)),
-                            color: kBlue,
+                        ),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            foregroundColor: kRed,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(kRadiusMD),
+                            ),
                           ),
-                          _ControlButton(
-                            icon: Icons.stop,
-                            onPressed: _stopPlayback,
+                          onPressed: () => setState(() {
+                            _startDate = null;
+                            _endDate = null;
+                          }),
+                          icon: const Icon(
+                            Icons.clear_rounded,
+                            size: 15,
                             color: kRed,
                           ),
-                          TextButton.icon(
-                            style: TextButton.styleFrom(
-                              backgroundColor: kRed.withValues(alpha: 0.1),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(kRadiusMD),
-                              ),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _startDate = null;
-                                _endDate = null;
-                              });
-                            },
-                            icon: const Icon(Icons.clear, color: kRed),
-                            label: const Text(
-                              "Clear Dates",
-                              style: TextStyle(
-                                color: kRed,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          label: const Text(
+                            'Clear Dates',
+                            style: TextStyle(
+                              color: kRed,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
                             ),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1345,67 +1601,32 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
 // ─── Helper widgets ──────────────────────────────────────────────────────────
 
-class _InfoItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _InfoItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final col = context.col;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 16, color: col.textSecondary),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(fontSize: 15, color: col.textSecondary),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-}
-
-class _ControlButton extends StatelessWidget {
+class _PlaybackIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
-  final Color color;
+  final AppColors col;
+  final Color? color;
 
-  const _ControlButton({
+  const _PlaybackIconButton({
     required this.icon,
     required this.onPressed,
-    required this.color,
+    required this.col,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: color,
-      borderRadius: BorderRadius.circular(25),
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(25),
-        child: SizedBox(
-          width: 50,
-          height: 50,
-          child: Icon(icon, color: kWhite, size: 24),
+    final iconColor = color ?? col.textPrimary;
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: iconColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(kRadiusMD),
         ),
+        child: Icon(icon, color: iconColor, size: 22),
       ),
     );
   }

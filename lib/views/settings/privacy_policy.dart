@@ -1,6 +1,7 @@
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/widgets/custom_header.dart';
+import 'package:atom/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
 
 class PrivacyPolicy extends StatelessWidget {
@@ -173,12 +174,10 @@ class PrivacyPolicy extends StatelessWidget {
 
                       const SizedBox(height: 30),
 
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: col.divider,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                      GlassContainer(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -217,6 +216,7 @@ class PrivacyPolicy extends StatelessWidget {
                               ),
                             ),
                           ],
+                        ),
                         ),
                       ),
 
