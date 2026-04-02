@@ -1,5 +1,6 @@
 import 'package:atom/models/playback_model.dart';
 import 'package:atom/services/api_service.dart';
+import 'package:atom/utils/gps_data_cleaner.dart';
 import 'package:get/get.dart';
 
 class PlaybackController extends GetxController {
@@ -13,12 +14,22 @@ class PlaybackController extends GetxController {
   ) async {
     try {
       isLoading(true);
-      var fetchedHistory = await ApiService.fetchDeviceHistory(
+      final fetched = await ApiService.fetchDeviceHistory(
         numberPlate,
         startDate,
         endDate,
       );
-      history.assignAll(fetchedHistory);
+
+      // Remove GPS noise and impossible jumps before rendering.
+      List<dynamic> processed = GpsDataCleaner.cleanGpsData(fetched);
+
+      // Reduce point count for large datasets — Douglas-Peucker at ~8m tolerance.
+      // Keeps curves accurate while eliminating redundant collinear points.
+      if (processed.length > 400) {
+        processed = GpsDataCleaner.simplifyPath(processed, 0.00008);
+      }
+
+      history.assignAll(processed.cast<DeviceRecord>());
     } finally {
       isLoading(false);
     }

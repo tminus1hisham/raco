@@ -6,6 +6,10 @@ class DeviceRecord {
   final String course;
   final DateTime createdAt;
 
+  /// Pre-parsed coordinate doubles — avoids repeated double.parse() on hot paths.
+  final double latD;
+  final double lngD;
+
   DeviceRecord({
     required this.spd,
     required this.lg,
@@ -13,7 +17,12 @@ class DeviceRecord {
     required this.rg,
     required this.course,
     required this.createdAt,
-  });
+  })  : latD = double.tryParse(lt) ?? 0.0,
+        lngD = double.tryParse(lg) ?? 0.0;
+
+  bool get hasValidCoords =>
+      latD >= -90 && latD <= 90 && lngD >= -180 && lngD <= 180 &&
+      !(latD == 0.0 && lngD == 0.0);
 
   /// Factory method to create an instance from JSON
   factory DeviceRecord.fromJson(Map<String, dynamic> json) {

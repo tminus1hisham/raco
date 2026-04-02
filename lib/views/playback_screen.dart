@@ -44,6 +44,8 @@ class PlaybackScreenState extends State<PlaybackScreen>
       _startBearing = 0,
       _endBearing = 0;
   int _currentIndex = 0;
+  // Drives the info-panel rebuild without calling setState on the full tree.
+  final ValueNotifier<int> _currentIndexNotifier = ValueNotifier(0);
   bool _isPlaying = false;
   double _playbackSpeed = 0.5;
 
@@ -57,6 +59,13 @@ class PlaybackScreenState extends State<PlaybackScreen>
   double _currentBearing = 0.0;
   double _currentZoom = 15.0;
 
+  // When true the map bearing rotates to match the vehicle heading.
+  bool _headingUp = false;
+
+  // Tracks whether the vehicle marker has been made visible (play pressed at
+  // least once). Used to restore opacity correctly after a style switch.
+  bool _markerVisible = false;
+
   // Map style
   String? _mapStyleUri;
 
@@ -68,6 +77,10 @@ class PlaybackScreenState extends State<PlaybackScreen>
   PointAnnotationManager? _annotationManager;
   PointAnnotation? _vehicleAnnotation;
   PolylineAnnotationManager? _polylineAnnotationManager;
+
+  // Cached marker bitmaps — computed once, reused across style switches.
+  Uint8List? _startMarkerImg;
+  Uint8List? _stopMarkerImg;
 
   @override
   void initState() {
@@ -87,6 +100,8 @@ class PlaybackScreenState extends State<PlaybackScreen>
       _isPlaying = false;
       _playbackTimer?.cancel();
     });
+    _markerVisible = false;
+    _currentIndexNotifier.value = 0;
 
     final String startFormatted = _startDate!
         .add(const Duration(days: 1))
@@ -120,11 +135,10 @@ class PlaybackScreenState extends State<PlaybackScreen>
   Future<void> _drawRoute(List<DeviceRecord> history) async {
     if (_mapboxMap == null || history.isEmpty) return;
 
+    // Use pre-parsed doubles — no string parsing on this hot path.
     final lineCoords = history
-        .where(
-          (r) => double.tryParse(r.lg) != null && double.tryParse(r.lt) != null,
-        )
-        .map((r) => Position(double.parse(r.lg), double.parse(r.lt)))
+        .where((r) => r.hasValidCoords)
+        .map((r) => Position(r.lngD, r.latD))
         .toList();
 
     if (lineCoords.isEmpty) return;
@@ -136,27 +150,17 @@ class PlaybackScreenState extends State<PlaybackScreen>
       _polylineAnnotationManager?.deleteAll();
     } catch (_) {}
 
-    final List<PolylineAnnotationOptions> segments = [];
-    final int segmentCount = lineCoords.length - 1;
-
-    for (int i = 0; i < segmentCount; i++) {
-      final double progress = i / segmentCount;
-      // Fade opacity from tail (older history) to head (latest history)
-      final opacity = 0.15 + (progress * 0.85);
-
-      segments.add(
-        PolylineAnnotationOptions(
-          geometry: LineString(coordinates: [lineCoords[i], lineCoords[i + 1]]),
-          lineColor: 0xFF2563EB, // kBlue roughly
-          lineWidth: 4.5,
-          lineOpacity: opacity,
-        ),
-      );
-    }
-
-    if (segments.isNotEmpty) {
-      await _polylineAnnotationManager!.createMulti(segments);
-    }
+    // Single polyline annotation instead of N-1 segments.
+    // Previous approach created one PolylineAnnotationOptions per GPS point
+    // (e.g. 500 points → 499 Mapbox objects), which was the primary render bottleneck.
+    await _polylineAnnotationManager!.create(
+      PolylineAnnotationOptions(
+        geometry: LineString(coordinates: lineCoords),
+        lineColor: 0xFF2563EB,
+        lineWidth: 4.5,
+        lineOpacity: 0.85,
+      ),
+    );
   }
 
   Future<void> _generateConditionalMarkers(List<DeviceRecord> history) async {
@@ -168,57 +172,49 @@ class PlaybackScreenState extends State<PlaybackScreen>
       _annotationManager?.deleteAll();
     } catch (_) {}
     _vehicleAnnotation = null;
-    _annotationManager = await _mapboxMap!.annotations
+
+    // Reuse existing manager; only create once per map instance.
+    _annotationManager ??= await _mapboxMap!.annotations
         .createPointAnnotationManager();
     await _annotationManager!.setIconRotationAlignment(
       IconRotationAlignment.MAP,
     );
     await _annotationManager!.setIconPitchAlignment(IconPitchAlignment.MAP);
 
+    // Cache start/stop bitmaps — canvas rendering is expensive, do it once.
+    _startMarkerImg ??= await _createStartMarker();
+    _stopMarkerImg ??= await _createStopMarker();
+    _carMarkerIcon ??= await _createRotatedMarker('assets/blue_car.png', 0);
+
     final startRec = history.first;
-    final startImg = await _createStartMarker();
     await _annotationManager!.create(
       PointAnnotationOptions(
         geometry: Point(
-          coordinates: Position(
-            double.parse(startRec.lg),
-            double.parse(startRec.lt),
-          ),
+          coordinates: Position(startRec.lngD, startRec.latD),
         ),
-        image: startImg,
+        image: _startMarkerImg!,
         iconSize: 0.5,
       ),
     );
 
     final stopRec = history.last;
-    final stopImg = await _createStopMarker();
     await _annotationManager!.create(
       PointAnnotationOptions(
         geometry: Point(
-          coordinates: Position(
-            double.parse(stopRec.lg),
-            double.parse(stopRec.lt),
-          ),
+          coordinates: Position(stopRec.lngD, stopRec.latD),
         ),
-        image: stopImg,
+        image: _stopMarkerImg!,
         iconSize: 0.5,
       ),
     );
 
     final bearing = _getCurrentBearing(history, 0);
     _currentBearing = bearing;
-    _lastPosition = Position(
-      double.parse(startRec.lg),
-      double.parse(startRec.lt),
-    );
-    _carMarkerIcon ??= await _createRotatedMarker('assets/blue_car.png', 0);
+    _lastPosition = Position(startRec.lngD, startRec.latD);
     _vehicleAnnotation = await _annotationManager!.create(
       PointAnnotationOptions(
         geometry: Point(
-          coordinates: Position(
-            double.parse(startRec.lg),
-            double.parse(startRec.lt),
-          ),
+          coordinates: Position(startRec.lngD, startRec.latD),
         ),
         image: _carMarkerIcon!,
         iconSize: _iconSizeForZoom(_currentZoom),
@@ -248,8 +244,29 @@ class PlaybackScreenState extends State<PlaybackScreen>
     setState(() => _mapStyleUri = styleUri);
     if (_mapboxMap == null) return;
     await _mapboxMap!.loadStyleURI(styleUri);
-    if (controller.history.isNotEmpty) {
-      await _generateConditionalMarkers(controller.history.toList());
+    // Style reload invalidates all annotation managers — null them so
+    // _generateConditionalMarkers creates fresh ones. Marker bitmaps are
+    // still cached (_startMarkerImg etc.) so canvas re-render is skipped.
+    _polylineAnnotationManager = null;
+    _annotationManager = null;
+    _vehicleAnnotation = null;
+    final history = controller.history.toList();
+    if (history.isEmpty) return;
+    await _generateConditionalMarkers(history);
+    // _generateConditionalMarkers always places the vehicle at index 0 with
+    // iconOpacity 0.0. Restore the correct position and make it visible if
+    // playback was started before the style switch.
+    if (_markerVisible && _vehicleAnnotation != null && _annotationManager != null) {
+      final idx = _currentIndex.clamp(0, history.length - 1);
+      final rec = history[idx];
+      if (rec.hasValidCoords) {
+        _vehicleAnnotation!.geometry = Point(
+          coordinates: Position(rec.lngD, rec.latD),
+        );
+        _vehicleAnnotation!.iconRotate = _currentBearing;
+        _vehicleAnnotation!.iconOpacity = 1.0;
+        await _annotationManager!.update(_vehicleAnnotation!);
+      }
     }
   }
 
@@ -258,15 +275,13 @@ class PlaybackScreenState extends State<PlaybackScreen>
     if (index < 0 || index >= history.length) return;
 
     final rec = history[index];
-    final lat = double.tryParse(rec.lt);
-    final lng = double.tryParse(rec.lg);
-    if (lat == null || lng == null) {
+    if (!rec.hasValidCoords) {
       if (_isPlaying) Future.microtask(() => _playNextSegment(history));
       return;
     }
 
-    final targetBearing = _getCurrentBearing(history, index);
-    final newPosition = Position(lng, lat);
+    final targetBearing = _getLookaheadBearing(history, index);
+    final newPosition = Position(rec.lngD, rec.latD);
 
     // Smooth shortest-path angular interpolation so the icon rotates
     // gradually at corners rather than snapping to the new heading.
@@ -313,8 +328,7 @@ class PlaybackScreenState extends State<PlaybackScreen>
         if (_vehicleAnnotation == null || _annotationManager == null) return;
 
         final now = DateTime.now().millisecondsSinceEpoch;
-        if (now - lastFrameTime < 32)
-          return; // Throttle to ~30 FPS to stabilize Mapbox renderer
+        if (now - lastFrameTime < 16) return; // ~60 FPS
         lastFrameTime = now;
 
         final t = _markerAnimation!.value;
@@ -331,6 +345,18 @@ class PlaybackScreenState extends State<PlaybackScreen>
         );
         _vehicleAnnotation!.iconRotate = interpolatedBearing;
         _annotationManager!.update(_vehicleAnnotation!);
+
+        // Camera tracks the interpolated vehicle position every frame.
+        // setCamera (instantaneous) is used instead of easeTo — calling
+        // easeTo 60×/second stacks overlapping animations and causes lag.
+        try {
+          _mapboxMap?.setCamera(
+            CameraOptions(
+              center: Point(coordinates: Position(currentLng, currentLat)),
+              bearing: _headingUp ? interpolatedBearing : null,
+            ),
+          );
+        } catch (_) {}
       });
       _markerAnimation!.addStatusListener((status) {
         if (status == AnimationStatus.completed && _isPlaying) {
@@ -357,12 +383,11 @@ class PlaybackScreenState extends State<PlaybackScreen>
     double minLng = double.maxFinite, maxLng = -double.maxFinite;
 
     for (final r in history) {
-      final lat = double.tryParse(r.lt) ?? 0;
-      final lng = double.tryParse(r.lg) ?? 0;
-      if (lat < minLat) minLat = lat;
-      if (lat > maxLat) maxLat = lat;
-      if (lng < minLng) minLng = lng;
-      if (lng > maxLng) maxLng = lng;
+      if (!r.hasValidCoords) continue;
+      if (r.latD < minLat) minLat = r.latD;
+      if (r.latD > maxLat) maxLat = r.latD;
+      if (r.lngD < minLng) minLng = r.lngD;
+      if (r.lngD > maxLng) maxLng = r.lngD;
     }
 
     if (minLat == maxLat && minLng == maxLng) {
@@ -397,8 +422,8 @@ class PlaybackScreenState extends State<PlaybackScreen>
         CameraOptions(
           center: Point(
             coordinates: Position(
-              double.parse(history.first.lg),
-              double.parse(history.first.lt),
+              history.first.lngD,
+              history.first.latD,
             ),
           ),
           zoom: 14.0,
@@ -592,33 +617,46 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
     if (currentIndex > 0 && currentIndex < history.length - 1) {
       return _calculateBearing(
-        LatLng(
-          double.parse(history[currentIndex - 1].lt),
-          double.parse(history[currentIndex - 1].lg),
-        ),
-        LatLng(
-          double.parse(history[currentIndex + 1].lt),
-          double.parse(history[currentIndex + 1].lg),
-        ),
+        LatLng(history[currentIndex - 1].latD, history[currentIndex - 1].lngD),
+        LatLng(history[currentIndex + 1].latD, history[currentIndex + 1].lngD),
       );
     } else if (currentIndex > 0) {
       return _calculateBearing(
-        LatLng(
-          double.parse(history[currentIndex - 1].lt),
-          double.parse(history[currentIndex - 1].lg),
-        ),
-        LatLng(double.parse(currentRecord.lt), double.parse(currentRecord.lg)),
+        LatLng(history[currentIndex - 1].latD, history[currentIndex - 1].lngD),
+        LatLng(currentRecord.latD, currentRecord.lngD),
       );
     } else if (currentIndex < history.length - 1) {
       return _calculateBearing(
-        LatLng(double.parse(currentRecord.lt), double.parse(currentRecord.lg)),
-        LatLng(
-          double.parse(history[currentIndex + 1].lt),
-          double.parse(history[currentIndex + 1].lg),
-        ),
+        LatLng(currentRecord.latD, currentRecord.lngD),
+        LatLng(history[currentIndex + 1].latD, history[currentIndex + 1].lngD),
       );
     }
     return 0.0;
+  }
+
+  /// Bearing from [history[index]] toward the first point ≥5 m ahead within
+  /// 3 steps. Smooths jerky heading at tight GPS bends where a single noisy
+  /// point would otherwise cause an abrupt rotation. Falls back to
+  /// [_getCurrentBearing] when no lookahead point qualifies.
+  double _getLookaheadBearing(List<DeviceRecord> history, int index) {
+    const int lookahead = 3;
+    const double minDistMetres = 5.0;
+    final origin = history[index];
+    final limit = (index + lookahead).clamp(0, history.length - 1);
+    for (int i = index + 1; i <= limit; i++) {
+      final c = history[i];
+      if (!c.hasValidCoords) continue;
+      final dist = _haversineDistance(
+        origin.latD, origin.lngD, c.latD, c.lngD,
+      );
+      if (dist >= minDistMetres) {
+        return _calculateBearing(
+          LatLng(origin.latD, origin.lngD),
+          LatLng(c.latD, c.lngD),
+        );
+      }
+    }
+    return _getCurrentBearing(history, index);
   }
 
   int _getIgnitionStatus(DeviceRecord record) {
@@ -630,6 +668,7 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
   void _startPlayback(List<DeviceRecord> history) {
     if (_isPlaying || history.isEmpty) return;
+    _markerVisible = true;
     if (_vehicleAnnotation != null && _annotationManager != null) {
       _vehicleAnnotation!.iconOpacity = 1.0;
       _annotationManager!.update(_vehicleAnnotation!);
@@ -638,6 +677,7 @@ class PlaybackScreenState extends State<PlaybackScreen>
       _isPlaying = true;
       _currentIndex = 0;
     });
+    _currentIndexNotifier.value = 0;
     _playbackTimer?.cancel();
     _playNextSegment(history);
   }
@@ -666,6 +706,7 @@ class PlaybackScreenState extends State<PlaybackScreen>
       _isPlaying = false;
       _currentIndex = 0;
     });
+    _currentIndexNotifier.value = 0;
     final history = controller.history.toList();
     if (history.isNotEmpty) {
       _updateVehicleMarker(0, history);
@@ -683,28 +724,17 @@ class PlaybackScreenState extends State<PlaybackScreen>
     }
 
     _currentIndex++;
+    _currentIndexNotifier.value = _currentIndex;
 
     final current = history[_currentIndex];
-    final lat = double.tryParse(current.lt);
-    final lng = double.tryParse(current.lg);
-    if (lat == null || lng == null) {
+    if (!current.hasValidCoords) {
       _updateVehicleMarker(_currentIndex, history);
       return;
     }
 
     _updateVehicleMarker(_currentIndex, history);
-
-    final int cameraDurationMs = (200 ~/ _playbackSpeed).clamp(50, 2000);
-    try {
-      _mapboxMap?.easeTo(
-        CameraOptions(center: Point(coordinates: Position(lng, lat))),
-        MapAnimationOptions(duration: cameraDurationMs),
-      );
-    } catch (e) {
-      debugPrint("Camera animation error: $e");
-    }
-
-    setState(() {});
+    // Camera is now driven per-frame inside _updateVehicleMarker's animation
+    // listener via setCamera — no separate easeTo call needed here.
   }
 
   // ─── DATE PICKERS ────────────────────────────────────────────────────────
@@ -887,6 +917,7 @@ class PlaybackScreenState extends State<PlaybackScreen>
   void dispose() {
     _playbackTimer?.cancel();
     _markerAnimController?.dispose();
+    _currentIndexNotifier.dispose();
     super.dispose();
   }
 
@@ -905,200 +936,247 @@ class PlaybackScreenState extends State<PlaybackScreen>
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return Container(
-            color: col.surface,
-            child: Center(
-              child: LoadingAnimationWidget.fourRotatingDots(
-                color: kBlue,
-                size: 50,
-              ),
+      // MapWidget lives outside Obx so it is never unmounted during loading or
+      // re-fetches. Unmounting destroys the GL surface and forces full re-init.
+      body: Stack(
+        children: [
+          MapWidget(
+            styleUri:
+                _mapStyleUri ??
+                (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS),
+            // Static initial position — real camera is set by _fitCameraToBounds.
+            // Constant value means MapWidget never sees a prop change on rebuilds.
+            cameraOptions: CameraOptions(
+              center: Point(coordinates: Position(0, 0)),
+              zoom: 2.0,
             ),
-          );
-        }
-
-        final history = controller.history.toList();
-
-        if (history.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.map_outlined, size: 60, color: col.border),
-                const SizedBox(height: 20),
-                Text(
-                  _startDate != null && _endDate != null
-                      ? "No playback data available"
-                      : "Select date range to view playback",
-                  style: TextStyle(fontSize: 18, color: col.textSecondary),
-                ),
-                const SizedBox(height: 10),
-                if (_startDate != null && _endDate != null)
-                  Text(
-                    "No GPS records found for this range",
-                    style: TextStyle(fontSize: 14, color: col.textSecondary),
-                  ),
-                const SizedBox(height: 30),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      _buildDatePickerButton(
-                        col: col,
-                        label: 'Start Date',
-                        selectedDate: _startDate,
-                        onTap: () => _pickStartDate(context),
-                        icon: Icons.calendar_today,
-                      ),
-                      const SizedBox(width: 12),
-                      _buildDatePickerButton(
-                        col: col,
-                        label: 'End Date',
-                        selectedDate: _endDate,
-                        onTap: () => _pickEndDate(context),
-                        icon: Icons.event,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        final currentRecord = history[_currentIndex];
-        final currentPoint = Point(
-          coordinates: Position(
-            double.parse(currentRecord.lg),
-            double.parse(currentRecord.lt),
+            onCameraChangeListener: (CameraChangedEventData data) async {
+              final newZoom = data.cameraState.zoom;
+              if ((newZoom - _currentZoom).abs() >= 0.3) {
+                _currentZoom = newZoom;
+                await _updateVehicleIconSize();
+              }
+            },
+            onMapCreated: (MapboxMap map) async {
+              _mapboxMap = map;
+              _isMapReady = true;
+              if (!_mapReadyCompleter.isCompleted) {
+                _mapReadyCompleter.complete();
+              }
+              if (controller.history.isNotEmpty) {
+                await _generateConditionalMarkers(
+                  controller.history.toList(),
+                );
+              }
+            },
           ),
-        );
-        final ignitionStatus = _getIgnitionStatus(currentRecord);
 
-        return Stack(
-          children: [
-            MapWidget(
-              styleUri:
+          // ── Map style switcher — always visible once map exists ──
+          Positioned(
+            right: 16,
+            top: 140,
+            child: MapStyleSwitcherButton(
+              mapboxMap: _mapboxMap,
+              currentStyleUri:
                   _mapStyleUri ??
                   (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS),
-              cameraOptions: CameraOptions(center: currentPoint, zoom: 15.0),
-              onCameraChangeListener: (CameraChangedEventData data) async {
-                final newZoom = data.cameraState.zoom;
-                if ((newZoom - _currentZoom).abs() >= 0.3) {
-                  _currentZoom = newZoom;
-                  await _updateVehicleIconSize();
-                }
-              },
-              onMapCreated: (MapboxMap map) async {
-                _mapboxMap = map;
-                _isMapReady = true;
-                if (!_mapReadyCompleter.isCompleted) {
-                  _mapReadyCompleter.complete();
-                }
-                if (controller.history.isNotEmpty) {
-                  await _generateConditionalMarkers(
-                    controller.history.toList(),
-                  );
-                }
-              },
+              onStyleChanged: (uri) => _switchMapStyle(uri),
             ),
+          ),
 
-            // ── Map style switcher ─────────────────────────────
-            Positioned(
-              right: 16,
-              top: 140,
-              child: MapStyleSwitcherButton(
-                mapboxMap: _mapboxMap,
-                currentStyleUri:
-                    _mapStyleUri ??
-                    (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS),
-                onStyleChanged: (uri) async {
-                  setState(() => _mapStyleUri = uri);
-                  if (controller.history.isNotEmpty) {
-                    await _generateConditionalMarkers(
-                      controller.history.toList(),
-                    );
+          // ── Heading-up toggle ──────────────────────────────────────────────
+          Positioned(
+            right: 16,
+            top: 196, // style button top(140) + height(44) + gap(12)
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              shadowColor: Colors.black.withValues(alpha: 0.2),
+              child: InkWell(
+                onTap: () {
+                  setState(() => _headingUp = !_headingUp);
+                  if (!_headingUp) {
+                    // Snap back to north-up when toggled off.
+                    _mapboxMap?.setCamera(CameraOptions(bearing: 0.0));
                   }
                 },
-              ),
-            ),
-
-            // ── Info panel ─────────────────────────────────────
-            Positioned(
-              top: 16,
-              left: 16,
-              right: 16,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(kRadiusMD),
+                borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  padding: const EdgeInsets.all(kSpaceLG),
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: col.surface,
-                    borderRadius: BorderRadius.circular(kRadiusMD),
+                    color: _headingUp
+                        ? kBlue.withValues(alpha: 0.15)
+                        : col.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _headingUp ? kBlue : Colors.transparent,
+                      width: _headingUp ? 1.5 : 0,
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            currentRecord.rg,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: ignitionStatus == 1
-                                  ? kSuccessGreen.withValues(alpha: 0.15)
-                                  : col.border.withValues(alpha: 0.4),
-                              borderRadius: BorderRadius.circular(kRadiusMD),
-                            ),
-                            child: Text(
-                              ignitionStatus == 1 ? 'ON' : 'OFF',
-                              style: TextStyle(
-                                color: ignitionStatus == 1
-                                    ? kSuccessGreen
-                                    : col.textSecondary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _InfoItem(
-                              icon: Icons.speed,
-                              label: "Speed",
-                              value: "${currentRecord.spd} km/h",
-                            ),
-                          ),
-                          _InfoItem(
-                            icon: Icons.access_alarms_sharp,
-                            label: "Time",
-                            value: _utils.formatTime(
-                              currentRecord.createdAt.toString(),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  child: Icon(
+                    Icons.navigation,
+                    color: _headingUp ? kBlue : col.textPrimary,
+                    size: 22,
                   ),
                 ),
               ),
             ),
+          ),
+
+          // ── Reactive overlay: loading / empty-state / active UI ──
+          Obx(() {
+            // Loading overlay — semi-transparent so the map stays visible.
+            if (controller.isLoading.value) {
+              return Container(
+                color: col.surface.withValues(alpha: 0.85),
+                child: Center(
+                  child: LoadingAnimationWidget.fourRotatingDots(
+                    color: kBlue,
+                    size: 50,
+                  ),
+                ),
+              );
+            }
+
+            final history = controller.history;
+
+            if (history.isEmpty) {
+              return Container(
+                color: col.bg,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.map_outlined, size: 60, color: col.border),
+                      const SizedBox(height: 20),
+                      Text(
+                        _startDate != null && _endDate != null
+                            ? "No playback data available"
+                            : "Select date range to view playback",
+                        style: TextStyle(fontSize: 18, color: col.textSecondary),
+                      ),
+                      const SizedBox(height: 10),
+                      if (_startDate != null && _endDate != null)
+                        Text(
+                          "No GPS records found for this range",
+                          style: TextStyle(fontSize: 14, color: col.textSecondary),
+                        ),
+                      const SizedBox(height: 30),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            _buildDatePickerButton(
+                              col: col,
+                              label: 'Start Date',
+                              selectedDate: _startDate,
+                              onTap: () => _pickStartDate(context),
+                              icon: Icons.calendar_today,
+                            ),
+                            const SizedBox(width: 12),
+                            _buildDatePickerButton(
+                              col: col,
+                              label: 'End Date',
+                              selectedDate: _endDate,
+                              onTap: () => _pickEndDate(context),
+                              icon: Icons.event,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final historyList = history.toList();
+
+            return Stack(
+              children: [
+                // ── Info panel — rebuilt only when index changes, not on every setState ──
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  right: 16,
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: _currentIndexNotifier,
+                    builder: (_, idx, __) {
+                      final rec = historyList[idx];
+                      final ignition = _getIgnitionStatus(rec);
+                      return Material(
+                        elevation: 4,
+                        borderRadius: BorderRadius.circular(kRadiusMD),
+                        child: Container(
+                          padding: const EdgeInsets.all(kSpaceLG),
+                          decoration: BoxDecoration(
+                            color: col.surface,
+                            borderRadius: BorderRadius.circular(kRadiusMD),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    rec.rg,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: ignition == 1
+                                          ? kSuccessGreen.withValues(alpha: 0.15)
+                                          : col.border.withValues(alpha: 0.4),
+                                      borderRadius: BorderRadius.circular(kRadiusMD),
+                                    ),
+                                    child: Text(
+                                      ignition == 1 ? 'ON' : 'OFF',
+                                      style: TextStyle(
+                                        color: ignition == 1
+                                            ? kSuccessGreen
+                                            : col.textSecondary,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _InfoItem(
+                                      icon: Icons.speed,
+                                      label: "Speed",
+                                      value: "${rec.spd} km/h",
+                                    ),
+                                  ),
+                                  _InfoItem(
+                                    icon: Icons.access_alarms_sharp,
+                                    label: "Time",
+                                    value: _utils.formatTime(
+                                      rec.createdAt.toString(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
 
             // ── Bottom controls panel ──────────────────────────
             Positioned(
@@ -1259,6 +1337,8 @@ class PlaybackScreenState extends State<PlaybackScreen>
           ],
         );
       }),
+        ],
+      ),
     );
   }
 }
