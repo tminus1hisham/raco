@@ -881,6 +881,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                     MaterialPageRoute(
                                       builder: (context) => GeofencingScreen(
                                         numberPlate: widget.licensePlate,
+                                        device: widget.devices,
                                       ),
                                     ),
                                   );

@@ -1,8 +1,8 @@
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/models/notifications_model.dart';
-import 'package:atom/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class NotificationCard extends StatelessWidget {
   final NotificationModel notification;
@@ -10,165 +10,277 @@ class NotificationCard extends StatelessWidget {
   final bool isRead;
 
   const NotificationCard({
-    Key? key,
+    super.key,
     required this.notification,
     this.onTap,
     required this.isRead,
-  }) : super(key: key);
-
-  _NotificationMeta _resolveMeta(String title) {
-    final t = title.toLowerCase();
-    if (t.contains('speed') || t.contains('overspeed')) {
-      return _NotificationMeta(Icons.speed_rounded, const Color(0xFFF97316));
-    }
-    if (t.contains('geofence') || t.contains('fence')) {
-      return _NotificationMeta(Icons.my_location_rounded, kBlue);
-    }
-    if (t.contains('engine') || t.contains('ignition')) {
-      return _NotificationMeta(
-        Icons.power_settings_new_rounded,
-        const Color(0xFF10B981),
-      );
-    }
-    if (t.contains('alert') ||
-        t.contains('warning') ||
-        t.contains('violation')) {
-      return _NotificationMeta(
-        Icons.warning_amber_rounded,
-        const Color(0xFFEF4444),
-      );
-    }
-    return _NotificationMeta(Icons.notifications_rounded, kBlue);
-  }
+  });
 
   @override
   Widget build(BuildContext context) {
     final col = context.col;
-    final meta = _resolveMeta(notification.title);
+    final visual = _resolveVisual(notification);
+    final vehicleCode = _extractVehicleCode(notification);
+    final secondaryMeta = _extractSecondaryMeta(notification, visual.kind);
+    final cardColor = context.isDark ? col.surface : Colors.white;
 
-    Widget cardContent = Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(kRadiusMD),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(kRadiusMD),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: meta.color.withValues(alpha: isRead ? 0.08 : 0.14),
-                  borderRadius: BorderRadius.circular(kRadiusSM),
-                ),
-                child: Icon(
-                  meta.icon,
-                  color: meta.color.withValues(alpha: isRead ? 0.6 : 1.0),
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            notification.title,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: isRead
-                                  ? FontWeight.w500
-                                  : FontWeight.w700,
-                              color: col.textPrimary,
-                              height: 1.3,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: context.isDark ? 0.22 : 0.08),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(30),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(30),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
+            child: Stack(
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(right: isRead ? 0 : 22),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _IconBlock(visual: visual),
+                      const SizedBox(width: 18),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    notification.title,
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      height: 1.12,
+                                      color: context.isDark
+                                          ? col.textPrimary
+                                          : const Color(0xFF15285D),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  _formatTimestamp(notification.createdAt),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.8,
+                                    color: context.isDark
+                                        ? col.textSecondary
+                                        : const Color(0xFF51678E),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _formatTimestamp(notification.createdAt),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isRead ? col.border : col.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      notification.message,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isRead
-                            ? col.textSecondary
-                            : col.textPrimary.withValues(alpha: 0.75),
-                        height: 1.45,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (!isRead) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: meta.color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(kRadiusPill),
-                        ),
-                        child: Text(
-                          'New',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: meta.color,
-                          ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                _MetaPill(
+                                  label: vehicleCode ?? _sourceFallback(),
+                                  backgroundColor: context.isDark
+                                      ? visual.softColor.withValues(alpha: 0.18)
+                                      : const Color(0xFFE5E9FF),
+                                  textColor: context.isDark
+                                      ? col.textPrimary
+                                      : const Color(0xFF5C6BAA),
+                                ),
+                                Text(
+                                  secondaryMeta,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: _detailAccentColor(visual.kind),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              notification.message,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 15,
+                                height: 1.5,
+                                color: context.isDark
+                                    ? col.textSecondary
+                                    : const Color(0xFF334A7A),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+                if (!isRead)
+                  Positioned(
+                    right: 2,
+                    top: 82,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF1661C5),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
 
-    if (!isRead) {
-      cardContent = GlassContainer(
-        borderRadius: BorderRadius.circular(kRadiusMD),
-        blur: 16.0,
-        opacity: 0.08,
-        child: cardContent,
+  String _sourceFallback() {
+    final source = notification.createdByName.trim();
+    if (source.isEmpty) return 'Fleet Ops';
+
+    final words = source.split(RegExp(r'\s+'));
+    final compact = words.take(2).join(' ');
+    if (compact.length <= 14) return compact;
+    return '${compact.substring(0, 14)}...';
+  }
+
+  _NotificationVisual _resolveVisual(NotificationModel notification) {
+    final haystack = '${notification.title} ${notification.message}'
+        .toLowerCase();
+
+    if (haystack.contains('speed') || haystack.contains('overspeed')) {
+      return _NotificationVisual(
+        kind: _NotificationKind.speed,
+        icon: Icons.speed_rounded,
+        color: const Color(0xFFC92D2D),
+        softColor: const Color(0xFFFFECEC),
+      );
+    }
+    if (haystack.contains('geofence') ||
+        haystack.contains('fence') ||
+        haystack.contains('zone') ||
+        haystack.contains('location')) {
+      return _NotificationVisual(
+        kind: _NotificationKind.geofence,
+        icon: Icons.location_on_rounded,
+        color: const Color(0xFF1560C1),
+        softColor: const Color(0xFFEAF3FF),
+      );
+    }
+    if (haystack.contains('battery') ||
+        haystack.contains('power') ||
+        haystack.contains('charging')) {
+      return _NotificationVisual(
+        kind: _NotificationKind.battery,
+        icon: Icons.battery_alert_rounded,
+        color: const Color(0xFF0C8D39),
+        softColor: const Color(0xFFEAF8EE),
+      );
+    }
+    if (haystack.contains('system') ||
+        haystack.contains('maintenance') ||
+        haystack.contains('diagnostic') ||
+        haystack.contains('check')) {
+      return _NotificationVisual(
+        kind: _NotificationKind.system,
+        icon: Icons.build_rounded,
+        color: const Color(0xFF0F6AA8),
+        softColor: const Color(0xFFEAF4FB),
       );
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: isRead ? col.surface : Colors.transparent,
-        borderRadius: BorderRadius.circular(kRadiusMD),
-        border: Border(
-          left: BorderSide(
-            color: isRead ? Colors.transparent : meta.color,
-            width: 3,
-          ),
-        ),
-        boxShadow: [if (isRead) kShadowSM],
-      ),
-      child: cardContent,
+    return _NotificationVisual(
+      kind: _NotificationKind.alert,
+      icon: Icons.notifications_active_rounded,
+      color: kBlue,
+      softColor: const Color(0xFFEAF3FF),
     );
+  }
 
+  String? _extractVehicleCode(NotificationModel notification) {
+    final haystack = '${notification.title} ${notification.message}'.toUpperCase();
+    final match = RegExp(r'\b[A-Z]{1,4}[-\s]?\d{2,5}\b').firstMatch(haystack);
+    if (match == null) return null;
+    return match.group(0)?.replaceAll(' ', '-');
+  }
+
+  String _extractSecondaryMeta(
+    NotificationModel notification,
+    _NotificationKind kind,
+  ) {
+    final haystack = '${notification.title} ${notification.message}';
+    final speedMatch = RegExp(
+      r'(\d+(?:\.\d+)?)\s*(km\/h|kmh|kph)',
+      caseSensitive: false,
+    ).firstMatch(haystack);
+    if (speedMatch != null) {
+      return '${speedMatch.group(1)} Km/h';
+    }
+
+    final batteryMatch = RegExp(
+      r'(\d+(?:\.\d+)?)\s*%',
+      caseSensitive: false,
+    ).firstMatch(haystack);
+    if (batteryMatch != null) {
+      return '${batteryMatch.group(1)}% Remaining';
+    }
+
+    if (kind == _NotificationKind.geofence) {
+      return _extractLocation(notification.message) ?? 'Zone update';
+    }
+    if (kind == _NotificationKind.system) {
+      return 'Scheduled';
+    }
+    if (kind == _NotificationKind.speed) {
+      return 'Overspeed';
+    }
+    if (kind == _NotificationKind.battery) {
+      return 'Battery status';
+    }
+    return 'Fleet alert';
+  }
+
+  String? _extractLocation(String message) {
+    final match = RegExp(
+      r'(?:at|in|to)\s+([A-Za-z0-9]+(?:\s+[A-Za-z0-9]+){0,3})',
+      caseSensitive: false,
+    ).firstMatch(message);
+
+    final value = match?.group(1)?.trim();
+    if (value == null || value.isEmpty) return null;
+    return value.replaceAll(RegExp(r'[.,]$'), '');
+  }
+
+  Color _detailAccentColor(_NotificationKind kind) {
+    switch (kind) {
+      case _NotificationKind.speed:
+        return const Color(0xFFC92D2D);
+      case _NotificationKind.geofence:
+      case _NotificationKind.system:
+      case _NotificationKind.alert:
+        return const Color(0xFF135FBF);
+      case _NotificationKind.battery:
+        return const Color(0xFFD62828);
+    }
   }
 
   String _formatTimestamp(DateTime timestamp) {
@@ -176,16 +288,86 @@ class NotificationCard extends StatelessWidget {
     final local = timestamp.toLocal();
     final difference = now.difference(local);
 
-    if (difference.inMinutes < 1) return 'Just now';
-    if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
-    if (difference.inHours < 24) return '${difference.inHours}h ago';
-    if (difference.inDays < 7) return '${difference.inDays}d ago';
-    return '${local.day}/${local.month}/${local.year}';
+    if (difference.inMinutes < 1) return 'NOW';
+    if (difference.inMinutes < 60) return '${difference.inMinutes}M AGO';
+    if (difference.inHours < 24) return '${difference.inHours}H AGO';
+    if (difference.inDays < 7) return '${difference.inDays}D AGO';
+    return DateFormat('MMM d').format(local).toUpperCase();
   }
 }
 
-class _NotificationMeta {
+enum _NotificationKind { speed, geofence, battery, system, alert }
+
+class _NotificationVisual {
+  final _NotificationKind kind;
   final IconData icon;
   final Color color;
-  const _NotificationMeta(this.icon, this.color);
+  final Color softColor;
+
+  const _NotificationVisual({
+    required this.kind,
+    required this.icon,
+    required this.color,
+    required this.softColor,
+  });
+}
+
+class _IconBlock extends StatelessWidget {
+  final _NotificationVisual visual;
+
+  const _IconBlock({required this.visual});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 68,
+      height: 68,
+      decoration: BoxDecoration(
+        color: visual.softColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Center(
+        child: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: visual.color,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(visual.icon, color: kWhite, size: 18),
+        ),
+      ),
+    );
+  }
+}
+
+class _MetaPill extends StatelessWidget {
+  final String label;
+  final Color backgroundColor;
+  final Color textColor;
+
+  const _MetaPill({
+    required this.label,
+    required this.backgroundColor,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: textColor,
+        ),
+      ),
+    );
+  }
 }

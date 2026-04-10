@@ -1,8 +1,10 @@
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/auth_controller.dart';
+import 'package:atom/controllers/dashboard_controller.dart';
 import 'package:atom/controllers/theme_controller.dart';
 import 'package:atom/controllers/user_data_controller.dart';
+import 'package:atom/models/user_model.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/views/settings/about_us.dart';
 import 'package:atom/views/settings/account_screen.dart';
@@ -10,511 +12,623 @@ import 'package:atom/views/settings/change_password.dart';
 import 'package:atom/views/settings/contact_us.dart';
 import 'package:atom/views/settings/delete_account.dart';
 import 'package:atom/views/settings/privacy_policy.dart';
+import 'package:atom/views/settings/terms_and_conditions.dart';
 import 'package:atom/views/transport%20%20managers/manager_screen.dart';
-import 'package:atom/widgets/buttons/destructive_gradient_button.dart';
-import 'package:atom/widgets/glass_container.dart';
 import 'package:atom/widgets/modal/custom_alert.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final AuthController _authController = Get.put(AuthController());
-  final UserResourceController _userController = Get.put(
-    UserResourceController(),
-  );
-  String? role;
-  String? userName;
-  String? phone;
+  final AuthController _authController = Get.isRegistered<AuthController>()
+      ? Get.find<AuthController>()
+      : Get.put(AuthController());
+
+  final UserResourceController _userController =
+      Get.isRegistered<UserResourceController>()
+      ? Get.find<UserResourceController>()
+      : Get.put(UserResourceController());
+
+  DashboardController? get _dashboardControllerOrNull =>
+      Get.isRegistered<DashboardController>()
+      ? Get.find<DashboardController>()
+      : null;
+
+  String? _role;
+  String? _fallbackName;
+  String? _phone;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserData();
+    _loadLocalProfile();
   }
 
-  Future<void> _fetchUserData() async {
+  Future<void> _loadLocalProfile() async {
     final fetchedRole = await StorageService.getData('userRole');
+    final fetchedName = await StorageService.getData('userName');
     final fetchedPhone = await StorageService.getData('phone');
 
-    // Prefer full name from the API profile; fall back to stored userName
-    final fullName = _userController.user.value?.fullName;
-    final fetchedName = (fullName != null && fullName.isNotEmpty)
-        ? fullName
-        : await StorageService.getData('userName');
-
+    if (!mounted) return;
     setState(() {
-      role = fetchedRole;
-      userName = fetchedName;
-      phone = fetchedPhone;
+      _role = fetchedRole?.toString();
+      _fallbackName = fetchedName?.toString();
+      _phone = fetchedPhone?.toString();
     });
+  }
 
-    // Re-render once the controller finishes loading if it was still in-flight
-    if (_userController.isLoading.value) {
-      ever(_userController.isLoading, (loading) {
-        if (!loading && mounted) {
-          final name = _userController.user.value?.fullName;
-          if (name != null && name.isNotEmpty) {
-            setState(() => userName = name);
-          }
-        }
-      });
+  Future<void> _refreshProfile() async {
+    await Future.wait([_userController.fetchUserProfile(), _loadLocalProfile()]);
+  }
+
+  void _handleBack() {
+    final dashboard = _dashboardControllerOrNull;
+    if (dashboard != null) {
+      dashboard.setIndex(0);
+      return;
     }
+    Navigator.maybePop(context);
   }
 
-  String _getInitials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2 && parts[1].isNotEmpty) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
-      return parts[0][0].toUpperCase();
+  void _openNotifications() {
+    final dashboard = _dashboardControllerOrNull;
+    if (dashboard != null) {
+      dashboard.setIndex(1);
+      return;
     }
-    return 'U';
+    Navigator.of(context).pushNamed('notifications');
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.col.bg,
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(child: _buildProfileHeader()),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  const SizedBox(height: 24),
-
-                  // ── Appearance ──────────────────────────────────────
-                  _buildSectionLabel('Appearance'),
-                  const SizedBox(height: 8),
-                  _buildAppearanceCard(),
-
-                  const SizedBox(height: 24),
-
-                  // ── Account ─────────────────────────────────────────
-                  _buildSectionLabel('Account'),
-                  const SizedBox(height: 8),
-                  _buildCard([
-                    _buildItem(
-                      icon: Icons.person_outline_rounded,
-                      iconBg: const Color(0xFF3B82F6),
-                      title: 'Account Details',
-                      subtitle: 'Manage your profile information',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => AccountScreen()),
-                      ),
-                    ),
-                    _buildDivider(),
-                    _buildItem(
-                      icon: Icons.lock_outline_rounded,
-                      iconBg: const Color(0xFF8B5CF6),
-                      title: 'Change Password',
-                      subtitle: 'Update your account password',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => ChangePassword()),
-                      ),
-                    ),
-                    if (role == 'Admin') ...[
-                      _buildDivider(),
-                      _buildItem(
-                        icon: Icons.group_outlined,
-                        iconBg: const Color(0xFF0EA5E9),
-                        title: 'Managers',
-                        subtitle: 'Add and manage transport managers',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => ManagerScreen()),
-                        ),
-                      ),
-                    ],
-                  ]),
-
-                  const SizedBox(height: 24),
-
-                  // ── Legal & About ────────────────────────────────────
-                  _buildSectionLabel('Legal & About'),
-                  const SizedBox(height: 8),
-                  _buildCard([
-                    _buildItem(
-                      icon: Icons.privacy_tip_outlined,
-                      iconBg: const Color(0xFFF59E0B),
-                      title: 'Privacy Policy',
-                      subtitle: 'Learn how we protect your data',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => PrivacyPolicy()),
-                      ),
-                    ),
-                    _buildDivider(),
-                    _buildItem(
-                      icon: Icons.info_outline_rounded,
-                      iconBg: const Color(0xFF6366F1),
-                      title: 'About Atom',
-                      subtitle: 'Get to know about us',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => AboutUs()),
-                      ),
-                    ),
-                  ]),
-
-                  const SizedBox(height: 24),
-
-                  // ── Support ──────────────────────────────────────────
-                  _buildSectionLabel('Support'),
-                  const SizedBox(height: 8),
-                  _buildCard([
-                    _buildItem(
-                      icon: Icons.headset_mic_outlined,
-                      iconBg: const Color(0xFF10B981),
-                      title: 'Help & Support',
-                      subtitle: 'Get help or contact our team',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => ContactUs()),
-                      ),
-                    ),
-                  ]),
-
-                  const SizedBox(height: 24),
-
-                  // ── Danger zone ──────────────────────────────────────
-                  _buildCard([
-                    _buildItem(
-                      icon: Icons.delete_outline_rounded,
-                      iconBg: kRed,
-                      title: 'Delete Account',
-                      subtitle: 'Permanently remove your account',
-                      textColor: kRed,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => DeleteAccount()),
-                      ),
-                    ),
-                  ]),
-
-                  const SizedBox(height: 24),
-                  _buildSignOutButton(),
-                  const SizedBox(height: 40),
-                ]),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  void _openScreen(Widget page) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 
-  // ─── Profile header ──────────────────────────────────────────────────────
+  void _showQuickActions() {
+    final col = context.col;
 
-  Widget _buildProfileHeader() {
-    final fullName = userName ?? 'User';
-    final parts = fullName.trim().split(' ');
-    final firstName = parts.isNotEmpty ? parts[0] : 'User';
-    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
-    final initials = _getInitials(fullName);
-
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(36),
-          bottomRight: Radius.circular(36),
-        ),
-      ),
-      child: Stack(
-        children: [
-          // Decorative circles
-          Positioned(
-            top: -30,
-            right: -20,
-            child: Container(
-              width: 130,
-              height: 130,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: kWhite.withValues(alpha: 0.05),
-              ),
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            decoration: BoxDecoration(
+              color: context.isDark ? col.surface : kWhite,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: context.isDark ? 0.22 : 0.08,
+                  ),
+                  blurRadius: 28,
+                  offset: const Offset(0, 12),
+                ),
+              ],
             ),
-          ),
-          Positioned(
-            bottom: -40,
-            right: 60,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: kWhite.withValues(alpha: 0.04),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Avatar
-                    Container(
-                      width: 76,
-                      height: 76,
-                      decoration: BoxDecoration(
-                        color: kWhite.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: kWhite.withValues(alpha: 0.30),
-                          width: 2,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          initials,
-                          style: const TextStyle(
-                            color: kWhite,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                      ),
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: col.border,
+                      borderRadius: BorderRadius.circular(999),
                     ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            firstName,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: kWhite,
-                              height: 1.1,
-                            ),
-                          ),
-                          if (lastName.isNotEmpty) ...[
-                            const SizedBox(height: 3),
-                            Text(
-                              lastName,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
-                                color: kWhite.withValues(alpha: 0.75),
-                                height: 1.1,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 20),
-                // Divider
-                Container(height: 1, color: kWhite.withValues(alpha: 0.15)),
+                const SizedBox(height: 18),
+                Text(
+                  'More Options',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: _headlineColor(col),
+                  ),
+                ),
                 const SizedBox(height: 16),
-                // Role + Phone row
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: kWhite.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(kRadiusPill),
-                        border: Border.all(
-                          color: kWhite.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.shield_outlined,
-                            size: 12,
-                            color: kWhite.withValues(alpha: 0.90),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            role ?? 'User',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: kWhite.withValues(alpha: 0.95),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (phone != null && phone!.isNotEmpty) ...[
-                      const SizedBox(width: 12),
-                      Icon(
-                        Icons.phone_outlined,
-                        size: 14,
-                        color: kWhite.withValues(alpha: 0.65),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        phone!,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: kWhite.withValues(alpha: 0.75),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ],
+                _buildSheetAction(
+                  icon: Icons.info_outline_rounded,
+                  title: 'About Orca',
+                  subtitle: 'Learn more about the product',
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _openScreen(const AboutUs());
+                  },
+                ),
+                _buildSheetAction(
+                  icon: Icons.headset_mic_outlined,
+                  title: 'Help & Support',
+                  subtitle: 'Reach out to our support team',
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _openScreen(const ContactUs());
+                  },
+                ),
+                _buildSheetAction(
+                  icon: Icons.delete_outline_rounded,
+                  title: 'Delete Account',
+                  subtitle: 'Permanently remove this profile',
+                  titleColor: kRed,
+                  iconColor: kRed,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _openScreen(DeleteAccount());
+                  },
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  // ─── Appearance card ─────────────────────────────────────────────────────
+  String _displayName(UserModel? user) {
+    final apiName = user?.fullName.trim() ?? '';
+    if (apiName.isNotEmpty) return apiName;
 
-  Widget _buildAppearanceCard() {
-    return GlassContainer(
-      borderRadius: BorderRadius.circular(kRadiusMD),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: kBlue.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(kRadiusSM),
-                ),
-                child: const Icon(
-                  Icons.brightness_6_rounded,
-                  color: kBlue,
-                  size: 20,
-                ),
+    final storedName = _fallbackName?.trim() ?? '';
+    if (storedName.isNotEmpty) return storedName;
+
+    return 'Profile User';
+  }
+
+  String _emailOrFallback(UserModel? user) {
+    final email = user?.emailAddress.trim() ?? '';
+    if (email.isNotEmpty) return email;
+
+    final phone = _phone?.trim() ?? '';
+    if (phone.isNotEmpty) return phone;
+
+    return 'Profile details unavailable';
+  }
+
+  String _initials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    if (parts.isNotEmpty) {
+      return parts.first[0].toUpperCase();
+    }
+    return 'P';
+  }
+
+  Color _pageBackground(AppColors col) {
+    return context.isDark ? col.bg : const Color(0xFFF6F7FE);
+  }
+
+  Color _primaryBlue(AppColors col) {
+    return context.isDark ? const Color(0xFF8FB6FF) : const Color(0xFF1C55D6);
+  }
+
+  Color _headlineColor(AppColors col) {
+    return context.isDark ? col.textPrimary : const Color(0xFF172E69);
+  }
+
+  Color _supportingTextColor(AppColors col) {
+    return context.isDark ? col.textSecondary : const Color(0xFF536995);
+  }
+
+  Color _sectionLabelColor(AppColors col) {
+    return context.isDark ? col.textSecondary : const Color(0xFF6B7EAA);
+  }
+
+  Color _groupBackground(AppColors col) {
+    return context.isDark ? col.surface : const Color(0xFFEFF2FF);
+  }
+
+  Color _iconBackground(AppColors col) {
+    return context.isDark
+        ? kBlue.withValues(alpha: 0.16)
+        : const Color(0xFFD9E6FF);
+  }
+
+  Color _activeOptionFill(AppColors col) {
+    return context.isDark ? col.surface : kWhite;
+  }
+
+  Color _inactiveOptionFill(AppColors col) {
+    return context.isDark ? col.surface.withValues(alpha: 0.78) : kWhite;
+  }
+
+  Color _logoutBackground(AppColors col) {
+    return context.isDark ? const Color(0xFF40242B) : const Color(0xFFF4DFE8);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final col = context.col;
+
+    return Obx(() {
+      final user = _userController.user.value;
+      final displayName = _displayName(user);
+      final email = _emailOrFallback(user);
+
+      return Scaffold(
+        backgroundColor: _pageBackground(col),
+        body: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: _refreshProfile,
+            color: _primaryBlue(col),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Appearance',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: context.col.textPrimary,
-                      ),
+              children: [
+                _buildTopBar(col),
+                const SizedBox(height: 28),
+                _buildProfileBlock(
+                  col: col,
+                  user: user,
+                  displayName: displayName,
+                  email: email,
+                ),
+                const SizedBox(height: 34),
+                _buildSectionLabel('Appearance', col),
+                const SizedBox(height: 14),
+                _buildAppearanceSelector(col),
+                const SizedBox(height: 34),
+                _buildSectionLabel('General Settings', col),
+                const SizedBox(height: 14),
+                _buildSettingsCard(
+                  col,
+                  [
+                    _buildSettingsTile(
+                      col: col,
+                      icon: Icons.person_rounded,
+                      title: 'Account Details',
+                      subtitle: 'Profile info and address',
+                      onTap: () => _openScreen(const AccountScreen()),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Choose your preferred theme',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: context.col.textSecondary,
+                    _buildSettingsTile(
+                      col: col,
+                      icon: Icons.notifications_active_outlined,
+                      title: 'Notifications',
+                      subtitle: 'Alerts and app sounds',
+                      onTap: _openNotifications,
+                    ),
+                    _buildSettingsTile(
+                      col: col,
+                      icon: Icons.lock_reset_rounded,
+                      title: 'Change Password',
+                      subtitle: 'Security and authentication',
+                      onTap: () => _openScreen(ChangePassword()),
+                    ),
+                    if (_role == 'Admin')
+                      _buildSettingsTile(
+                        col: col,
+                        icon: Icons.groups_rounded,
+                        title: 'Managers',
+                        subtitle: 'Add and manage transport managers',
+                        onTap: () => _openScreen(const ManagerScreen()),
                       ),
+                  ],
+                ),
+                const SizedBox(height: 34),
+                _buildSectionLabel('Information', col),
+                const SizedBox(height: 14),
+                _buildSettingsCard(
+                  col,
+                  [
+                    _buildSettingsTile(
+                      col: col,
+                      icon: Icons.verified_user_outlined,
+                      title: 'Privacy Policy',
+                      subtitle: 'Your data and privacy rights',
+                      onTap: () => _openScreen(PrivacyPolicy()),
+                    ),
+                    _buildSettingsTile(
+                      col: col,
+                      icon: Icons.description_outlined,
+                      title: 'Terms of Service',
+                      subtitle: 'User agreement and guidelines',
+                      onTap: () => _openScreen(const TermsAndConditions()),
                     ),
                   ],
+                ),
+                const SizedBox(height: 34),
+                _buildLogoutButton(col),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildTopBar(AppColors col) {
+    final accent = _primaryBlue(col);
+
+    return Row(
+      children: [
+        _TopBarButton(
+          icon: Icons.arrow_back_rounded,
+          color: accent,
+          onTap: _handleBack,
+        ),
+        const SizedBox(width: 10),
+        Text(
+          'Profile',
+          style: TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.w700,
+            color: accent,
+          ),
+        ),
+        const Spacer(),
+        _TopBarButton(
+          icon: Icons.settings_rounded,
+          color: accent,
+          onTap: _showQuickActions,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileBlock({
+    required AppColors col,
+    required UserModel? user,
+    required String displayName,
+    required String email,
+  }) {
+    final accent = _primaryBlue(col);
+    final imageUrl = user?.profileImage.trim() ?? '';
+    final hasImage = imageUrl.isNotEmpty;
+
+    return Column(
+      children: [
+        SizedBox(
+          width: 152,
+          height: 150,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 130,
+                height: 130,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: context.isDark
+                      ? col.surface
+                      : const Color(0xFFE9D8BE),
+                  border: Border.all(color: kWhite, width: 5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: context.isDark ? 0.20 : 0.08,
+                      ),
+                      blurRadius: 24,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: hasImage
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildAvatarFallback(
+                              col: col,
+                              displayName: displayName,
+                            );
+                          },
+                        )
+                      : _buildAvatarFallback(
+                          col: col,
+                          displayName: displayName,
+                        ),
+                ),
+              ),
+              Positioned(
+                right: 12,
+                bottom: 10,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _openScreen(const AccountScreen()),
+                    borderRadius: BorderRadius.circular(22),
+                    child: Ink(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: accent,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: accent.withValues(alpha: 0.28),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.edit_rounded, color: kWhite),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Obx(() {
-            final ctrl = ThemeController.to;
-            return Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: context.col.bg.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(kRadiusMD),
-              ),
-              child: Row(
-                children: [
-                  _themeOption(
-                    'System',
-                    Icons.brightness_auto_rounded,
-                    ThemeMode.system,
-                    ctrl,
-                  ),
-                  _themeOption(
-                    'Light',
-                    Icons.light_mode_rounded,
-                    ThemeMode.light,
-                    ctrl,
-                  ),
-                  _themeOption(
-                    'Dark',
-                    Icons.dark_mode_rounded,
-                    ThemeMode.dark,
-                    ctrl,
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          displayName,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            height: 1.1,
+            color: _headlineColor(col),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          email,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            color: _supportingTextColor(col),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAvatarFallback({
+    required AppColors col,
+    required String displayName,
+  }) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: context.isDark
+              ? const [Color(0xFF2D3652), Color(0xFF1C2440)]
+              : const [Color(0xFFDAB98B), Color(0xFF8A6A46)],
+        ),
       ),
+      child: Center(
+        child: Text(
+          _initials(displayName),
+          style: const TextStyle(
+            color: kWhite,
+            fontSize: 34,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _themeOption(
-    String label,
-    IconData icon,
-    ThemeMode themeMode,
-    ThemeController ctrl,
-  ) {
-    final isActive = ctrl.mode.value == themeMode;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => ctrl.setMode(themeMode),
+  Widget _buildSectionLabel(String text, AppColors col) {
+    return Text(
+      text.toUpperCase(),
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 2.2,
+        color: _sectionLabelColor(col),
+      ),
+    );
+  }
+
+  Widget _buildAppearanceSelector(AppColors col) {
+    return Obx(() {
+      final controller = ThemeController.to;
+      return Row(
+        children: [
+          Expanded(
+            child: _buildThemeOption(
+              col: col,
+              label: 'Light',
+              icon: Icons.light_mode_rounded,
+              themeMode: ThemeMode.light,
+              controller: controller,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildThemeOption(
+              col: col,
+              label: 'Dark',
+              icon: Icons.dark_mode_rounded,
+              themeMode: ThemeMode.dark,
+              controller: controller,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildThemeOption(
+              col: col,
+              label: 'System',
+              icon: Icons.settings_suggest_rounded,
+              themeMode: ThemeMode.system,
+              controller: controller,
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildThemeOption({
+    required AppColors col,
+    required String label,
+    required IconData icon,
+    required ThemeMode themeMode,
+    required ThemeController controller,
+  }) {
+    final isSelected = controller.mode.value == themeMode;
+    final accent = _primaryBlue(col);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => controller.setMode(themeMode),
+        borderRadius: BorderRadius.circular(24),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          height: 112,
           decoration: BoxDecoration(
-            color: isActive ? kBlue : Colors.transparent,
-            borderRadius: BorderRadius.circular(kRadiusSM),
+            color: isSelected ? _activeOptionFill(col) : _inactiveOptionFill(col),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isSelected
+                  ? accent
+                  : context.isDark
+                  ? Colors.transparent
+                  : const Color(0xFFE7EBFB),
+              width: isSelected ? 2 : 1,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.12),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ]
+                : [],
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                color: isActive ? kWhite : context.col.textSecondary,
-                size: 18,
+                size: 28,
+                color: isSelected ? accent : _supportingTextColor(col),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 14),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: isActive ? kWhite : context.col.textSecondary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? accent : _headlineColor(col),
                 ),
               ),
             ],
@@ -524,53 +638,163 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // ─── Section label ───────────────────────────────────────────────────────
-
-  Widget _buildSectionLabel(String text) {
-    return Text(
-      text.toUpperCase(),
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        color: context.col.textSecondary,
-        letterSpacing: 1.0,
+  Widget _buildSettingsCard(AppColors col, List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: _groupBackground(col),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: context.isDark ? 0.16 : 0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          for (int index = 0; index < children.length; index++) ...[
+            children[index],
+            if (index < children.length - 1) const SizedBox(height: 6),
+          ],
+        ],
       ),
     );
   }
 
-  // ─── Card ────────────────────────────────────────────────────────────────
-
-  Widget _buildCard(List<Widget> children) {
-    return GlassContainer(
-      borderRadius: BorderRadius.circular(kRadiusMD),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _buildItem({
+  Widget _buildSettingsTile({
+    required AppColors col,
     required IconData icon,
-    required Color iconBg,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
-    Color? textColor,
   }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 54,
+                height: 54,
                 decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(kRadiusSM),
+                  color: _iconBackground(col),
+                  borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(icon, color: kWhite, size: 20),
+                child: Icon(icon, color: _primaryBlue(col), size: 26),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: _headlineColor(col),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: _supportingTextColor(col),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: _sectionLabelColor(col),
+                size: 24,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(AppColors col) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => ActionDialog(
+              title: 'Sign Out',
+              message: 'Are you sure you want to sign out?',
+              confirmText: 'Sign Out',
+              cancelText: 'Cancel',
+              onConfirm: () => _authController.logout(context),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(28),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: _logoutBackground(col),
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.logout_rounded, color: kRed, size: 24),
+              SizedBox(width: 12),
+              Text(
+                'Log Out',
+                style: TextStyle(
+                  color: kRed,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSheetAction({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Color? titleColor,
+    Color? iconColor,
+  }) {
+    final col = context.col;
+    final resolvedIconColor = iconColor ?? _primaryBlue(col);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: resolvedIconColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: resolvedIconColor),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -581,16 +805,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title,
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: textColor ?? context.col.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        color: titleColor ?? _headlineColor(col),
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
                       subtitle,
                       style: TextStyle(
                         fontSize: 13,
-                        color: context.col.textSecondary,
+                        color: _supportingTextColor(col),
                       ),
                     ),
                   ],
@@ -598,8 +822,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               Icon(
                 Icons.chevron_right_rounded,
-                color: context.col.border,
-                size: 20,
+                color: _sectionLabelColor(col),
               ),
             ],
           ),
@@ -607,33 +830,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+}
 
-  Widget _buildDivider() {
-    return Container(
-      margin: const EdgeInsets.only(left: 70),
-      height: 1,
-      color: context.col.divider,
-    );
-  }
+class _TopBarButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
 
-  // ─── Sign out ────────────────────────────────────────────────────────────
+  const _TopBarButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
-  Widget _buildSignOutButton() {
-    return DestructiveGradientButton(
-      icon: Icons.logout_rounded,
-      text: 'Sign Out',
-      onPressed: () {
-        showCupertinoDialog(
-          context: context,
-          builder: (context) => ActionDialog(
-            title: 'Sign Out',
-            message: 'Are you sure you want to sign out?',
-            confirmText: 'Sign Out',
-            cancelText: 'Cancel',
-            onConfirm: () => _authController.logout(context),
-          ),
-        );
-      },
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(icon, size: 28, color: color),
+        ),
+      ),
     );
   }
 }

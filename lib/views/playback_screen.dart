@@ -287,11 +287,11 @@ class PlaybackScreenState extends State<PlaybackScreen>
     if (mounted) setState(() {});
   }
 
-  /// Exponential zoom-to-iconSize, anchored so zoom 15 → 1.5 (original size).
+  /// Exponential zoom-to-iconSize, anchored so zoom 15 → 0.7 (smaller icon).
   /// Doubles every 3 zoom levels in; halves every 3 levels out.
-  /// zoom 9 → 0.38 | zoom 12 → 0.75 | zoom 15 → 1.5 | zoom 18 → 3.0 (capped)
+  /// zoom 9 → 0.18 | zoom 12 → 0.35 | zoom 15 → 0.7 | zoom 18 → 1.4 (capped)
   double _iconSizeForZoom(double zoom) =>
-      (1.5 * math.pow(2.0, (zoom - 15.0) / 3.0)).clamp(0.3, 2.5);
+      (0.7 * math.pow(2.0, (zoom - 15.0) / 3.0)).clamp(0.15, 1.4);
 
   Future<void> _updateVehicleIconSize() async {
     if (_vehicleAnnotation == null || _annotationManager == null) return;
@@ -1065,6 +1065,7 @@ class PlaybackScreenState extends State<PlaybackScreen>
             onMapCreated: (MapboxMap map) async {
               _mapboxMap = map;
               _isMapReady = true;
+              setState(() {});
               if (!_mapReadyCompleter.isCompleted) {
                 _mapReadyCompleter.complete();
               }
@@ -1143,40 +1144,40 @@ class PlaybackScreenState extends State<PlaybackScreen>
           ),
 
           // ── Immersive 3D mode toggle ───────────────────────────────────────
-          Positioned(
-            right: 16,
-            top: 252, // heading button top(196) + height(44) + gap(12)
-            child: Material(
-              elevation: 4,
-              borderRadius: BorderRadius.circular(12),
-              shadowColor: Colors.black.withValues(alpha: 0.2),
-              child: InkWell(
-                onTap: () => _toggleImmersiveMode(isDark: isDark),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: _isImmersiveMode
-                        ? kBlue.withValues(alpha: 0.15)
-                        : col.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _isImmersiveMode ? kBlue : Colors.transparent,
-                      width: _isImmersiveMode ? 1.5 : 0,
-                    ),
-                  ),
-                  child: Icon(
-                    _isImmersiveMode
-                        ? Icons.map_rounded
-                        : Icons.threed_rotation,
-                    color: _isImmersiveMode ? kBlue : col.textPrimary,
-                    size: 22,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          // Positioned(
+          //   right: 16,
+          //   top: 252, // heading button top(196) + height(44) + gap(12)
+          //   child: Material(
+          //     elevation: 4,
+          //     borderRadius: BorderRadius.circular(12),
+          //     shadowColor: Colors.black.withValues(alpha: 0.2),
+          //     child: InkWell(
+          //       onTap: () => _toggleImmersiveMode(isDark: isDark),
+          //       borderRadius: BorderRadius.circular(12),
+          //       child: Container(
+          //         width: 44,
+          //         height: 44,
+          //         decoration: BoxDecoration(
+          //           color: _isImmersiveMode
+          //               ? kBlue.withValues(alpha: 0.15)
+          //               : col.surface,
+          //           borderRadius: BorderRadius.circular(12),
+          //           border: Border.all(
+          //             color: _isImmersiveMode ? kBlue : Colors.transparent,
+          //             width: _isImmersiveMode ? 1.5 : 0,
+          //           ),
+          //         ),
+          //         child: Icon(
+          //           _isImmersiveMode
+          //               ? Icons.map_rounded
+          //               : Icons.threed_rotation,
+          //           color: _isImmersiveMode ? kBlue : col.textPrimary,
+          //           size: 22,
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+          // ),
 
           // ── Reactive overlay: loading / empty-state / active UI ──
           Obx(() {

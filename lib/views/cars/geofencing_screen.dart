@@ -6,6 +6,7 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/fetch_geofence_controller.dart';
 import 'package:atom/controllers/geo_fence_controller.dart';
 import 'package:atom/models/geofence_model.dart';
+import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/widgets/buttons/custom_button.dart';
 import 'package:atom/widgets/map/map_style_switcher.dart';
 import 'package:atom/widgets/modal/custom_alert.dart';
@@ -18,7 +19,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 class GeofencingScreen extends StatefulWidget {
   final String numberPlate;
 
-  GeofencingScreen({required this.numberPlate});
+  GeofencingScreen({required this.numberPlate, required Device device});
 
   @override
   _GeofencingScreenState createState() => _GeofencingScreenState();
@@ -603,6 +604,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
                 mapboxMap = map;
                 // Managers are created in onStyleLoadedListener so they are
                 // recreated on every style change, not just the first load.
+                setState(() {});
               },
               onStyleLoadedListener: (_) => _setupAnnotationManagers(),
               onTapListener: (context) => _onMapTap(context.point),

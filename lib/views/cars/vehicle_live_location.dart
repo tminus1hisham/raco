@@ -44,14 +44,16 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
   double _currentZoom = 15.0;
   Uint8List? carIcon;
 
+  // Cached icons per status
+  static Uint8List? _cachedGreenIcon;
+  static Uint8List? _cachedBlueIcon;
+  static Uint8List? _cachedRedIcon;
+
   StreamSubscription? _mqttSubscription;
+  Timer? _mqttRetryTimer;
 
   PointAnnotationManager? _annotationManager;
   PointAnnotation? _vehicleAnnotation;
-
-  // Shared across screen visits — decoding the PNG once saves ~100–200 ms on
-  // every subsequent open.
-  static Uint8List? _cachedCarIcon;
 
   late AnimationController _moveController;
   void Function()? _moveListener;
@@ -87,6 +89,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
   @override
   void dispose() {
     _moveController.dispose();
+    _mqttRetryTimer?.cancel();
     _unsubscribeFromVehicleTopic();
     _mqttSubscription?.cancel();
     _geofenceMonitor.reset();
@@ -96,11 +99,29 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
   // ─── MQTT ─────────────────────────────────────────────────────────────────
 
   void _subscribeToVehicleTopic() {
-    if (!_mqttService.isConnected) return;
-
     final topic = 'orca/payload/${widget.deviceId}';
-    _mqttService.subscribeToTopic(topic);
 
+    if (_mqttService.isConnected) {
+      _doMqttSubscribe(topic);
+    } else {
+      // MQTT not yet connected — retry every second until it comes up.
+      _mqttRetryTimer?.cancel();
+      _mqttRetryTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+        if (!mounted) {
+          t.cancel();
+          return;
+        }
+        if (_mqttService.isConnected) {
+          t.cancel();
+          _doMqttSubscribe(topic);
+        }
+      });
+    }
+  }
+
+  void _doMqttSubscribe(String topic) {
+    _mqttService.subscribeToTopic(topic);
+    _mqttSubscription?.cancel();
     _mqttSubscription = _mqttService.client.updates!.listen((messages) {
       final recMess = messages[0].payload as MqttPublishMessage;
       final payload = MqttPublishPayload.bytesToStringAsString(
@@ -114,7 +135,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
 
   void _unsubscribeFromVehicleTopic() {
     if (_mqttService.isConnected) {
-      _mqttService.unsubscribeFromTopic('vehicles/${widget.deviceId}');
+      _mqttService.unsubscribeFromTopic('orca/payload/${widget.deviceId}');
     }
   }
 
@@ -132,13 +153,21 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
 
       if (lat == 0.0 && lng == 0.0) return;
 
+      final newSpeed = data['Spd'] ?? '0';
       setState(() {
         numberPlate = data['Rg'] ?? numberPlate;
-        speed = data['Spd'] ?? '0';
+        speed = newSpeed;
         _bearing = double.tryParse(data['course']?.toString() ?? '0') ?? 0.0;
       });
 
-      if (_vehicleAnnotation != null) {
+      if (_vehicleAnnotation != null && _annotationManager != null &&
+          _cachedGreenIcon != null && _cachedBlueIcon != null && _cachedRedIcon != null) {
+        final speedVal = double.tryParse(newSpeed) ?? 0;
+        final newIcon = _iconForSpeed(speedVal);
+        if (_vehicleAnnotation!.image != newIcon) {
+          _vehicleAnnotation!.image = newIcon;
+          carIcon = newIcon;
+        }
         _vehicleAnnotation!.iconRotate = _bearing;
       }
 
@@ -213,12 +242,16 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
         await mapboxMap!.annotations.createPointAnnotationManager();
     if (!mounted) return;
     _annotationManager = manager;
+    final speedVal = double.tryParse(speed) ?? 0;
+    final icon = (_cachedGreenIcon != null && _cachedBlueIcon != null && _cachedRedIcon != null)
+        ? _iconForSpeed(speedVal)
+        : carIcon;
     final ann = await manager.create(
       PointAnnotationOptions(
         geometry: Point(
           coordinates: Position(_animLng, _animLat),
         ),
-        image: carIcon,
+        image: icon,
         iconSize: 1.6,
         iconRotate: _bearing,
         textField: numberPlate.toUpperCase(),
@@ -231,14 +264,19 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
 
   // ─── Icon loading ─────────────────────────────────────────────────────────
 
+  Uint8List _iconForSpeed(double speedVal) {
+    if (speedVal > 80) return _cachedRedIcon!;
+    if (speedVal > 0) return _cachedGreenIcon!;
+    return _cachedBlueIcon!;
+  }
+
   Future<void> _loadCarIcon() async {
-    if (_cachedCarIcon != null) {
-      carIcon = _cachedCarIcon;
-    } else {
-      carIcon = await _resizeAndLoadIcon('assets/green_car.png', 140);
-      _cachedCarIcon = carIcon;
-    }
+    _cachedGreenIcon ??= await _resizeAndLoadIcon('assets/green_car.png', 140);
+    _cachedBlueIcon ??= await _resizeAndLoadIcon('assets/blue_car.png', 90);
+    _cachedRedIcon ??= await _resizeAndLoadIcon('assets/red_car.png', 90);
     if (!mounted) return;
+    final speedVal = double.tryParse(speed) ?? 0;
+    carIcon = _iconForSpeed(speedVal);
     // If the annotation already exists (map loaded before icon), update it.
     if (_vehicleAnnotation != null && _annotationManager != null) {
       _vehicleAnnotation!.image = carIcon;
@@ -284,6 +322,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
                 _annotationManager = null;
                 _vehicleAnnotation = null;
                 mapboxMap = map;
+                setState(() {});
               },
               onStyleLoadedListener: (_) => _setupAnnotations(),
             ),

@@ -608,6 +608,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
         // Start listening for data
         _startListeningForData();
+
+        // Automatically request device data after a short settling delay
+        Future.delayed(const Duration(milliseconds: 600), () {
+          if (mounted && _isConnected) _retrieveDataFromDevice();
+        });
       } else {
         // Disconnected
         setState(() {
@@ -640,8 +645,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   List<bt_serial.BluetoothDevice> _getFilteredDevices() {
     return _pairedDevices.where((device) {
-      final name = device.name.toLowerCase();
-      return name.contains('atom speed');
+      return device.name.toLowerCase().contains('atom speed');
     }).toList();
   }
 
@@ -654,7 +658,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
     setState(() {
       _isScanning = true;
-      // Reset to paired ATOM Speed devices; scan will add any newly discovered ones
+      // Start with paired Atom Speed devices; scan appends newly discovered ones.
       _devices = _getFilteredDevices();
     });
 
@@ -663,10 +667,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       _discoverySubscription = _bluetoothSerial.onDeviceDiscovered.listen((
         device,
       ) {
-        final deviceName = device.name.toLowerCase();
-
-        // Check if device name contains "atom speed" (case-insensitive)
-        if (deviceName.contains('atom speed')) {
+        // Only show Atom Speed devices (paired or not).
+        if (device.name.toLowerCase().contains('atom speed')) {
           if (!_devices.any((d) => d.address == device.address)) {
             setState(() {
               _devices.add(device);
@@ -713,14 +715,20 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     });
 
     try {
-      // Use flutter_bluetooth_classic_serial package for connection
+      // For unpaired devices Android will surface the system pairing dialog
+      // when connect() is called — no need to leave the app.
       bool success = await _bluetoothSerial.connect(device.address);
       if (!success) {
         setState(() {
           _connectingDevices.remove(device.address);
           _selectedDevice = null;
         });
-        _showError('Failed to connect to ${device.name}');
+        if (!device.paired) {
+          // Pairing may not have completed — prompt the user to open settings
+          _showPairInSettingsDialog(device);
+        } else {
+          _showError('Failed to connect to ${device.name}');
+        }
       }
     } catch (e) {
       setState(() {
@@ -729,6 +737,104 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       });
       _showError('Connection error: $e');
     }
+  }
+
+  void _showPairInSettingsDialog(bt_serial.BluetoothDevice device) {
+    final col = context.col;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadiusLG),
+        ),
+        backgroundColor: col.surface,
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: kBlue.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.bluetooth_searching_rounded,
+                  size: 36,
+                  color: kBlue,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Pairing Required',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: col.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Could not pair with "${device.name}" automatically. Please pair it via Bluetooth settings, then return and connect.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: col.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.settings_bluetooth_rounded, size: 18),
+                  label: const Text('Open Bluetooth Settings'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kBlue,
+                    foregroundColor: kWhite,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(kRadiusMD),
+                    ),
+                  ),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    final uri = Platform.isAndroid
+                        ? Uri.parse('android.settings.BLUETOOTH_SETTINGS')
+                        : Uri.parse('App-prefs:Bluetooth');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: col.textPrimary,
+                    side: BorderSide(color: col.border),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(kRadiusMD),
+                    ),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _disconnectDevice() async {
@@ -901,6 +1007,101 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   Future<void> _retrieveDataFromDevice() async {
     await _sendCommand('GetORCAid>');
+  }
+
+  /// Returns true when the connected device already has a speed header
+  /// programmed (i.e., a non-empty LimiterID in its data).
+  bool get _hasHeader =>
+      _deviceData['LimiterID']?.toString().trim().isNotEmpty == true;
+
+  Future<void> _resetDeviceHeader() async {
+    if (!_isConnected) {
+      _showError('No device connected');
+      return;
+    }
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        final col = context.col;
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(kRadiusLG),
+          ),
+          backgroundColor: col.surface,
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: kRed.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.restart_alt_rounded, size: 36, color: kRed),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Reset Speed Header?',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: col.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'This will clear the existing speed header from the device. The device will need to be recalibrated afterwards.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: col.textSecondary, height: 1.4),
+                ),
+                const SizedBox(height: 28),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Navigator.of(ctx).pop();
+                      await _sendCommand('ResetHdr>');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kRed,
+                      foregroundColor: kWhite,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(kRadiusMD),
+                      ),
+                    ),
+                    child: const Text(
+                      'Yes, Reset Header',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: col.textPrimary,
+                      side: BorderSide(color: col.border),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(kRadiusMD),
+                      ),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _factoryResetDevice() async {
@@ -2110,8 +2311,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   }
 
   Widget _buildDeviceCard(bt_serial.BluetoothDevice device, bool isConnected) {
-    final deviceName = device.name;
+    final deviceName = device.name.isNotEmpty ? device.name : 'Unknown Device';
     final isConnecting = _connectingDevices[device.address] == true;
+    final isPaired = device.paired;
     final col = context.col;
 
     return Container(
@@ -2126,7 +2328,14 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
             offset: const Offset(0, 2),
           ),
         ],
-        border: isConnected ? Border.all(color: kBlue, width: 2) : null,
+        border: isConnected
+            ? Border.all(color: kBlue, width: 2)
+            : !isPaired
+                ? Border.all(
+                    color: Colors.orange.withValues(alpha: 0.6),
+                    width: 1.5,
+                  )
+                : null,
       ),
       child: ListTile(
         leading: Container(
@@ -2140,12 +2349,43 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           ),
           child: Icon(Icons.bluetooth, color: isConnected ? kBlue : kGrey),
         ),
-        title: Text(
-          deviceName,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: isConnected ? kBlue : col.textPrimary,
-          ),
+        title: Row(
+          children: [
+            Flexible(
+              child: Text(
+                deviceName,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isConnected ? kBlue : col.textPrimary,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (!isPaired) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: const Text(
+                  'New',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.orange,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
         subtitle: Text(
           device.address,
@@ -2156,7 +2396,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           ),
         ),
         trailing: SizedBox(
-          width: 120,
+          width: 130,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -2179,7 +2419,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                       borderRadius: BorderRadius.circular(kRadiusSM),
                     ),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
+                      horizontal: 14,
                       vertical: 8,
                     ),
                   ),
@@ -2189,17 +2429,17 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                 ElevatedButton(
                   onPressed: () => _connectToDevice(device),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: kBlue,
+                    backgroundColor: isPaired ? kBlue : Colors.orange,
                     foregroundColor: kWhite,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(kRadiusSM),
                     ),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
+                      horizontal: 10,
                       vertical: 8,
                     ),
                   ),
-                  child: const Text('Connect'),
+                  child: Text(isPaired ? 'Connect' : 'Pair & Connect'),
                 ),
             ],
           ),
@@ -2981,6 +3221,56 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   @override
   @override
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+    bool fullWidth = false,
+  }) {
+    final child = Container(
+      width: fullWidth ? double.infinity : null,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(kRadiusMD),
+        boxShadow: [
+          BoxShadow(
+            color: kBlack.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(kRadiusMD),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: kWhite, size: 22),
+                const SizedBox(width: 10),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: kWhite,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    return child;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final col = context.col;
 
@@ -3158,57 +3448,79 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           ),
                         ),
 
-                      // Calibration Button (only show when connected)
+                      // Calibration / header buttons (only show when connected)
                       if (_isConnected && _deviceData.isNotEmpty)
                         Column(
                           children: [
                             const SizedBox(height: 20),
-                            Container(
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                color: Colors.orange,
-                                borderRadius: BorderRadius.circular(kRadiusMD),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: kBlack.withValues(alpha: 0.2),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
+                            if (_hasHeader) ...[
+                              // Device already has a header — offer reset OR recalibrate
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: kWhite.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(kRadiusMD),
+                                  border: Border.all(
+                                    color: kWhite.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_outline,
+                                      color: kWhite,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Header already set (ID: ${_deviceData['LimiterID']})',
+                                        style: const TextStyle(
+                                          color: kWhite,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  // Reset header button
+                                  Expanded(
+                                    child: _buildActionButton(
+                                      icon: Icons.restart_alt_rounded,
+                                      label: 'Reset Header',
+                                      color: kRed,
+                                      onTap: _resetDeviceHeader,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Recalibrate speed button
+                                  Expanded(
+                                    child: _buildActionButton(
+                                      icon: Icons.speed,
+                                      label: 'Calibrate Speed',
+                                      color: Colors.orange,
+                                      onTap: _prepareCalibration,
+                                    ),
                                   ),
                                 ],
                               ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: _prepareCalibration,
-                                  borderRadius: BorderRadius.circular(
-                                    kRadiusMD,
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.speed,
-                                          color: kWhite,
-                                          size: 24,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          'Calibrate Device',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: kWhite,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                            ] else ...[
+                              // No header yet — show the standard calibrate button
+                              _buildActionButton(
+                                icon: Icons.speed,
+                                label: 'Calibrate Device',
+                                color: Colors.orange,
+                                onTap: _prepareCalibration,
+                                fullWidth: true,
                               ),
-                            ),
+                            ],
                           ],
                         ),
 

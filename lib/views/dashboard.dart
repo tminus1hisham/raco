@@ -25,9 +25,10 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-  int _selectedIndex = 0;
   String? role;
-  late final DashboardController _dashboardController = Get.put(DashboardController());
+  late final DashboardController _dashboardController = Get.put(
+    DashboardController(),
+  );
   late NotificationsController _notificationsController;
   late List<Widget> _screens;
 
@@ -80,9 +81,7 @@ class _DashboardState extends State<Dashboard> {
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    _dashboardController.setIndex(index);
   }
 
   @override
@@ -91,10 +90,17 @@ class _DashboardState extends State<Dashboard> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Obx(() => Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _screens),
-      bottomNavigationBar: _dashboardController.isNavVisible.value ? _buildBottomNav() : const SizedBox.shrink(),
-    ));
+    return Obx(
+      () => Scaffold(
+        body: IndexedStack(
+          index: _dashboardController.selectedIndex.value,
+          children: _screens,
+        ),
+        bottomNavigationBar: _dashboardController.isNavVisible.value
+            ? _buildBottomNav()
+            : const SizedBox.shrink(),
+      ),
+    );
   }
 
   Widget _buildBottomNav() {
@@ -147,7 +153,7 @@ class _DashboardState extends State<Dashboard> {
     required IconData activeIcon,
     required String label,
   }) {
-    final bool isSelected = _selectedIndex == index;
+    final bool isSelected = _dashboardController.selectedIndex.value == index;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _onItemTapped(index),
@@ -185,7 +191,7 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Widget _buildNotificationsNavItem() {
-    final bool isSelected = _selectedIndex == 1;
+    final bool isSelected = _dashboardController.selectedIndex.value == 1;
     final IconData icon = role == 'Technician'
         ? Icons.drive_eta_outlined
         : Icons.notifications_outlined;

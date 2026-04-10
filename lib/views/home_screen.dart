@@ -10,6 +10,7 @@ import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/cars/commands.dart';
+import 'package:atom/views/cars/geofencing_screen.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/views/cars/vehicle_live_location.dart';
 import 'package:atom/views/playback_screen.dart';
@@ -193,9 +194,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // ─── Icon & annotation helpers ───────────────────────────────────────────
 
+  bool _deviceHasViolation(Device device) {
+    final speedVal = double.tryParse(device.speed) ?? 0;
+    final isSpeeding = speedVal > 80;
+    final isSignalCut = device.signalStrength == 0;
+    final isPowerCut = device.vehicleBatteryVoltage;
+    return isSpeeding || isSignalCut || isPowerCut;
+  }
+
   Uint8List? _getImageForDevice(Device device) {
-    if (!device.isDeviceOnline) return customIcons['red'];
-    if (device.ignitionStatus == 1) return customIcons['green'];
+    if (!device.isDeviceOnline) return customIcons['grey'];
+    if (_deviceHasViolation(device)) return customIcons['red'];
+    final speedVal = double.tryParse(device.speed) ?? 0;
+    if (speedVal > 0) return customIcons['green'];
     return customIcons['blue'];
   }
 
@@ -216,8 +227,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       final lng = double.tryParse(device.longitude) ?? 36.8163;
       final rotation = double.tryParse(device.course) ?? 0.0;
       final iconBytes = _getImageForDevice(device);
-      final isSelected = _selectedVehiclePlate == device.numberPlate;
-      final iconSize = isSelected ? 2.0 : 1.2;
+      const iconSize = 1.2;
 
       if (_vehicleAnnotations.containsKey(device.numberPlate)) {
         final ann = _vehicleAnnotations[device.numberPlate]!;
@@ -430,10 +440,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
     customIcons['green'] = await _resizeAndLoadIcon(
       'assets/green_car.png',
-      140,
+      70,
     );
     customIcons['blue'] = await _resizeAndLoadIcon('assets/blue_car.png', 70);
     customIcons['red'] = await _resizeAndLoadIcon('assets/red_car.png', 90);
+    customIcons['grey'] = await _resizeAndLoadIcon('assets/grey_car.png', 180);
     _iconCache.addAll(customIcons);
   }
 
@@ -1529,8 +1540,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               );
             }),
             _navBarItem(Icons.grid_on_rounded, 'Fence', kSuccessGreen, () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Geofence coming soon')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => GeofencingScreen(numberPlate: device.numberPlate, device: device),
+                ),
               );
             }),
           ],
