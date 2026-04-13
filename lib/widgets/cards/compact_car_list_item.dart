@@ -16,9 +16,9 @@ class CompactCarListItem extends StatelessWidget {
   String _formatDuration(DateTime? lastUpdate) {
     if (lastUpdate == null) return "Offline";
     final diff = DateTime.now().difference(lastUpdate);
-    if (diff.inDays > 0) return "${diff.inDays}d${diff.inHours % 24}h";
-    if (diff.inHours > 0) return "${diff.inHours}h${diff.inMinutes % 60}m";
-    if (diff.inMinutes > 0) return "${diff.inMinutes}m";
+    if (diff.inDays > 0) return "${diff.inDays}d ${diff.inHours % 24}h ";
+    if (diff.inHours > 0) return "${diff.inHours}h ${diff.inMinutes % 60}m";
+    if (diff.inMinutes > 0) return " ${diff.inMinutes}m";
     return "Just now";
   }
 
@@ -29,7 +29,7 @@ class CompactCarListItem extends StatelessWidget {
       DateTime? updated = DateTime.tryParse(device.updatedAt);
       return _formatDuration(updated);
     } else if (speedVal > 0) {
-      return "${speedVal.toStringAsFixed(0)}km/h";
+      return "${speedVal.toStringAsFixed(0)} km/h";
     } else {
       DateTime? updated = DateTime.tryParse(device.updatedAt);
       String dur = updated != null ? _formatDuration(updated) : "";

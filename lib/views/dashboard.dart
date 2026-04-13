@@ -136,9 +136,9 @@ class _DashboardState extends State<Dashboard> {
               _buildNotificationsNavItem(),
               _buildNavItem(
                 index: 2,
-                icon: Icons.settings_outlined,
-                activeIcon: Icons.settings_rounded,
-                label: 'Settings',
+                icon: Icons.person_2_outlined ,
+                activeIcon: Icons.person_2,
+                label: 'Profile',
               ),
             ],
           ),

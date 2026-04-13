@@ -271,7 +271,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
   }
 
   Future<void> _loadCarIcon() async {
-    _cachedGreenIcon ??= await _resizeAndLoadIcon('assets/green_car.png', 140);
+    _cachedGreenIcon ??= await _resizeAndLoadIcon('assets/green_car.png', 70);
     _cachedBlueIcon ??= await _resizeAndLoadIcon('assets/blue_car.png', 90);
     _cachedRedIcon ??= await _resizeAndLoadIcon('assets/red_car.png', 90);
     if (!mounted) return;

@@ -225,12 +225,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     return Row(
       children: [
-        _TopIconButton(
-          icon: Icons.arrow_back_rounded,
-          color: titleColor,
-          onTap: _handleBack,
-        ),
-        const SizedBox(width: 8),
+        // _TopIconButton(
+        //   icon: Icons.arrow_back_rounded,
+        //   color: titleColor,
+        //   onTap: _handleBack,
+        // ),
+        // const SizedBox(width: 8),
         Text(
           'Alerts',
           style: TextStyle(

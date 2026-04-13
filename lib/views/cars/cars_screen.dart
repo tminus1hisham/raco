@@ -150,28 +150,28 @@ class _CarsScreenState extends State<CarsScreen> {
                 children: [
                   // App Bar
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 03, vertical: 0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () => Navigator.maybePop(context),
-                              child: Icon(Icons.arrow_back_ios, color: context.col.textPrimary),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              "Demo[$allCount/$onlineCount]",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: context.col.textPrimary,
-                              ),
-                            ),
-                          ],
+                          // children: [
+                          //   GestureDetector(
+                          //     onTap: () => Navigator.maybePop(context),
+                          //     child: Icon(Icons.arrow_back_ios, color: context.col.textPrimary),
+                          //   ),
+                          //   const SizedBox(width: 10),
+                          //   Text(
+                          //     "Demo[$allCount/$onlineCount]",
+                          //     style: TextStyle(
+                          //       fontSize: 18,
+                          //       fontWeight: FontWeight.bold,
+                          //       color: context.col.textPrimary,
+                          //     ),
+                          //   ),
+                          // ],
                         ),
-                        Icon(CupertinoIcons.person, color: context.col.textPrimary),
+                        // Icon(CupertinoIcons.person, color: context.col.textPrimary),
                       ],
                     ),
                   ),

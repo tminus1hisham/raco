@@ -3253,12 +3253,15 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               children: [
                 Icon(icon, color: kWhite, size: 22),
                 const SizedBox(width: 10),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: kWhite,
+                Flexible(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: kWhite,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

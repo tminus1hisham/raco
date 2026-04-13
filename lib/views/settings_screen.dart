@@ -361,12 +361,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Row(
       children: [
-        _TopBarButton(
-          icon: Icons.arrow_back_rounded,
-          color: accent,
-          onTap: _handleBack,
-        ),
-        const SizedBox(width: 10),
+        // _TopBarButton(
+        //   icon: Icons.arrow_back_rounded,
+        //   color: accent,
+        //   onTap: _handleBack,
+        // ),
+        // const SizedBox(width: 10),
         Text(
           'Profile',
           style: TextStyle(
