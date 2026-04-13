@@ -58,7 +58,7 @@ class _CarsScreenState extends State<CarsScreen> {
     if (_selectedFilter == "Online") {
       devices = devices.where((d) => d.isDeviceOnline).toList();
     } else if (_selectedFilter == "Offline") {
-      devices = devices.where((d) => !d.isDeviceOnline).toList();
+      devices = devices.where((d) => !d.isDeviceOnline && d.certificateActiveStatus).toList();
     } else if (_selectedFilter == "Inactivated") {
       devices = devices.where((d) => !d.certificateActiveStatus).toList();
     }
@@ -116,7 +116,7 @@ class _CarsScreenState extends State<CarsScreen> {
       final model = _controller.devicesModel.value;
       int allCount = model?.totalDevices ?? 0;
       int onlineCount = model?.onlineDevices ?? 0;
-      int offlineCount = model?.offlineDevices ?? 0;
+      int offlineCount = model?.devices.where((d) => !d.isDeviceOnline && d.certificateActiveStatus).length ?? 0;
       int inactivatedCount = model?.devices.where((d) => !d.certificateActiveStatus).length ?? 0;
 
       var devices = _filteredDevices;

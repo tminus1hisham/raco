@@ -33,7 +33,7 @@ class CompactCarListItem extends StatelessWidget {
     } else {
       DateTime? updated = DateTime.tryParse(device.updatedAt);
       String dur = updated != null ? _formatDuration(updated) : "";
-      return "Idle Speed$dur";
+      return "Idle - $dur";
     }
   }
 

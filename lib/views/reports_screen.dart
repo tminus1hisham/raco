@@ -406,7 +406,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               );
                             }
                           },
-                          label: "Donwload PDF",
+                          label: "Download PDF",
                           backgroundColor: kBlue,
                           txtColor: kWhite,
                         ),

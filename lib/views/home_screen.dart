@@ -653,6 +653,164 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  void _showFleetSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _buildFleetSelectorSheet(),
+    );
+  }
+
+  Widget _buildFleetSelectorSheet() {
+    final allDevices = _controller.devicesModel.value?.devices ?? [];
+    final groups = allDevices
+        .map((d) => d.group)
+        .where((g) => g.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.col.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(kRadiusLG),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: context.col.border,
+              borderRadius: BorderRadius.circular(kRadiusSM),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: Row(
+              children: [
+                const Icon(Icons.people_outline, color: kBlue, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Select Fleet',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: context.col.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: context.col.divider),
+          // "All" option
+          ListTile(
+            tileColor: context.col.surface,
+            onTap: () {
+              Navigator.pop(context);
+              setState(() => _selectedGroup = null);
+              _applyFilters();
+              _updateVehicleAnnotations(_filteredDevices);
+            },
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: kBlue.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(kRadiusMD),
+              ),
+              child: const Icon(Icons.select_all_rounded, color: kBlue, size: 20),
+            ),
+            title: Text(
+              'All Fleets',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: _selectedGroup == null ? FontWeight.w700 : FontWeight.w500,
+                color: _selectedGroup == null ? kBlue : context.col.textPrimary,
+              ),
+            ),
+            trailing: _selectedGroup == null
+                ? Container(
+                    width: 24,
+                    height: 24,
+                    decoration: const BoxDecoration(
+                      color: kBlue,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.check, color: kWhite, size: 14),
+                  )
+                : null,
+          ),
+          if (groups.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                'No fleets available',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: context.col.textSecondary,
+                ),
+              ),
+            )
+          else
+            ...groups.map((group) {
+              final isActive = _selectedGroup == group;
+              final count = allDevices.where((d) => d.group == group).length;
+              return ListTile(
+                tileColor: context.col.surface,
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() => _selectedGroup = group);
+                  _applyFilters();
+                  _updateVehicleAnnotations(_filteredDevices);
+                },
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: kBlue.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(kRadiusMD),
+                  ),
+                  child: const Icon(Icons.directions_car_outlined, color: kBlue, size: 20),
+                ),
+                title: Text(
+                  group,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                    color: isActive ? kBlue : context.col.textPrimary,
+                  ),
+                ),
+                subtitle: Text(
+                  '$count vehicle${count == 1 ? '' : 's'}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.col.textSecondary,
+                  ),
+                ),
+                trailing: isActive
+                    ? Container(
+                        width: 24,
+                        height: 24,
+                        decoration: const BoxDecoration(
+                          color: kBlue,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.check, color: kWhite, size: 14),
+                      )
+                    : null,
+              );
+            }),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+        ],
+      ),
+    );
+  }
+
   void _focusOnSearchedCar(Device device) {
     if (mapboxMap == null) return;
     final lat = double.tryParse(device.latitude) ?? -1.2842;
@@ -994,7 +1152,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       onTapListener: (MapContentGestureContext context) {
         _onMapTapped(context.point);
       },
-      onCameraChangeListener: (_) => _updateBannerPosition(),
+      onCameraChangeListener: (data) {
+        currentZoom = data.cameraState.zoom;
+        _updateBannerPosition();
+      },
     );
   }
 
@@ -1067,7 +1228,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       children: [
         _mapControlBtn(Icons.layers_outlined, _showMapStyleSelector),
         const SizedBox(height: 8),
-        _mapControlBtn(Icons.people_outline, () {}),
+        _mapControlBtn(
+          Icons.people_outline,
+          _showFleetSelector,
+          activeColor: _selectedGroup != null ? kBlue : kGrey,
+        ),
         const SizedBox(height: 8),
         _mapControlBtnLabel('A', () => _fitAllCarsOnMap(_filteredDevices)),
       ],
