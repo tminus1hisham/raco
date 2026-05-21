@@ -11,6 +11,7 @@ import 'package:atom/models/playback_model.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
@@ -38,16 +39,23 @@ class PlaybackScreenState extends State<PlaybackScreen>
   MapboxMap? _mapboxMap;
   final PlaybackController controller = Get.put(PlaybackController());
 
-  Timer? _playbackTimer;
-  AnimationController? _markerAnimController;
-  Animation<double>? _markerAnimation;
-  Position? _lastPosition;
-  double _startLng = 0,
-      _startLat = 0,
-      _endLng = 0,
-      _endLat = 0,
-      _startBearing = 0,
-      _endBearing = 0;
+  // Continuous motion loop. A single Ticker drives the marker at frame rate
+  // along the entire matched route. Replaces the previous per-segment
+  // AnimationController approach — segment-restart caused micro-stalls and
+  // re-snapped the bearing curve at every vertex.
+  Ticker? _movementTicker;
+  // Distance travelled along the route, in metres. Position is derived from
+  // this value by binary-searching [_cumDist].
+  double _progressMeters = 0.0;
+  int _lastTickMs = 0;
+  // Throttles the per-frame ValueNotifier updates so the info panel /
+  // scrubber rebuild ~12 fps instead of 60 fps.
+  int _lastIndexEmitMs = 0;
+  // Cumulative distance to each route vertex (length == _routeCoords.length).
+  // _cumDist[i] is the distance from coords[0] to coords[i] in metres.
+  List<double> _cumDist = const [];
+  // Bearing of each route segment (length == _routeCoords.length - 1).
+  List<double> _segmentBearings = const [];
   int _currentIndex = 0;
   // Drives the info-panel rebuild without calling setState on the full tree.
   final ValueNotifier<int> _currentIndexNotifier = ValueNotifier(0);
@@ -93,6 +101,15 @@ class PlaybackScreenState extends State<PlaybackScreen>
   Uint8List? _startMarkerImg;
   Uint8List? _stopMarkerImg;
 
+  // Road-snapped polyline coordinates from the Map Matching API. The vehicle
+  // animates along THESE (not raw GPS) so it stays exactly on the drawn route.
+  List<Position> _routeCoords = [];
+  // For each entry in [_routeCoords], the index of the nearest raw history
+  // record. Powers the info panel + scrubber so on-screen telemetry still
+  // reflects real GPS timestamps/speeds even though the marker walks a
+  // snapped path.
+  List<int> _routeToHistoryIdx = [];
+
   @override
   void initState() {
     super.initState();
@@ -109,10 +126,15 @@ class PlaybackScreenState extends State<PlaybackScreen>
     setState(() {
       _currentIndex = 0;
       _isPlaying = false;
-      _playbackTimer?.cancel();
     });
+    _movementTicker?.stop();
+    _progressMeters = 0.0;
     _markerVisible = false;
     _currentIndexNotifier.value = 0;
+    _routeCoords = [];
+    _routeToHistoryIdx = [];
+    _cumDist = const [];
+    _segmentBearings = const [];
 
     final String startFormatted = _startDate!
         .add(const Duration(days: 1))
@@ -200,10 +222,15 @@ class PlaybackScreenState extends State<PlaybackScreen>
   Future<void> _drawRoute(List<DeviceRecord> history) async {
     if (_mapboxMap == null || history.isEmpty) return;
 
-    // Fetch road-snapped coordinates from the Map Matching API.
-    // Falls back to straight GPS lines for any chunk that fails.
-    final lineCoords = await _fetchMatchedRoute(history);
-    if (lineCoords.isEmpty) return;
+    // Fetch road-snapped coordinates once, then reuse across style switches.
+    // _fetchHistoryData clears the cache when the date range changes.
+    if (_routeCoords.isEmpty) {
+      final lineCoords = await _fetchMatchedRoute(history);
+      if (lineCoords.isEmpty) return;
+      _routeCoords = lineCoords;
+      _routeToHistoryIdx = _mapRouteToHistory(lineCoords, history);
+      _computeRouteMetrics();
+    }
 
     _polylineAnnotationManager ??= await _mapboxMap!.annotations
         .createPolylineAnnotationManager();
@@ -214,12 +241,71 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
     await _polylineAnnotationManager!.create(
       PolylineAnnotationOptions(
-        geometry: LineString(coordinates: lineCoords),
+        geometry: LineString(coordinates: _routeCoords),
         lineColor: 0xFF2563EB,
         lineWidth: 4.5,
         lineOpacity: 0.85,
       ),
     );
+  }
+
+  /// Pre-computes cumulative arc-length and segment bearings for
+  /// [_routeCoords]. Called once per route fetch; the motion loop and the
+  /// lookahead bearing rely on these arrays being in sync with the geometry.
+  void _computeRouteMetrics() {
+    if (_routeCoords.length < 2) {
+      _cumDist = _routeCoords.isEmpty ? const [] : [0.0];
+      _segmentBearings = const [];
+      return;
+    }
+    final n = _routeCoords.length;
+    final cum = List<double>.filled(n, 0.0);
+    final bearings = List<double>.filled(n - 1, 0.0);
+    double sum = 0.0;
+    for (int i = 0; i < n - 1; i++) {
+      final a = _routeCoords[i];
+      final b = _routeCoords[i + 1];
+      final aLat = a.lat.toDouble(), aLng = a.lng.toDouble();
+      final bLat = b.lat.toDouble(), bLng = b.lng.toDouble();
+      sum += _haversineDistance(aLat, aLng, bLat, bLng);
+      cum[i + 1] = sum;
+      bearings[i] = _calculateBearing(LatLng(aLat, aLng), LatLng(bLat, bLng));
+    }
+    _cumDist = cum;
+    _segmentBearings = bearings;
+  }
+
+  /// Builds a length-N list mapping each matched route coord to the nearest
+  /// raw [history] index. Walks monotonically forward with a hint to stay
+  /// O(n+m) on long trips; never lets the hint regress so the resolved raw
+  /// index stays in temporal order even if the matched geometry briefly
+  /// loops back near a previously-visited road.
+  List<int> _mapRouteToHistory(
+    List<Position> route,
+    List<DeviceRecord> history,
+  ) {
+    if (route.isEmpty || history.isEmpty) return [];
+    final result = List<int>.filled(route.length, 0);
+    int hint = 0;
+    for (int i = 0; i < route.length; i++) {
+      final pLat = route[i].lat.toDouble();
+      final pLng = route[i].lng.toDouble();
+      int bestIdx = hint;
+      double bestDist = double.infinity;
+      final end = math.min(history.length, hint + 200);
+      for (int j = hint; j < end; j++) {
+        final r = history[j];
+        if (!r.hasValidCoords) continue;
+        final d = _haversineDistance(pLat, pLng, r.latD, r.lngD);
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = j;
+        }
+      }
+      if (bestIdx > hint) hint = bestIdx;
+      result[i] = bestIdx;
+    }
+    return result;
   }
 
   Future<void> _generateConditionalMarkers(List<DeviceRecord> history) async {
@@ -267,14 +353,19 @@ class PlaybackScreenState extends State<PlaybackScreen>
       ),
     );
 
-    final bearing = _getCurrentBearing(history, 0);
+    // Place the vehicle on the matched route's first vertex (not raw GPS)
+    // so it sits exactly on the drawn polyline from frame 0.
+    final initialPos = _routeCoords.isNotEmpty
+        ? _routeCoords.first
+        : Position(startRec.lngD, startRec.latD);
+    final bearing = (_routeCoords.isNotEmpty && _cumDist.length >= 2)
+        ? _lookaheadBearing(0.0)
+        : _getCurrentBearing(history, 0);
     _currentBearing = bearing;
-    _lastPosition = Position(startRec.lngD, startRec.latD);
+    _progressMeters = 0.0;
     _vehicleAnnotation = await _annotationManager!.create(
       PointAnnotationOptions(
-        geometry: Point(
-          coordinates: Position(startRec.lngD, startRec.latD),
-        ),
+        geometry: Point(coordinates: initialPos),
         image: _carMarkerIcon!,
         iconSize: _iconSizeForZoom(_currentZoom),
         iconRotate: bearing,
@@ -313,20 +404,19 @@ class PlaybackScreenState extends State<PlaybackScreen>
     final history = controller.history.toList();
     if (history.isEmpty) return;
     await _generateConditionalMarkers(history);
-    // _generateConditionalMarkers always places the vehicle at index 0 with
-    // iconOpacity 0.0. Restore the correct position and make it visible if
-    // playback was started before the style switch.
-    if (_markerVisible && _vehicleAnnotation != null && _annotationManager != null) {
-      final idx = _currentIndex.clamp(0, history.length - 1);
-      final rec = history[idx];
-      if (rec.hasValidCoords) {
-        _vehicleAnnotation!.geometry = Point(
-          coordinates: Position(rec.lngD, rec.latD),
-        );
-        _vehicleAnnotation!.iconRotate = _currentBearing;
-        _vehicleAnnotation!.iconOpacity = 1.0;
-        await _annotationManager!.update(_vehicleAnnotation!);
-      }
+    // _generateConditionalMarkers always places the vehicle at route index 0
+    // with iconOpacity 0.0. Restore the correct position on the matched
+    // route (not raw GPS) and make it visible if playback was started before
+    // the style switch.
+    if (_markerVisible &&
+        _vehicleAnnotation != null &&
+        _annotationManager != null &&
+        _routeCoords.isNotEmpty) {
+      final idx = _currentIndex.clamp(0, _routeCoords.length - 1);
+      _vehicleAnnotation!.geometry = Point(coordinates: _routeCoords[idx]);
+      _vehicleAnnotation!.iconRotate = _currentBearing;
+      _vehicleAnnotation!.iconOpacity = 1.0;
+      await _annotationManager!.update(_vehicleAnnotation!);
     }
   }
 
@@ -350,137 +440,208 @@ class PlaybackScreenState extends State<PlaybackScreen>
       _preImmersiveZoom = _currentZoom;
       setState(() => _isImmersiveMode = true);
       await _switchMapStyle(MapboxStyles.STANDARD);
-      final history = controller.history;
-      if (history.isNotEmpty) {
-        final rec = history[_currentIndex.clamp(0, history.length - 1)];
-        if (rec.hasValidCoords) {
-          await _mapboxMap?.flyTo(
-            CameraOptions(
-              center: Point(coordinates: Position(rec.lngD, rec.latD)),
-              // 82° pitch + zoom 18 places the camera at near-building eye-level,
-              // looking almost horizontally along the road — matching the
-              // "elevated building" perspective of Google's immersive view.
-              pitch: 82.0,
-              zoom: 18.0,
-              bearing: _currentBearing,
-            ),
-            MapAnimationOptions(duration: 2500, startDelay: 0),
-          );
-        }
+      if (_routeCoords.isNotEmpty) {
+        final pos = _routeCoords[_currentIndex.clamp(0, _routeCoords.length - 1)];
+        await _mapboxMap?.flyTo(
+          CameraOptions(
+            center: Point(coordinates: pos),
+            // 82° pitch + zoom 18 places the camera at near-building eye-level,
+            // looking almost horizontally along the road — matching the
+            // "elevated building" perspective of Google's immersive view.
+            pitch: 82.0,
+            zoom: 18.0,
+            bearing: _currentBearing,
+          ),
+          MapAnimationOptions(duration: 2500, startDelay: 0),
+        );
       }
     }
   }
 
-  void _updateVehicleMarker(int index, List<DeviceRecord> history) {
+  // ─── CONTINUOUS-MOTION ENGINE ────────────────────────────────────────────
+  //
+  // The vehicle's position is a single scalar: [_progressMeters] along the
+  // route. A Ticker advances that scalar by speed × dt every frame, and
+  // [_renderAtProgress] turns it back into (lng, lat, bearing).
+  //
+  // This replaces the previous segment-by-segment AnimationController model
+  // which restarted a new curve at every vertex of the matched route, causing
+  // micro-stalls between segments and re-snapping the bearing baseline each
+  // time. With one continuous loop, motion has no boundaries — the bearing
+  // chases a lookahead point smoothly through corners, exactly like a driver
+  // looking ahead instead of at the bumper.
+
+  void _ensureTicker() {
+    _movementTicker ??= createTicker(_onTick);
+  }
+
+  void _onTick(Duration _) {
+    if (!_isPlaying) return;
+    if (_routeCoords.length < 2 || _cumDist.length < 2) return;
+    final totalDist = _cumDist.last;
+    if (totalDist <= 0) return;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    // First tick after start/resume has no baseline — assume one 60 fps frame
+    // so we don't jump forward by however long the app was paused.
+    final dtMs = _lastTickMs == 0 ? 16 : (now - _lastTickMs).clamp(1, 100);
+    _lastTickMs = now;
+    final dtSec = dtMs / 1000.0;
+
+    // Base playback rate: 100 m/s at _playbackSpeed = 1.0. Default 0.5×
+    // → 50 m/s (~180 km/h), matching the old `dist * 10ms` pacing.
+    final curveScale = _speedScaleForCurve(_progressMeters);
+    final speedMps = 100.0 * _playbackSpeed * curveScale;
+
+    _progressMeters += speedMps * dtSec;
+
+    if (_progressMeters >= totalDist) {
+      _progressMeters = totalDist;
+      _renderAtProgress(_progressMeters);
+      _onPlaybackComplete();
+      return;
+    }
+
+    _renderAtProgress(_progressMeters);
+  }
+
+  /// Renders the marker + camera at a given distance along the route.
+  /// Safe to call from outside the ticker (used by scrub/stop/seek).
+  void _renderAtProgress(double prog) {
     if (_vehicleAnnotation == null || _annotationManager == null) return;
-    if (index < 0 || index >= history.length) return;
+    if (_routeCoords.length < 2 || _cumDist.length < 2) return;
 
-    final rec = history[index];
-    if (!rec.hasValidCoords) {
-      if (_isPlaying) Future.microtask(() => _playNextSegment(history));
-      return;
-    }
+    final seg = _findSegment(prog);
+    final segStart = _cumDist[seg];
+    final segLen = _cumDist[seg + 1] - segStart;
+    final t = segLen > 0 ? ((prog - segStart) / segLen).clamp(0.0, 1.0) : 0.0;
 
-    final targetBearing = _getLookaheadBearing(history, index);
-    final newPosition = Position(rec.lngD, rec.latD);
+    final a = _routeCoords[seg];
+    final b = _routeCoords[seg + 1];
+    final aLng = a.lng.toDouble(), aLat = a.lat.toDouble();
+    final bLng = b.lng.toDouble(), bLat = b.lat.toDouble();
+    final lng = aLng + (bLng - aLng) * t;
+    final lat = aLat + (bLat - aLat) * t;
 
-    // Smooth shortest-path angular interpolation so the icon rotates
-    // gradually at corners rather than snapping to the new heading.
+    // Smooth bearing toward a lookahead point ~12 m ahead. Per-frame lerp at
+    // 0.18 gives a ~110 ms time constant: anticipates corners (because the
+    // lookahead enters the curve before we do), then straightens gradually
+    // as the lookahead exits — exactly how a human driver steers.
+    final targetBearing = _lookaheadBearing(prog);
     final diff = ((targetBearing - _currentBearing + 180) % 360) - 180;
-    final newBearing = (_currentBearing + diff * 0.4 + 360) % 360;
+    _currentBearing = (_currentBearing + diff * 0.18 + 360) % 360;
 
-    if (_lastPosition == null) {
-      _lastPosition = newPosition;
-      _currentBearing = newBearing;
-      _vehicleAnnotation!.geometry = Point(coordinates: newPosition);
-      _vehicleAnnotation!.iconRotate = _currentBearing;
-      _annotationManager!.update(_vehicleAnnotation!);
-      if (_isPlaying) Future.microtask(() => _playNextSegment(history));
-      return;
+    _vehicleAnnotation!.geometry = Point(coordinates: Position(lng, lat));
+    _vehicleAnnotation!.iconRotate = _currentBearing;
+    _annotationManager!.update(_vehicleAnnotation!);
+
+    // Per-frame instantaneous camera. setCamera is intentional — easeTo at
+    // 60 fps stacks overlapping animations and visibly lags. In immersive
+    // mode pitch/zoom are pinned each frame so pinch corrections cannot
+    // flatten the view mid-playback.
+    try {
+      _mapboxMap?.setCamera(
+        CameraOptions(
+          center: Point(coordinates: Position(lng, lat)),
+          bearing:
+              (_headingUp || _isImmersiveMode) ? _currentBearing : null,
+          pitch: _isImmersiveMode ? 82.0 : null,
+          zoom: _isImmersiveMode ? 18.0 : null,
+        ),
+      );
+    } catch (_) {}
+
+    // Throttle scrubber / info-panel updates to ~12 fps. UI doesn't need
+    // 60 fps and full ValueListenable rebuilds at frame rate cost frames.
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    if (seg != _currentIndex && nowMs - _lastIndexEmitMs > 80) {
+      _lastIndexEmitMs = nowMs;
+      _currentIndex = seg;
+      _currentIndexNotifier.value = seg;
     }
+  }
 
-    final startPosition = _lastPosition!;
-    final startBearing = _currentBearing;
+  void _onPlaybackComplete() {
+    _movementTicker?.stop();
+    if (mounted) setState(() => _isPlaying = false);
+  }
 
-    _lastPosition = newPosition;
-    _currentBearing = newBearing;
+  /// Binary-searches for the segment that contains [prog]: the largest i with
+  /// _cumDist[i] ≤ prog. Returns a value in [0, _cumDist.length - 2].
+  int _findSegment(double prog) {
+    if (_cumDist.length < 2) return 0;
+    if (prog <= 0) return 0;
+    if (prog >= _cumDist.last) return _cumDist.length - 2;
+    int lo = 0, hi = _cumDist.length - 1;
+    while (hi - lo > 1) {
+      final mid = (lo + hi) >> 1;
+      if (_cumDist[mid] <= prog) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    return lo;
+  }
 
-    final double dist = _haversineDistance(
-      startPosition.lat.toDouble(),
-      startPosition.lng.toDouble(),
-      newPosition.lat.toDouble(),
-      newPosition.lng.toDouble(),
+  (double lat, double lng) _positionAtProgress(double prog) {
+    final seg = _findSegment(prog);
+    final segStart = _cumDist[seg];
+    final segLen = _cumDist[seg + 1] - segStart;
+    final t = segLen > 0 ? ((prog - segStart) / segLen).clamp(0.0, 1.0) : 0.0;
+    final a = _routeCoords[seg];
+    final b = _routeCoords[seg + 1];
+    return (
+      a.lat.toDouble() + (b.lat.toDouble() - a.lat.toDouble()) * t,
+      a.lng.toDouble() + (b.lng.toDouble() - a.lng.toDouble()) * t,
     );
-    // Dynamic duration based on physical distance (10 ms per meter at 1.0x speed)
-    final int targetDurationMs = (dist * 10 ~/ _playbackSpeed).toInt();
-    final int durationMs = targetDurationMs.clamp(50, 3000);
+  }
 
-    if (_markerAnimController == null) {
-      _markerAnimController = AnimationController(
-        vsync: this,
-        duration: Duration(milliseconds: durationMs),
-      );
-      _markerAnimation = CurvedAnimation(
-        parent: _markerAnimController!,
-        curve: Curves.linear,
-      );
-      int lastFrameTime = 0;
-      _markerAnimation!.addListener(() {
-        if (_vehicleAnnotation == null || _annotationManager == null) return;
+  /// Bearing from the current position toward a point [_kLookAheadMeters]
+  /// ahead along the route. Clamps to the end so we don't try to look past
+  /// the route's tail.
+  double _lookaheadBearing(double prog) {
+    if (_routeCoords.length < 2 || _cumDist.length < 2) return _currentBearing;
+    const double lookAheadMeters = 12.0;
+    final totalDist = _cumDist.last;
+    final lookProg = math.min(prog + lookAheadMeters, totalDist);
 
-        final now = DateTime.now().millisecondsSinceEpoch;
-        if (now - lastFrameTime < 16) return; // ~60 FPS
-        lastFrameTime = now;
-
-        final t = _markerAnimation!.value;
-
-        final currentLng = _startLng + (_endLng - _startLng) * t;
-        final currentLat = _startLat + (_endLat - _startLat) * t;
-
-        final bearingDiff = ((_endBearing - _startBearing + 180) % 360) - 180;
-        final interpolatedBearing =
-            (_startBearing + bearingDiff * t + 360) % 360;
-
-        _vehicleAnnotation!.geometry = Point(
-          coordinates: Position(currentLng, currentLat),
-        );
-        _vehicleAnnotation!.iconRotate = interpolatedBearing;
-        _annotationManager!.update(_vehicleAnnotation!);
-
-        // Camera tracks the interpolated vehicle position every frame.
-        // setCamera (instantaneous) is used instead of easeTo — calling
-        // easeTo 60×/second stacks overlapping animations and causes lag.
-        // In immersive mode: lock pitch to 82° and zoom to 18 every frame so
-        // user pinch-zoom or SDK corrections cannot flatten the view mid-playback.
-        try {
-          _mapboxMap?.setCamera(
-            CameraOptions(
-              center: Point(coordinates: Position(currentLng, currentLat)),
-              bearing: (_headingUp || _isImmersiveMode)
-                  ? interpolatedBearing
-                  : null,
-              pitch: _isImmersiveMode ? 82.0 : null,
-              zoom: _isImmersiveMode ? 18.0 : null,
-            ),
-          );
-        } catch (_) {}
-      });
-      _markerAnimation!.addStatusListener((status) {
-        if (status == AnimationStatus.completed && _isPlaying) {
-          _playNextSegment(controller.history.toList());
-        }
-      });
+    // If we're at the end and can't see further forward, fall back to the
+    // last segment's heading so the marker doesn't spin to north.
+    if (lookProg - prog < 0.5) {
+      return _segmentBearings.isNotEmpty
+          ? _segmentBearings.last
+          : _currentBearing;
     }
 
-    _markerAnimController!.duration = Duration(milliseconds: durationMs);
-    _startLng = startPosition.lng.toDouble();
-    _startLat = startPosition.lat.toDouble();
-    _endLng = newPosition.lng.toDouble();
-    _endLat = newPosition.lat.toDouble();
-    _startBearing = startBearing;
-    _endBearing = newBearing;
+    final cur = _positionAtProgress(prog);
+    final look = _positionAtProgress(lookProg);
+    return _calculateBearing(
+      LatLng(cur.$1, cur.$2),
+      LatLng(look.$1, look.$2),
+    );
+  }
 
-    _markerAnimController!.forward(from: 0.0);
+  /// Drops playback speed through tight corners. Looks ~25 m ahead for the
+  /// sharpest segment-to-segment bend; ≥60° turn slows to 55%, ≤10° turn
+  /// keeps full speed, with a linear ramp between. Real vehicles brake
+  /// before corners and accelerate out — this is the most legible part of
+  /// "realistic" motion at playback scales.
+  double _speedScaleForCurve(double prog) {
+    if (_segmentBearings.length < 2) return 1.0;
+    const double lookAheadMeters = 25.0;
+    final totalDist = _cumDist.last;
+    final startSeg = _findSegment(prog);
+    final endSeg = _findSegment(math.min(prog + lookAheadMeters, totalDist));
+    double maxAbsTurn = 0.0;
+    for (int i = startSeg; i < endSeg && i + 1 < _segmentBearings.length; i++) {
+      final d = ((_segmentBearings[i + 1] - _segmentBearings[i] + 180) % 360) - 180;
+      final absD = d.abs();
+      if (absD > maxAbsTurn) maxAbsTurn = absD;
+    }
+    if (maxAbsTurn <= 10) return 1.0;
+    if (maxAbsTurn >= 60) return 0.55;
+    return (1.0 - (maxAbsTurn - 10) / 100).clamp(0.55, 1.0);
   }
 
   Future<void> _fitCameraToBounds(List<DeviceRecord> history) async {
@@ -741,31 +902,6 @@ class PlaybackScreenState extends State<PlaybackScreen>
     return 0.0;
   }
 
-  /// Bearing from [history[index]] toward the first point ≥5 m ahead within
-  /// 3 steps. Smooths jerky heading at tight GPS bends where a single noisy
-  /// point would otherwise cause an abrupt rotation. Falls back to
-  /// [_getCurrentBearing] when no lookahead point qualifies.
-  double _getLookaheadBearing(List<DeviceRecord> history, int index) {
-    const int lookahead = 3;
-    const double minDistMetres = 5.0;
-    final origin = history[index];
-    final limit = (index + lookahead).clamp(0, history.length - 1);
-    for (int i = index + 1; i <= limit; i++) {
-      final c = history[i];
-      if (!c.hasValidCoords) continue;
-      final dist = _haversineDistance(
-        origin.latD, origin.lngD, c.latD, c.lngD,
-      );
-      if (dist >= minDistMetres) {
-        return _calculateBearing(
-          LatLng(origin.latD, origin.lngD),
-          LatLng(c.latD, c.lngD),
-        );
-      }
-    }
-    return _getCurrentBearing(history, index);
-  }
-
   int _getIgnitionStatus(DeviceRecord record) {
     final speed = double.tryParse(record.spd.toString()) ?? 0.0;
     return speed > 0 ? 1 : 0;
@@ -773,8 +909,8 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
   // ─── PLAYBACK CONTROLS ───────────────────────────────────────────────────
 
-  void _startPlayback(List<DeviceRecord> history) {
-    if (_isPlaying || history.isEmpty) return;
+  void _startPlayback() {
+    if (_isPlaying || _routeCoords.length < 2 || _cumDist.length < 2) return;
     _markerVisible = true;
     if (_vehicleAnnotation != null && _annotationManager != null) {
       _vehicleAnnotation!.iconOpacity = 1.0;
@@ -785,38 +921,42 @@ class PlaybackScreenState extends State<PlaybackScreen>
       _currentIndex = 0;
     });
     _currentIndexNotifier.value = 0;
-    _playbackTimer?.cancel();
-    _playNextSegment(history);
+    _progressMeters = 0.0;
+    _lastTickMs = 0;
+    // Snap bearing to the road heading at the start so the icon doesn't
+    // enter mid-turn from a stale value.
+    _currentBearing = _lookaheadBearing(0.0);
+    _renderAtProgress(0.0);
+    _ensureTicker();
+    if (!(_movementTicker!.isActive)) _movementTicker!.start();
   }
 
   void _pausePlayback() {
     setState(() => _isPlaying = false);
-    _markerAnimController?.stop();
+    _movementTicker?.stop();
   }
 
-  void _resumePlayback(List<DeviceRecord> history) {
-    if (_isPlaying || history.isEmpty) return;
+  void _resumePlayback() {
+    if (_isPlaying || _routeCoords.length < 2 || _cumDist.length < 2) return;
+    if (_progressMeters >= _cumDist.last) return; // already at end
     setState(() => _isPlaying = true);
-    if (_markerAnimController != null && !_markerAnimController!.isAnimating) {
-      _markerAnimController!.forward();
-    } else {
-      _playNextSegment(history);
-    }
+    _lastTickMs = 0;
+    _ensureTicker();
+    if (!(_movementTicker!.isActive)) _movementTicker!.start();
   }
 
   void _stopPlayback() {
-    _playbackTimer?.cancel();
-    _playbackTimer = null;
-    _markerAnimController?.stop();
-    _lastPosition = null;
+    _movementTicker?.stop();
+    _progressMeters = 0.0;
+    _lastTickMs = 0;
     setState(() {
       _isPlaying = false;
       _currentIndex = 0;
     });
     _currentIndexNotifier.value = 0;
-    final history = controller.history.toList();
-    if (history.isNotEmpty) {
-      _updateVehicleMarker(0, history);
+    if (_routeCoords.length >= 2 && _cumDist.length >= 2) {
+      _currentBearing = _lookaheadBearing(0.0);
+      _renderAtProgress(0.0);
     }
   }
 
@@ -824,35 +964,21 @@ class PlaybackScreenState extends State<PlaybackScreen>
     setState(() => _playbackSpeed = newSpeed);
   }
 
-  void _seekTo(int index, List<DeviceRecord> history) {
-    if (history.isEmpty) return;
-    final clamped = index.clamp(0, history.length - 1);
-    _pausePlayback();
-    _markerAnimController?.stop();
-    _lastPosition = null;
-    setState(() => _currentIndex = clamped);
+  void _seekTo(int index) {
+    if (_routeCoords.length < 2 || _cumDist.length < 2) return;
+    final clamped = index.clamp(0, _routeCoords.length - 1);
+    _movementTicker?.stop();
+    setState(() {
+      _isPlaying = false;
+      _currentIndex = clamped;
+    });
     _currentIndexNotifier.value = clamped;
-    _updateVehicleMarker(clamped, history);
-  }
-
-  void _playNextSegment(List<DeviceRecord> history) {
-    if (!_isPlaying || _currentIndex >= history.length - 1) {
-      setState(() => _isPlaying = false);
-      return;
-    }
-
-    _currentIndex++;
-    _currentIndexNotifier.value = _currentIndex;
-
-    final current = history[_currentIndex];
-    if (!current.hasValidCoords) {
-      _updateVehicleMarker(_currentIndex, history);
-      return;
-    }
-
-    _updateVehicleMarker(_currentIndex, history);
-    // Camera is now driven per-frame inside _updateVehicleMarker's animation
-    // listener via setCamera — no separate easeTo call needed here.
+    _progressMeters = _cumDist[clamped];
+    _lastTickMs = 0;
+    // Snap bearing fully on big jumps so the marker doesn't slowly rotate
+    // toward the new road heading after the scrub.
+    _currentBearing = _lookaheadBearing(_progressMeters);
+    _renderAtProgress(_progressMeters);
   }
 
   // ─── DATE PICKERS ────────────────────────────────────────────────────────
@@ -1020,8 +1146,7 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
   @override
   void dispose() {
-    _playbackTimer?.cancel();
-    _markerAnimController?.dispose();
+    _movementTicker?.dispose();
     _currentIndexNotifier.dispose();
     super.dispose();
   }
@@ -1114,10 +1239,13 @@ class PlaybackScreenState extends State<PlaybackScreen>
               child: InkWell(
                 onTap: () {
                   setState(() => _headingUp = !_headingUp);
-                  if (!_headingUp) {
-                    // Snap back to north-up when toggled off.
-                    _mapboxMap?.setCamera(CameraOptions(bearing: 0.0));
-                  }
+                  // Apply the rotation now so the toggle works whether or
+                  // not playback is running. (The ticker only fires while
+                  // playing; without this, paused users would see no
+                  // visible effect until they hit Play.)
+                  _mapboxMap?.setCamera(
+                    CameraOptions(bearing: _headingUp ? _currentBearing : 0.0),
+                  );
                 },
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
@@ -1264,7 +1392,14 @@ class PlaybackScreenState extends State<PlaybackScreen>
                   child: ValueListenableBuilder<int>(
                     valueListenable: _currentIndexNotifier,
                     builder: (_, idx, __) {
-                      final rec = historyList[idx];
+                      // `idx` walks the matched route; resolve back to the
+                      // nearest raw record so telemetry (speed/time/ignition)
+                      // reflects real GPS, not the snapped vertex.
+                      final histIdx = (idx < _routeToHistoryIdx.length)
+                          ? _routeToHistoryIdx[idx]
+                              .clamp(0, historyList.length - 1)
+                          : (historyList.length - 1).clamp(0, historyList.length - 1);
+                      final rec = historyList[histIdx];
                       final ignition = _getIgnitionStatus(rec);
                       final speed =
                           double.tryParse(rec.spd.toString()) ?? 0.0;
@@ -1442,7 +1577,10 @@ class PlaybackScreenState extends State<PlaybackScreen>
                     ValueListenableBuilder<int>(
                       valueListenable: _currentIndexNotifier,
                       builder: (_, idx, __) {
-                        final total = historyList.length;
+                        // Scrubber walks the matched route (what the user
+                        // sees) — not raw GPS, which would put the thumb out
+                        // of sync with the vehicle.
+                        final total = _routeCoords.length;
                         return SliderTheme(
                           data: SliderTheme.of(context).copyWith(
                             activeTrackColor: kBlue,
@@ -1462,8 +1600,7 @@ class PlaybackScreenState extends State<PlaybackScreen>
                             value: idx.toDouble(),
                             min: 0,
                             max: (total - 1).toDouble().clamp(1, double.infinity),
-                            onChanged: (val) =>
-                                _seekTo(val.round(), historyList),
+                            onChanged: (val) => _seekTo(val.round()),
                           ),
                         );
                       },
@@ -1483,7 +1620,7 @@ class PlaybackScreenState extends State<PlaybackScreen>
                         // Restart
                         _PlaybackIconButton(
                           icon: Icons.skip_previous_rounded,
-                          onPressed: () => _seekTo(0, historyList),
+                          onPressed: () => _seekTo(0),
                           col: col,
                         ),
                         // Play / Pause — large centre button
@@ -1491,8 +1628,8 @@ class PlaybackScreenState extends State<PlaybackScreen>
                           onTap: () => _isPlaying
                               ? _pausePlayback()
                               : (_currentIndex == 0
-                                    ? _startPlayback(historyList)
-                                    : _resumePlayback(historyList)),
+                                    ? _startPlayback()
+                                    : _resumePlayback()),
                           child: Container(
                             width: 56,
                             height: 56,
