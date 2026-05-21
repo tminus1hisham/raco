@@ -182,7 +182,7 @@ class Device {
       signalStrength: json['signalStrength'] ?? 0,
       createdBy: json['createdBy'] ?? "",
       updatedBy: json['updatedBy'] ?? "",
-      speed: json['speed'] ?? "0",
+      speed: (json['isDeviceOnline'] ?? false) ? (json['speed'] ?? "0") : "0",
       latitude: json['latitude'] ?? "",
       longitude: json['longitude'] ?? "",
       ignitionStatus: json['ignitionStatus'] ?? 0,

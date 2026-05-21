@@ -121,7 +121,11 @@ class _DetailRow {
   final IconData icon;
   final String label;
   final String value;
-  const _DetailRow({required this.icon, required this.label, required this.value});
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 }
 
 class ConnectDeviceScreen extends StatefulWidget {
@@ -155,6 +159,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   final TextEditingController _technicianIdController = TextEditingController();
   final TextEditingController _technicianNameController =
       TextEditingController();
+  final TextEditingController _technicianPhoneController =
+      TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -173,8 +179,16 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   final TextEditingController _businessRegController = TextEditingController();
   final TextEditingController _groupController = TextEditingController();
 
+  String? _selectedGroup;
+  static const List<String> _groupOptions = ['PUBLIC', 'PRIVATE'];
+
   Map<String, dynamic> _deviceData = {};
   bool _showRegistrationForm = false;
+  bool _showHeaderDetailsPopup = false;
+  bool _isRoutingDevicePayload = false;
+  bool _awaitingOrcaId = false;
+  bool _pendingPostResetFlow = false;
+  Map<String, String> _resolvedHeaderDetails = {};
 
   late bt_serial.FlutterBluetoothClassic _bluetoothSerial;
 
@@ -201,6 +215,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   // Buffer for accumulating JSON data
   StringBuffer _jsonBuffer = StringBuffer();
   Timer? _jsonCompletionTimer;
+  StringBuffer _orcaIdBuffer = StringBuffer();
+  Timer? _orcaIdCompletionTimer;
+  Timer? _orcaIdTimeoutTimer;
 
   // Calibration state
   bool _showCalibrationModal = false;
@@ -226,6 +243,27 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     if (_frequencyController.text != _selectedFrequency) {
       _frequencyController.text = _selectedFrequency;
     }
+  }
+
+  void _clearDeviceSpecificFields() {
+    _certNoController.clear();
+    _typeController.clear();
+    _serialController.clear();
+    _dateController.clear();
+  }
+
+  void _resetDeviceSessionData() {
+    _jsonCompletionTimer?.cancel();
+    _clearPendingOrcaIdResponse();
+    _deviceData = {};
+    _receivedData = '';
+    _jsonBuffer.clear();
+    _showRegistrationForm = false;
+    _showHeaderDetailsPopup = false;
+    _isRoutingDevicePayload = false;
+    _resolvedHeaderDetails = {};
+    _clearForm();
+    _clearDeviceSpecificFields();
   }
 
   Future<void> _loadAllCompanies() async {
@@ -270,7 +308,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         _isLoadingCompanies = false;
       });
 
-      _showError('Failed to load companies: $e');
+      debugPrint('loadCompanies error: $e');
+      _showError('Failed to load companies. Please try again.');
     }
   }
 
@@ -340,6 +379,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       // Load all storage data at once
       final technicianId = await StorageService.getData('userDbId');
       final technicianName = await StorageService.getData('userName');
+      final technicianPhone = await StorageService.getData('phone');
       final agentName = await StorageService.getData('agentName');
       final agentId = await StorageService.getData('agentId');
       final agentLocation = await StorageService.getData('agentLocation');
@@ -349,6 +389,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
       _technicianIdController.text = technicianId ?? '';
       _technicianNameController.text = technicianName ?? '';
+      _technicianPhoneController.text = technicianPhone ?? '';
 
       _agentController.text = agentName ?? '';
       _agentIDController.text = agentId ?? '';
@@ -369,6 +410,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     _dataSubscription?.cancel();
     _stateSubscription?.cancel();
     _jsonCompletionTimer?.cancel();
+    _clearPendingOrcaIdResponse();
     _stopScanning();
     _bluetoothSerial.disconnect();
 
@@ -399,7 +441,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         if (mounted) _showBluetoothDisabledDialog();
       }
     } catch (e) {
-      _showError('Initialization error: $e');
+      debugPrint('Bluetooth init error: $e');
+      _showError('Failed to initialize Bluetooth.');
     }
   }
 
@@ -512,7 +555,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         }
       }
     } catch (e) {
-      _showError('Failed to enable Bluetooth: $e');
+      debugPrint('Enable Bluetooth error: $e');
+      _showError('Failed to enable Bluetooth.');
     }
   }
 
@@ -611,7 +655,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
         // Automatically request device data after a short settling delay
         Future.delayed(const Duration(milliseconds: 600), () {
-          if (mounted && _isConnected) _retrieveDataFromDevice();
+          if (!mounted || !_isConnected) return;
+          _retrieveDataFromDevice();
+          if (_pendingPostResetFlow) {
+            setState(() => _pendingPostResetFlow = false);
+          }
         });
       } else {
         // Disconnected
@@ -619,12 +667,12 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           _connectingDevices.clear();
           _isConnected = false;
           _selectedDevice = null;
-          _receivedData = '';
-          _jsonBuffer.clear();
+          _resetDeviceSessionData();
         });
 
         if (connectionState.status.toLowerCase().contains('error')) {
-          _showError('Connection error: ${connectionState.status}');
+          debugPrint('Connection error: ${connectionState.status}');
+          _showError('Connection error. Please try again.');
         }
       }
     });
@@ -639,7 +687,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         _devices = _getFilteredDevices();
       });
     } catch (e) {
-      _showError('Failed to load paired devices: $e');
+      debugPrint('Load paired devices error: $e');
+      _showError('Failed to load paired devices.');
     }
   }
 
@@ -691,7 +740,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       setState(() {
         _isScanning = false;
       });
-      _showError('Scan failed: $e');
+      debugPrint('Scan failed: $e');
+      _showError('Scan failed. Please try again.');
     }
   }
 
@@ -702,7 +752,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       _discoverySubscription = null;
       _scanTimeoutTimer?.cancel();
     } catch (e) {
-      _showError('Stop scan error: $e');
+      debugPrint('Stop scan error: $e');
     }
   }
 
@@ -710,6 +760,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     if (_isConnected || _connectingDevices[device.address] == true) return;
 
     setState(() {
+      _resetDeviceSessionData();
       _connectingDevices[device.address] = true;
       _selectedDevice = device;
     });
@@ -726,7 +777,6 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         if (!device.paired) {
           // Pairing may not have completed — prompt the user to open settings
           _showPairInSettingsDialog(device);
-        } else {
           _showError('Failed to connect to ${device.name}');
         }
       }
@@ -735,7 +785,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         _connectingDevices.remove(device.address);
         _selectedDevice = null;
       });
-      _showError('Connection error: $e');
+      debugPrint('Connection error: $e');
+      _showError('Could not connect to device.');
     }
   }
 
@@ -842,10 +893,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       final success = await _bluetoothSerial.disconnect();
       if (success) {
         setState(() {
+          _resetDeviceSessionData();
           _isConnected = false;
           _selectedDevice = null;
-          _receivedData = '';
-          _jsonBuffer.clear();
           _connectingDevices.clear();
         });
         _dataSubscription?.cancel();
@@ -855,7 +905,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         _showError('Failed to disconnect');
       }
     } catch (e) {
-      _showError('Disconnect error: $e');
+      debugPrint('Disconnect error: $e');
+      _showError('Failed to disconnect.');
     }
   }
 
@@ -864,8 +915,27 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     _jsonBuffer.clear();
 
     _dataSubscription = _bluetoothSerial.onDataReceived.listen((data) {
-      final chunk = data.asString();
-      debugPrint('Received chunk: "$chunk"');
+      String chunk;
+      try {
+        chunk = data.asString();
+      } catch (e) {
+        debugPrint(
+          'Non-UTF8 chunk received (awaitingOrcaId=$_awaitingOrcaId) — skipping. Error: $e',
+        );
+        return;
+      }
+      chunk = chunk.trim();
+      debugPrint('Received chunk (awaitingOrcaId=$_awaitingOrcaId): "$chunk"');
+
+      if (_awaitingOrcaId && chunk.isNotEmpty) {
+        _handleOrcaIdChunk(chunk);
+        /*
+          // JSON response — populate all available fields from it
+          // Plain text response — treat the whole string as the serial number
+        }
+        */
+        return;
+      }
 
       // Add chunk to buffer
       _jsonBuffer.write(chunk);
@@ -915,17 +985,30 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         debugPrint('Complete JSON extracted: $jsonString');
 
         // Parse JSON
-        final jsonData = json.decode(jsonString);
+        final decodedJson = json.decode(jsonString);
+        if (decodedJson is! Map<String, dynamic>) {
+          throw const FormatException('Expected a JSON object');
+        }
+
+        final jsonData = Map<String, dynamic>.from(decodedJson);
+        final resolvedDetails = _resolveHeaderDetails(jsonData);
+        final isHeaderPayload = _looksLikeHeaderPayload(resolvedDetails);
         debugPrint('Parsed JSON: $jsonData');
 
         // Store the parsed data
         setState(() {
-          _deviceData = jsonData;
+          if (isHeaderPayload) {
+            _deviceData = jsonData;
+            _resolvedHeaderDetails = resolvedDetails;
+          }
           _receivedData =
               '${DateTime.now().toString()}\n${JsonEncoder.withIndent('  ').convert(jsonData)}\n\n${_receivedData}';
         });
 
-        _prepopulateFormData();
+        if (isHeaderPayload) {
+          _prepopulateFormData(resolvedDetails);
+          _saveLastDeviceToPrefs(jsonData, resolvedDetails);
+        }
 
         // Clear buffer
         _jsonBuffer.clear();
@@ -936,10 +1019,18 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           _jsonBuffer.write(remaining);
         }
 
-        // Show success message and navigate to technician screen
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _navigateToTechnicianScreen();
-        });
+        if (isHeaderPayload &&
+            !_showRegistrationForm &&
+            !_showHeaderDetailsPopup &&
+            !_isRoutingDevicePayload) {
+          _isRoutingDevicePayload = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _routeToDeviceFlow(resolvedDetails);
+            }
+            _isRoutingDevicePayload = false;
+          });
+        }
       }
     } catch (e) {
       debugPrint('JSON parsing error: $e');
@@ -950,9 +1041,427 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     }
   }
 
-  void _navigateToTechnicianScreen() {
+  void _handleOrcaIdChunk(String chunk) {
+    debugPrint('GetOrcaid response chunk: "$chunk"');
     setState(() {
-      _showRegistrationForm = true; // Show modal instead of navigating
+      _receivedData =
+          '${DateTime.now()}\n[GetOrcaid Response]\n$chunk\n\n$_receivedData';
+    });
+
+    if (_orcaIdBuffer.isNotEmpty) {
+      _orcaIdBuffer.write('\n');
+    }
+    _orcaIdBuffer.write(chunk);
+
+    final bufferedResponse = _orcaIdBuffer.toString();
+    final orcaIdData = _extractOrcaIdResponseData(bufferedResponse);
+    final hasBalancedJson = _hasBalancedJsonPayload(bufferedResponse);
+    final hasCertificateNumber =
+        _normalizeDeviceValue(orcaIdData?['LimiterID']).isNotEmpty;
+    final hasSerialNumber =
+        _normalizeDeviceValue(orcaIdData?['MnfSerial']).isNotEmpty;
+
+    if (orcaIdData != null &&
+        (hasBalancedJson || (hasCertificateNumber && hasSerialNumber))) {
+      _flushOrcaIdBuffer(finalizePartial: true);
+      return;
+    }
+
+    _orcaIdCompletionTimer?.cancel();
+    _orcaIdCompletionTimer = Timer(const Duration(milliseconds: 400), () {
+      _flushOrcaIdBuffer();
+    });
+  }
+
+  void _flushOrcaIdBuffer({
+    bool finalizePartial = false,
+    bool allowSerialFallback = false,
+  }) {
+    final rawResponse = _orcaIdBuffer.toString().trim();
+    if (rawResponse.isEmpty) return;
+
+    final orcaIdData = _extractOrcaIdResponseData(rawResponse);
+    final hasBalancedJson = _hasBalancedJsonPayload(rawResponse);
+    final hasCertificateNumber =
+        _normalizeDeviceValue(orcaIdData?['LimiterID']).isNotEmpty;
+    final hasSerialNumber =
+        _normalizeDeviceValue(orcaIdData?['MnfSerial']).isNotEmpty;
+    final hasBothMappedFields = hasCertificateNumber && hasSerialNumber;
+
+    if (orcaIdData != null &&
+        (hasBalancedJson || hasBothMappedFields || finalizePartial)) {
+      _applyOrcaIdResponse(orcaIdData);
+      return;
+    }
+
+    if (allowSerialFallback) {
+      _finalizePlainOrcaIdResponse(rawResponse);
+    }
+  }
+
+  bool _hasBalancedJsonPayload(String value) {
+    if (!value.contains('{')) return false;
+    final openBraces = '{'.allMatches(value).length;
+    final closeBraces = '}'.allMatches(value).length;
+    return openBraces > 0 && openBraces == closeBraces;
+  }
+
+  void _clearPendingOrcaIdResponse() {
+    _orcaIdCompletionTimer?.cancel();
+    _orcaIdCompletionTimer = null;
+    _orcaIdTimeoutTimer?.cancel();
+    _orcaIdTimeoutTimer = null;
+    _orcaIdBuffer.clear();
+  }
+
+  void _applyOrcaIdResponse(Map<String, dynamic> orcaIdData) {
+    final mergedDeviceData = <String, dynamic>{..._deviceData, ...orcaIdData};
+    final resolvedDetails = _resolveHeaderDetails(mergedDeviceData);
+
+    _clearPendingOrcaIdResponse();
+    setState(() {
+      _awaitingOrcaId = false;
+      _deviceData = mergedDeviceData;
+      _resolvedHeaderDetails = resolvedDetails;
+    });
+
+    _prepopulateFormData(resolvedDetails);
+    unawaited(_saveLastDeviceToPrefs(mergedDeviceData, resolvedDetails));
+  }
+
+  void _finalizePlainOrcaIdResponse(String rawResponse) {
+    final resolvedValue = _normalizeDeviceValue(rawResponse);
+    _clearPendingOrcaIdResponse();
+
+    setState(() {
+      _awaitingOrcaId = false;
+      if (resolvedValue.isNotEmpty && _serialController.text.trim().isEmpty) {
+        _serialController.text = resolvedValue;
+      }
+    });
+  }
+
+  Map<String, dynamic>? _extractOrcaIdResponseData(String rawResponse) {
+    if (rawResponse.contains('{')) {
+      try {
+        final startIndex = rawResponse.indexOf('{');
+        final endIndex = rawResponse.lastIndexOf('}');
+        if (startIndex != -1 && endIndex > startIndex) {
+          final decodedJson = json.decode(
+            rawResponse.substring(startIndex, endIndex + 1),
+          );
+          if (decodedJson is Map<String, dynamic>) {
+            return Map<String, dynamic>.from(decodedJson);
+          }
+        }
+      } catch (e) {
+        debugPrint('GetOrcaid JSON parse error: $e');
+      }
+    }
+
+    final certificateNumber = _extractTaggedDeviceValue(rawResponse, const [
+      'LimiterID',
+      'limiterID',
+      'limiterId',
+      'LimiterId',
+    ]);
+    final deviceId = _extractTaggedDeviceValue(rawResponse, const [
+      'deviceId',
+      'DeviceId',
+      'deviceID',
+      'DeviceID',
+      'device_id',
+      'ORCAid',
+      'OrcaId',
+      'orcaId',
+      'ORCAID',
+    ]);
+    final serialNumber = _extractTaggedDeviceValue(rawResponse, const [
+      'MnfSerial',
+      'mnfSerial',
+      'MNFSerial',
+    ]);
+
+    if (certificateNumber.isEmpty && deviceId.isEmpty && serialNumber.isEmpty) {
+      return null;
+    }
+
+    return {
+      if (certificateNumber.isNotEmpty) 'LimiterID': certificateNumber,
+      if (deviceId.isNotEmpty) 'deviceId': deviceId,
+      if (serialNumber.isNotEmpty) 'MnfSerial': serialNumber,
+    };
+  }
+
+  String _extractTaggedDeviceValue(String source, List<String> keys) {
+    for (final key in keys) {
+      final match = RegExp(
+        "(?:^|[^A-Za-z0-9_])${RegExp.escape(key)}\\s*[:=]\\s*(.+?)(?=(?:\\s+[A-Za-z][A-Za-z0-9_]*\\s*[:=])|[,;\\r\\n]|\$)",
+        caseSensitive: false,
+        dotAll: true,
+      ).firstMatch(source);
+
+      final value = _stripWrappingQuotes(match?.group(1) ?? '');
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    return '';
+  }
+
+  String _stripWrappingQuotes(String value) {
+    final trimmed = _normalizeDeviceValue(value);
+    if (trimmed.length < 2) return trimmed;
+
+    final startsWithDoubleQuote = trimmed.startsWith('"');
+    final endsWithDoubleQuote = trimmed.endsWith('"');
+    final startsWithSingleQuote = trimmed.startsWith("'");
+    final endsWithSingleQuote = trimmed.endsWith("'");
+
+    if ((startsWithDoubleQuote && endsWithDoubleQuote) ||
+        (startsWithSingleQuote && endsWithSingleQuote)) {
+      return trimmed.substring(1, trimmed.length - 1).trim();
+    }
+
+    return trimmed;
+  }
+
+  String _normalizeDeviceValue(dynamic value) {
+    if (value == null) return '';
+
+    final text = value.toString().trim();
+    if (text.isEmpty) return '';
+
+    const invalidValues = {'null', 'undefined', 'n/a', 'na'};
+    if (invalidValues.contains(text.toLowerCase())) {
+      return '';
+    }
+
+    return text;
+  }
+
+  String _resolveDeviceValue(Map<String, dynamic> data, List<String> keys) {
+    for (final key in keys) {
+      if (!data.containsKey(key)) continue;
+
+      final value = _normalizeDeviceValue(data[key]);
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    final lowerCaseData = <String, dynamic>{};
+    data.forEach((key, value) {
+      lowerCaseData[key.toLowerCase()] = value;
+    });
+
+    for (final key in keys) {
+      final value = _normalizeDeviceValue(lowerCaseData[key.toLowerCase()]);
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    return '';
+  }
+
+  String _resolveDeviceId(Map<String, dynamic> data) {
+    return _resolveDeviceValue(data, const [
+      'deviceId',
+      'DeviceId',
+      'deviceID',
+      'DeviceID',
+      'device_id',
+      'HeaderID',
+      'headerId',
+      'HeaderId',
+      'headerID',
+      'LimiterID',
+      'limiterID',
+      'limiterId',
+      'LimiterId',
+      'certificateNumber',
+      'CertNo',
+      'certNo',
+      'ORCAid',
+      'OrcaId',
+      'orcaId',
+      'ORCAID',
+    ]);
+  }
+
+  String _resolveHeaderId(Map<String, dynamic> data) {
+    return _resolveDeviceValue(data, const [
+      'HeaderID',
+      'headerId',
+      'LimiterID',
+      'limiterID',
+      'limiterId',
+      'CertNo',
+      'certificateNumber',
+      'certNo',
+    ]);
+  }
+
+  Map<String, String> _resolveHeaderDetails(Map<String, dynamic> data) {
+    final today =
+        "${_getMonthName(DateTime.now().month)} ${DateTime.now().day}, ${DateTime.now().year}";
+
+    return {
+      'headerId': _resolveHeaderId(data),
+      'certificateNumber': _resolveDeviceValue(data, const [
+        'LimiterID',
+        'limiterID',
+        'limiterId',
+      ]),
+      'serialNumber': _resolveDeviceValue(data, const [
+        'MnfSerial',
+        'mnfSerial',
+        'MNFSerial',
+      ]),
+      'company': _resolveDeviceValue(data, const [
+        'company',
+        'Company',
+        'companyName',
+        'fleetCompany',
+      ]),
+      'companyPhone': _resolveDeviceValue(data, const [
+        'companyPhone',
+        'CompanyPhone',
+        'company_phone',
+      ]),
+      'ownerName': _resolveDeviceValue(data, const [
+        'Name',
+        'name',
+        'ownerName',
+        'OwnerName',
+      ]),
+      'ownerId': _resolveDeviceValue(data, const [
+        'ID',
+        'id',
+        'ownerId',
+        'OwnerID',
+      ]),
+      'ownerPhone': _resolveDeviceValue(data, const [
+        'Phone',
+        'phone',
+        'ownerPhone',
+        'OwnerPhone',
+        'phoneNumber',
+      ]),
+      'registrationNumber': _resolveDeviceValue(data, const [
+        'reg',
+        'Reg',
+        'registrationNumber',
+        'RegistrationNumber',
+        'vehicleRegistration',
+        'numberPlate',
+        'Rg',
+      ]),
+      'chassisNumber': _resolveDeviceValue(data, const [
+        'chassis',
+        'Chassis',
+        'chassisNumber',
+        'chassis_number',
+      ]),
+      'make': _resolveDeviceValue(data, const ['make', 'Make', 'vehicleMake']),
+      'type': _resolveDeviceValue(data, const ['Type', 'type']).isNotEmpty
+          ? _resolveDeviceValue(data, const ['Type', 'type'])
+          : 'Orca',
+      'date': _resolveDeviceValue(data, const ['date', 'Date']).isNotEmpty
+          ? _resolveDeviceValue(data, const ['date', 'Date'])
+          : today,
+      'agentName': _resolveDeviceValue(data, const [
+        'agent',
+        'Agent',
+        'agentName',
+      ]),
+      'agentId': _resolveDeviceValue(data, const [
+        'agentID',
+        'AgentID',
+        'agentId',
+      ]),
+      'location': _resolveDeviceValue(data, const [
+        'location',
+        'Location',
+        'address',
+      ]),
+      'email': _resolveDeviceValue(data, const [
+        'email',
+        'Email',
+        'emailAddress',
+      ]),
+      'agentPhone': _resolveDeviceValue(data, const [
+        'agentPhone',
+        'AgentPhone',
+        'agent_phone',
+      ]),
+      'businessReg': _resolveDeviceValue(data, const [
+        'businessReg',
+        'BusinessReg',
+        'businessRegistration',
+      ]),
+      'group': _resolveDeviceValue(data, const ['group', 'Group', 'groupName']),
+    };
+  }
+
+  bool _looksLikeHeaderPayload(Map<String, String> details) {
+    const headerSignals = [
+      'headerId',
+      'certificateNumber',
+      'serialNumber',
+      'company',
+      'ownerName',
+      'registrationNumber',
+    ];
+
+    return headerSignals.any((key) => details[key]?.isNotEmpty == true);
+  }
+
+  bool _hasCompleteHeaderDetails(Map<String, String> details) {
+    const requiredKeys = [
+      'company',
+      'ownerName',
+      'registrationNumber',
+      'serialNumber',
+      'certificateNumber',
+    ];
+
+    return requiredKeys.every((key) => details[key]?.isNotEmpty == true);
+  }
+
+  void _setControllerValue(
+    TextEditingController controller,
+    String value, {
+    bool overwrite = true,
+  }) {
+    if (value.isEmpty) return;
+    if (overwrite || controller.text.trim().isEmpty) {
+      controller.text = value;
+    }
+  }
+
+  void _routeToDeviceFlow(Map<String, String> resolvedDetails) {
+    if (!_looksLikeHeaderPayload(resolvedDetails)) {
+      return;
+    }
+
+    final serial = resolvedDetails['serialNumber'] ?? '';
+    final company = resolvedDetails['company'] ?? '';
+    final reg = resolvedDetails['registrationNumber'] ?? '';
+    final missingFields = serial.isEmpty || company.isEmpty || reg.isEmpty;
+    final hasCompleteHeaderDetails = _hasCompleteHeaderDetails(resolvedDetails);
+    final hasHeader = resolvedDetails['headerId']?.isNotEmpty == true;
+
+    if (missingFields || !hasCompleteHeaderDetails) {
+      _getDeviceId();
+    }
+
+    setState(() {
+      _resolvedHeaderDetails = resolvedDetails;
+      _showHeaderDetailsPopup = hasHeader;
+      _showRegistrationForm = !hasHeader;
     });
   }
 
@@ -974,15 +1483,58 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     return monthNames[month - 1];
   }
 
-  void _prepopulateFormData() {
-    if (_deviceData.isNotEmpty) {
-      // Map your JSON data to form fields
-      _certNoController.text = _deviceData['LimiterID']?.toString() ?? '';
-      _serialController.text = _deviceData['MnfSerial']?.toString() ?? '';
-      _dateController.text =
-          _deviceData['date']?.toString() ??
-          "${_getMonthName(DateTime.now().month)} ${DateTime.now().day}, ${DateTime.now().year}";
-      // Add mappings for all other fields...
+  void _prepopulateFormData([Map<String, String>? resolvedDetails]) {
+    final details =
+        resolvedDetails ??
+        (_deviceData.isNotEmpty ? _resolveHeaderDetails(_deviceData) : null);
+
+    if (details == null || details.isEmpty) return;
+
+    _setControllerValue(_companyController, details['company'] ?? '');
+    _setControllerValue(_companyPhoneController, details['companyPhone'] ?? '');
+    _setControllerValue(_nameController, details['ownerName'] ?? '');
+    _setControllerValue(_idController, details['ownerId'] ?? '');
+    _setControllerValue(_phoneController, details['ownerPhone'] ?? '');
+    _setControllerValue(_regController, details['registrationNumber'] ?? '');
+    _setControllerValue(_chassisController, details['chassisNumber'] ?? '');
+    _setControllerValue(_makeController, details['make'] ?? '');
+    _setControllerValue(_certNoController, details['certificateNumber'] ?? '');
+    _setControllerValue(_typeController, details['type'] ?? '');
+    _setControllerValue(_serialController, details['serialNumber'] ?? '');
+    _setControllerValue(_dateController, details['date'] ?? '');
+    _setControllerValue(_agentController, details['agentName'] ?? '');
+    _setControllerValue(_agentIDController, details['agentId'] ?? '');
+    _setControllerValue(_locationController, details['location'] ?? '');
+    _setControllerValue(_emailController, details['email'] ?? '');
+    _setControllerValue(_agentPhoneController, details['agentPhone'] ?? '');
+    _setControllerValue(_businessRegController, details['businessReg'] ?? '');
+    _setControllerValue(_groupController, details['group'] ?? '');
+  }
+
+  Future<void> _saveLastDeviceToPrefs(
+    Map<String, dynamic> jsonData,
+    Map<String, String> resolvedDetails,
+  ) async {
+    try {
+      final deviceId = _resolveDeviceId(jsonData);
+      final serial = resolvedDetails['serialNumber'] ?? '';
+      final numberPlate = resolvedDetails['registrationNumber'] ?? '';
+
+      if (deviceId.isEmpty) {
+        await StorageService.removeData('lastDevice_id');
+      }
+
+      await StorageService.storeData({
+        if (deviceId.isNotEmpty) 'lastDevice_id': deviceId,
+        if (serial.isNotEmpty) 'lastDevice_serial': serial,
+        if (numberPlate.isNotEmpty) 'lastDevice_numberPlate': numberPlate,
+      });
+      debugPrint(
+        'Saved last device to prefs: '
+        'deviceId=$deviceId, serial=$serial, numberPlate=$numberPlate',
+      );
+    } catch (e) {
+      debugPrint('Error saving last device to prefs: $e');
     }
   }
 
@@ -994,25 +1546,78 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
     try {
       bool success = await _bluetoothSerial.sendString(command);
-      if (success) {
-        _showSuccess('Command sent: $command');
-        debugPrint('Sent command: $command');
-      } else {
-        _showError('Failed to send command');
+      debugPrint('Sent command: $command (success=$success)');
+      if (!success) {
+        _showError('Failed to send command to device.');
       }
     } catch (e) {
-      _showError('Send error: $e');
+      debugPrint('Send command error for "$command": $e');
+      _showError('Failed to send command to device.');
     }
   }
 
-  Future<void> _retrieveDataFromDevice() async {
+  Future<void> _getDeviceId() async {
+    debugPrint('_getDeviceId called — sending GetOrcaid>');
+    _clearPendingOrcaIdResponse();
+    setState(() => _awaitingOrcaId = true);
     await _sendCommand('GetORCAid>');
+    // Give the device time to stream the ORCA response before falling back.
+    _orcaIdTimeoutTimer = Timer(const Duration(seconds: 5), () {
+      if (_awaitingOrcaId) {
+        debugPrint('GetOrcaid> — no response received after 3s');
+        _flushOrcaIdBuffer(
+          finalizePartial: true,
+          allowSerialFallback: true,
+        );
+        if (_awaitingOrcaId) {
+          setState(() => _awaitingOrcaId = false);
+        }
+      }
+    });
+  }
+
+  Future<void> _retrieveDataFromDevice({bool restartFlow = false}) async {
+    if (!_isConnected) {
+      _showError('No device connected');
+      return;
+    }
+
+    if (restartFlow) {
+      setState(() {
+        _resetDeviceSessionData();
+      });
+    }
+
+    await _sendCommand('Get Header>');
+    // If no header is found within 2.5s, fall back to GetOrcaid>
+    Timer(const Duration(milliseconds: 2500), () {
+      debugPrint(
+        'Header check timer: connected=$_isConnected, '
+        'hasHeader=$_hasHeader, deviceDataEmpty=${_deviceData.isEmpty}',
+      );
+      if (mounted && _isConnected && !_hasHeader) {
+        debugPrint('No header found — calling GetOrcaid>');
+        // No header on device — open the registration form immediately so the
+        // technician sees it right away, then fetch the serial in the background.
+        final now = DateTime.now();
+        setState(() {
+          _showRegistrationForm = true;
+          if (_dateController.text.trim().isEmpty) {
+            _dateController.text =
+                '${_getMonthName(now.month)} ${now.day}, ${now.year}';
+          }
+        });
+        _getDeviceId();
+      } else {
+        debugPrint('Header already present — skipping GetOrcaid>');
+      }
+    });
   }
 
   /// Returns true when the connected device already has a speed header
   /// programmed (i.e., a non-empty LimiterID in its data).
-  bool get _hasHeader =>
-      _deviceData['LimiterID']?.toString().trim().isNotEmpty == true;
+  String get _headerId => _resolveHeaderId(_deviceData);
+  bool get _hasHeader => _headerId.isNotEmpty;
 
   Future<void> _resetDeviceHeader() async {
     if (!_isConnected) {
@@ -1041,7 +1646,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                     color: kRed.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.restart_alt_rounded, size: 36, color: kRed),
+                  child: const Icon(
+                    Icons.restart_alt_rounded,
+                    size: 36,
+                    color: kRed,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Text(
@@ -1056,7 +1665,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                 Text(
                   'This will clear the existing speed header from the device. The device will need to be recalibrated afterwards.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: col.textSecondary, height: 1.4),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: col.textSecondary,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 28),
                 SizedBox(
@@ -1104,11 +1717,64 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     );
   }
 
-  Future<void> _factoryResetDevice() async {
-    await _sendCommand('Factory>');
+  Future<void> _handleResetDevicePressed() async {
+    if (!_isConnected) {
+      _showError('No device connected');
+      return;
+    }
+
+    String serial = _resolveDeviceValue(_deviceData, const [
+      'MnfSerial',
+      'mnfSerial',
+      'MNFSerial',
+      'serial',
+      'Serial',
+    ]);
+
+    if (serial.isEmpty) {
+      serial = _normalizeDeviceValue(_resolvedHeaderDetails['serialNumber']);
+    }
+
+    if (serial.isEmpty) {
+      final savedSerial = await StorageService.getData('lastDevice_serial');
+      if (savedSerial is String) {
+        serial = _normalizeDeviceValue(savedSerial);
+      }
+    }
+
+    if (serial.isEmpty) {
+      _showError(
+        'Device serial number unavailable. Run Get Device Data first.',
+      );
+      return;
+    }
+
+    debugPrint('[ResetDevice] checking registration by serial: $serial');
+
+    _showLoading('Checking device registration...');
+    Map<String, dynamic>? registration;
+    try {
+      registration = await ApiService.checkDeviceRegistration(serial);
+    } catch (e) {
+      debugPrint('[ResetDevice] registration check error: $e');
+      if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      _showError('Could not verify device with the server. Please try again.');
+      return;
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    if (registration != null) {
+      debugPrint('[ResetDevice] registered — opening reason popup');
+      _showResetConfirmDialog();
+    } else {
+      debugPrint('[ResetDevice] not registered — opening Factory> confirm');
+      _showFactoryResetConfirmDialog();
+    }
   }
 
-  void _showResetConfirmDialog() {
+  void _showFactoryResetConfirmDialog() {
     final col = context.col;
     showDialog(
       context: context,
@@ -1130,7 +1796,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                   color: kRed.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.warning_rounded, size: 36, color: kRed),
+                child: const Icon(
+                  Icons.restart_alt_rounded,
+                  size: 36,
+                  color: kRed,
+                ),
               ),
               const SizedBox(height: 20),
               Text(
@@ -1143,7 +1813,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'This will reset the ORCA device to factory settings. This action cannot be undone.',
+                'This device is not registered on the server. Are you sure you want to send the reset command to the device?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -1155,9 +1825,21 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.of(ctx).pop();
-                    _factoryResetDevice();
+                    setState(() => _pendingPostResetFlow = true);
+                    _showLoading('Resetting device...');
+                    try {
+                      await _sendCommand('Factory>');
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      _showSuccess('Device reset successfully.');
+                    } catch (e) {
+                      debugPrint('Factory> send error: $e');
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      _showError('Failed to reset device. Please try again.');
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kRed,
@@ -1168,7 +1850,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                     ),
                   ),
                   child: const Text(
-                    'Yes, Reset',
+                    'Yes',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -1196,6 +1878,240 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     );
   }
 
+  Future<void> _submitDeviceDeleteRequest(String reason) async {
+    debugPrint('[ResetRequest] submit pressed. reason="$reason"');
+    _showLoading('Submitting reset request...');
+    try {
+      String serial = _resolvedHeaderDetails['serialNumber']?.isNotEmpty == true
+          ? _resolvedHeaderDetails['serialNumber']!
+          : _resolveDeviceValue(_deviceData, const [
+              'MnfSerial',
+              'serial',
+              'Serial',
+              'deviceSerial',
+              'imei',
+            ]);
+      String numberPlate =
+          _resolvedHeaderDetails['registrationNumber']?.isNotEmpty == true
+              ? _resolvedHeaderDetails['registrationNumber']!
+              : _resolveDeviceValue(_deviceData, const [
+                  'reg',
+                  'Reg',
+                  'numberPlate',
+                  'Rg',
+                ]);
+      String deviceId = _resolveDeviceId(_deviceData);
+      if (deviceId.isEmpty) {
+        deviceId = _normalizeDeviceValue(_resolvedHeaderDetails['headerId']);
+      }
+      if (deviceId.isEmpty) {
+        deviceId = _normalizeDeviceValue(
+          _resolvedHeaderDetails['certificateNumber'],
+        );
+      }
+
+      // Fall back to last-connected device saved in prefs
+      if (serial.isEmpty || numberPlate.isEmpty || deviceId.isEmpty) {
+        final savedSerial = await StorageService.getData('lastDevice_serial');
+        final savedPlate = await StorageService.getData('lastDevice_numberPlate');
+        final savedId = await StorageService.getData('lastDevice_id');
+        if (serial.isEmpty && savedSerial is String) {
+          serial = _normalizeDeviceValue(savedSerial);
+        }
+        if (numberPlate.isEmpty && savedPlate is String) {
+          numberPlate = _normalizeDeviceValue(savedPlate);
+        }
+        if (deviceId.isEmpty && savedId is String) {
+          deviceId = _normalizeDeviceValue(savedId);
+        }
+      }
+
+      if (deviceId.isEmpty) {
+        throw Exception(
+          'Device ID was not found in the current device data or shared prefs. '
+          'Run Get Header> again before resetting.',
+        );
+      }
+
+      // Mark that the next reconnect is post-reset so GetOrcaid fires automatically
+      setState(() => _pendingPostResetFlow = true);
+
+      final technicianPhone = _technicianPhoneController.text.trim();
+      debugPrint(
+        '[ResetRequest] resolved payload — '
+        'deviceId="$deviceId", serial="$serial", numberPlate="$numberPlate", '
+        'requestedBy="${_technicianNameController.text.trim()}" '
+        '(phone="$technicianPhone"), reason="$reason"',
+      );
+
+      // Registered device: only log the reset request to the server.
+      // The factory reset command is NOT sent to the device here.
+      debugPrint('[ResetRequest] POSTing to createDeviceDeleteRequest...');
+      await ApiService.submitDeviceDeleteRequest(
+        deviceId: deviceId,
+        deviceSerialNumber: serial,
+        requestedByFullname: _technicianNameController.text.trim(),
+        requestedByPhoneNumber: technicianPhone,
+        requestedByRole: 'Technician',
+        reason: reason,
+        previousNumberPlate: numberPlate,
+      );
+      debugPrint('[ResetRequest] server accepted the request');
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      _showSuccess('Reset request submitted.');
+    } catch (e, st) {
+      debugPrint('[ResetRequest] failed: $e\n$st');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      _showError('Could not submit reset request. Please try again.');
+    }
+  }
+
+  void _showResetConfirmDialog() {
+    debugPrint('[ResetRequest] opening reason popup (registered path)');
+    final col = context.col;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        final reasonController = TextEditingController();
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            final hasReason = reasonController.text.trim().isNotEmpty;
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(kRadiusLG),
+              ),
+              backgroundColor: col.surface,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 40,
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: kRed.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.warning_rounded,
+                        size: 28,
+                        color: kRed,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Reset Device?',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: col.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'This will submit a reset request for this ORCA device. This action cannot be undone.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: col.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: reasonController,
+                      maxLines: 2,
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: InputDecoration(
+                        labelText: 'Reason for reset *',
+                        hintText: 'Enter the reason for resetting this device',
+                        alignLabelWithHint: true,
+                        filled: true,
+                        fillColor: col.bg,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(kRadiusMD),
+                          borderSide: BorderSide(color: col.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(kRadiusMD),
+                          borderSide: BorderSide(color: col.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(kRadiusMD),
+                          borderSide:
+                              const BorderSide(color: kRed, width: 1.5),
+                        ),
+                        labelStyle: TextStyle(color: col.textSecondary),
+                        hintStyle: TextStyle(
+                          color: col.textSecondary.withValues(alpha: 0.6),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: hasReason
+                            ? () {
+                                final reason = reasonController.text.trim();
+                                Navigator.of(ctx).pop();
+                                _submitDeviceDeleteRequest(reason);
+                              }
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kRed,
+                          foregroundColor: kWhite,
+                          disabledBackgroundColor:
+                              kRed.withValues(alpha: 0.3),
+                          disabledForegroundColor:
+                              kWhite.withValues(alpha: 0.5),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(kRadiusMD),
+                          ),
+                        ),
+                        child: const Text(
+                          'Submit request',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: col.textPrimary,
+                          side: BorderSide(color: col.border),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(kRadiusMD),
+                          ),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   // Future<void> _resetDevice() async {
   //   await _sendCommand('Reset>');
   // }
@@ -1220,8 +2136,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       _showCalibrationModalPopup();
     } catch (e) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showError('Error preparing calibration: $e');
       debugPrint('Calibration preparation error: $e');
+      _showError('Failed to prepare calibration.');
     }
   }
 
@@ -1310,7 +2226,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       // Show calibration success modal
       _showCalibrationSuccessModal();
     } catch (e) {
-      _showError('Calibration error: $e');
+      debugPrint('Calibration error: $e');
+      _showError('Calibration failed. Please try again.');
       setState(() {
         _isCalibrating = false;
       });
@@ -1368,7 +2285,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               const SizedBox(height: 20),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 16,
+                ),
                 decoration: BoxDecoration(
                   color: kBlue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(kRadiusMD),
@@ -1462,7 +2382,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         _showError('Failed to send frequency to device');
       }
     } catch (e) {
-      _showError('Error sending frequency: $e');
+      debugPrint('Send frequency error: $e');
+      _showError('Failed to send frequency to device.');
     } finally {
       setState(() {
         _isCalibrating = false;
@@ -1509,7 +2430,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         });
       }
     } catch (e) {
-      _showError('Fuel calibration error: $e');
+      debugPrint('Fuel calibration error: $e');
+      _showError('Fuel calibration failed.');
       setState(() {
         _isCalibrating = false;
       });
@@ -1976,15 +2898,12 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           _showErrorDialog(
             title: 'Already Registered',
             message:
-                'This serial number is already registered in the system.\n\nPlease verify the company name, serial number, and registration number before trying again.',
+                'This serial number is already registered in the system.\n\nPlease verify the company name, serial number, and number plate before trying again.',
             icon: Icons.domain_disabled_rounded,
             iconColor: Colors.orange,
           );
         } else {
-          _showErrorDialog(
-            title: 'Registration Failed',
-            message: errorMessage,
-          );
+          _showErrorDialog(title: 'Registration Failed', message: errorMessage);
         }
       }
     } catch (e) {
@@ -2015,6 +2934,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       _jsonBuffer.clear();
     });
   }
+
+  final bool isReceivedDataHidden = true;
 
   void _showLoading(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -2116,11 +3037,16 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                 const SizedBox(height: 20),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: kSuccessGreen.withValues(alpha: 0.07),
                     borderRadius: BorderRadius.circular(kRadiusMD),
-                    border: Border.all(color: kSuccessGreen.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: kSuccessGreen.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Column(
                     children: details
@@ -2331,11 +3257,11 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         border: isConnected
             ? Border.all(color: kBlue, width: 2)
             : !isPaired
-                ? Border.all(
-                    color: Colors.orange.withValues(alpha: 0.6),
-                    width: 1.5,
-                  )
-                : null,
+            ? Border.all(
+                color: Colors.orange.withValues(alpha: 0.6),
+                width: 1.5,
+              )
+            : null,
       ),
       child: ListTile(
         leading: Container(
@@ -2364,10 +3290,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
             if (!isPaired) ...[
               const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.orange.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(4),
@@ -2443,6 +3366,365 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _closeHeaderDetailsPopup({bool openRegistrationForm = false}) {
+    setState(() {
+      _showHeaderDetailsPopup = false;
+      _showRegistrationForm = openRegistrationForm;
+    });
+  }
+
+  Widget _buildHeaderDetailsPopup() {
+    final details = _resolvedHeaderDetails.isNotEmpty
+        ? _resolvedHeaderDetails
+        : _resolveHeaderDetails(_deviceData);
+    final col = context.col;
+
+    Widget buildRow(_DetailRow row) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: col.inputFill,
+          borderRadius: BorderRadius.circular(kRadiusMD),
+          border: Border.all(color: col.border),
+        ),
+        child: Row(
+          children: [
+            Icon(row.icon, size: 18, color: kBlue),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    row.label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: col.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    row.value,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: col.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget buildSection(String title, List<_DetailRow> rows) {
+      if (rows.isEmpty) return const SizedBox.shrink();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: kBlue,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...rows.map(buildRow),
+          const SizedBox(height: 8),
+        ],
+      );
+    }
+
+    final companyRows = <_DetailRow>[
+      if ((details['company'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.business_rounded,
+          label: 'Company Name',
+          value: details['company']!,
+        ),
+      if ((details['companyPhone'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.phone,
+          label: 'Company Phone',
+          value: details['companyPhone']!,
+        ),
+    ];
+
+    final technicianRows = <_DetailRow>[
+      if (_technicianIdController.text.isNotEmpty)
+        _DetailRow(
+          icon: Icons.badge,
+          label: 'Technician ID',
+          value: _technicianIdController.text,
+        ),
+      if (_technicianNameController.text.isNotEmpty)
+        _DetailRow(
+          icon: Icons.person,
+          label: 'Technician Name',
+          value: _technicianNameController.text,
+        ),
+    ];
+
+    final ownerRows = <_DetailRow>[
+      if ((details['ownerName'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.person_outline,
+          label: 'Owner Name',
+          value: details['ownerName']!,
+        ),
+      if ((details['ownerId'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.perm_identity,
+          label: 'Owner ID',
+          value: details['ownerId']!,
+        ),
+      if ((details['ownerPhone'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.phone_android,
+          label: 'Owner Phone',
+          value: details['ownerPhone']!,
+        ),
+    ];
+
+    final vehicleRows = <_DetailRow>[
+      if ((details['registrationNumber'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.pin_rounded,
+          label: 'Number Plate',
+          value: details['registrationNumber']!,
+        ),
+      if ((details['chassisNumber'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.directions_car_rounded,
+          label: 'Chassis Number',
+          value: details['chassisNumber']!,
+        ),
+      if ((details['make'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.precision_manufacturing_rounded,
+          label: 'Vehicle Make',
+          value: details['make']!,
+        ),
+    ];
+
+    final deviceRows = <_DetailRow>[
+      if ((details['headerId'] ?? '').isNotEmpty &&
+          details['headerId'] != details['certificateNumber'])
+        _DetailRow(
+          icon: Icons.badge_rounded,
+          label: 'Header ID',
+          value: details['headerId']!,
+        ),
+      if ((details['certificateNumber'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.verified_rounded,
+          label: 'Certificate No.',
+          value: details['certificateNumber']!,
+        ),
+      if ((details['serialNumber'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.memory_rounded,
+          label: 'Device Serial Number',
+          value: details['serialNumber']!,
+        ),
+      if ((details['date'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.calendar_today_rounded,
+          label: 'Date',
+          value: details['date']!,
+        ),
+    ];
+
+    final agentRows = <_DetailRow>[
+      if ((details['agentName'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.support_agent_rounded,
+          label: 'Agent Name',
+          value: details['agentName']!,
+        ),
+      if ((details['agentId'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.badge_outlined,
+          label: 'Agent ID',
+          value: details['agentId']!,
+        ),
+      if ((details['location'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.location_on,
+          label: 'Location',
+          value: details['location']!,
+        ),
+      if ((details['email'] ?? '').isNotEmpty)
+        _DetailRow(icon: Icons.email, label: 'Email', value: details['email']!),
+      if ((details['agentPhone'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.phone_iphone,
+          label: 'Agent Phone',
+          value: details['agentPhone']!,
+        ),
+      if ((details['businessReg'] ?? '').isNotEmpty)
+        _DetailRow(
+          icon: Icons.app_registration,
+          label: 'Business Registration',
+          value: details['businessReg']!,
+        ),
+      if ((details['group'] ?? '').isNotEmpty)
+        _DetailRow(icon: Icons.group, label: 'Group', value: details['group']!),
+    ];
+
+    final hasAnyData =
+        companyRows.isNotEmpty ||
+        technicianRows.isNotEmpty ||
+        ownerRows.isNotEmpty ||
+        vehicleRows.isNotEmpty ||
+        deviceRows.isNotEmpty ||
+        agentRows.isNotEmpty;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.all(20),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kRadiusPill),
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.82,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: kBlue,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.description_rounded,
+                    color: kWhite,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Header Details',
+                      style: TextStyle(
+                        color: kWhite,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: kWhite, size: 24),
+                    onPressed: () => _closeHeaderDetailsPopup(),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: kBlue.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(kRadiusMD),
+                        border: Border.all(
+                          color: kBlue.withValues(alpha: 0.18),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.check_circle_outline_rounded,
+                            color: kBlue,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'The connected device already has header details, so the app is showing them first.',
+                              style: TextStyle(
+                                color: col.textPrimary,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    if (!hasAnyData)
+                      Text(
+                        'No header details were found in this payload.',
+                        style: TextStyle(
+                          color: col.textSecondary,
+                          fontSize: 14,
+                        ),
+                      )
+                    else ...[
+                      buildSection('Company Information', companyRows),
+                      buildSection('Technician Information', technicianRows),
+                      buildSection('Device Owner Information', ownerRows),
+                      buildSection('Vehicle Information', vehicleRows),
+                      buildSection('Device Information', deviceRows),
+                      buildSection('Agent Information', agentRows),
+                    ],
+                    // const SizedBox(height: 8),
+                    // OutlinedButton(
+                    //   onPressed: () =>
+                    //       _closeHeaderDetailsPopup(openRegistrationForm: true),
+                    //   style: OutlinedButton.styleFrom(
+                    //     foregroundColor: kBlue,
+                    //     side: const BorderSide(color: kBlue),
+                    //     padding: const EdgeInsets.symmetric(vertical: 14),
+                    //     shape: RoundedRectangleBorder(
+                    //       borderRadius: BorderRadius.circular(kRadiusMD),
+                    //     ),
+                    //   ),
+                    //   child: const Text('Open Registration Form'),
+                    // ),
+                    const SizedBox(height: 3),
+                    ElevatedButton(
+                      onPressed: () => _closeHeaderDetailsPopup(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kBlue,
+                        foregroundColor: kWhite,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(kRadiusMD),
+                        ),
+                      ),
+                      child: const Text(
+                        'Close',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -2895,8 +4177,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                       TextFormField(
                         controller: _regController,
                         decoration: InputDecoration(
-                          labelText: 'Registration Number',
-                          hintText: 'Enter vehicle registration number',
+                          labelText: 'Number Plate',
+                          hintText: 'Enter vehicle Number Plate',
                           prefixIcon: Icon(Icons.confirmation_number),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(kRadiusSM),
@@ -2904,7 +4186,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return "Registration number is required";
+                            return "Number plate is required";
                           }
                           return null;
                         },
@@ -2962,15 +4244,27 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
                       TextFormField(
                         controller: _certNoController,
+                        readOnly: true,
                         decoration: InputDecoration(
                           labelText: 'Certificate Number',
-                          hintText: 'Enter certificate number',
-                          prefixIcon: Icon(Icons.verified),
+                          hintText: 'Certificate',
+                          prefixIcon: const Icon(Icons.verified),
+                          suffixIcon: const Icon(
+                            Icons.lock_outline,
+                            size: 18,
+                          ),
+                          filled: true,
+                          fillColor: context.col.bg,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
+                          disabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(kRadiusSM),
+                            borderSide: BorderSide(
+                              color: context.col.border,
+                            ),
+                          ),
                         ),
-                        readOnly: _certNoController.text.isNotEmpty,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return "Certificate number is required";
@@ -2982,15 +4276,27 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
                       TextFormField(
                         controller: _serialController,
+                        readOnly: true,
                         decoration: InputDecoration(
                           labelText: 'Device Serial Number',
-                          hintText: 'Enter device serial number',
-                          prefixIcon: Icon(Icons.numbers),
+                          hintText: 'Serial',
+                          prefixIcon: const Icon(Icons.numbers),
+                          suffixIcon: const Icon(
+                            Icons.lock_outline,
+                            size: 18,
+                          ),
+                          filled: true,
+                          fillColor: context.col.bg,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
+                          disabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(kRadiusSM),
+                            borderSide: BorderSide(
+                              color: context.col.border,
+                            ),
+                          ),
                         ),
-                        readOnly: _serialController.text.isNotEmpty,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return "Serial number is required";
@@ -2998,30 +4304,31 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                           return null;
                         },
                       ),
-                      if (_serialController.text.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8.0, top: 4),
-                          child: Text(
-                            'Populated from device data',
-                            style: TextStyle(
-                              color: context.col.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
                       const SizedBox(height: 12),
 
                       TextFormField(
                         controller: _dateController,
+                        readOnly: true,
                         decoration: InputDecoration(
                           labelText: 'Date',
-                          hintText: 'Enter date (e.g., Nov 10, 2025)',
-                          prefixIcon: Icon(Icons.calendar_today),
+                          hintText: 'Populated from device',
+                          prefixIcon: const Icon(Icons.calendar_today),
+                          suffixIcon: const Icon(
+                            Icons.lock_outline,
+                            size: 18,
+                          ),
+                          filled: true,
+                          fillColor: context.col.bg,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
+                          disabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(kRadiusSM),
+                            borderSide: BorderSide(
+                              color: context.col.border,
+                            ),
+                          ),
                         ),
-                        readOnly: _dateController.text.isNotEmpty,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return "Date is required";
@@ -3169,18 +4476,32 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      TextFormField(
-                        controller: _groupController,
+                      DropdownButtonFormField<String>(
+                        value: _selectedGroup,
                         decoration: InputDecoration(
                           labelText: 'Group',
-                          hintText: 'Enter group name',
+                          hintText: 'Select group',
                           prefixIcon: Icon(Icons.group),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(kRadiusSM),
                           ),
                         ),
+                        items: _groupOptions
+                            .map(
+                              (g) => DropdownMenuItem<String>(
+                                value: g,
+                                child: Text(g),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedGroup = value;
+                            _groupController.text = value ?? '';
+                          });
+                        },
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
+                          if (value == null || value.isEmpty) {
                             return "Group is required";
                           }
                           return null;
@@ -3465,7 +4786,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: kWhite.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(kRadiusMD),
+                                  borderRadius: BorderRadius.circular(
+                                    kRadiusMD,
+                                  ),
                                   border: Border.all(
                                     color: kWhite.withValues(alpha: 0.4),
                                   ),
@@ -3480,7 +4803,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Header already set (ID: ${_deviceData['LimiterID']})',
+                                        'Header already set (ID: $_headerId)',
                                         style: const TextStyle(
                                           color: kWhite,
                                           fontSize: 13,
@@ -3494,15 +4817,15 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                               Row(
                                 children: [
                                   // Reset header button
-                                  Expanded(
-                                    child: _buildActionButton(
-                                      icon: Icons.restart_alt_rounded,
-                                      label: 'Reset Header',
-                                      color: kRed,
-                                      onTap: _resetDeviceHeader,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
+                                  // Expanded(
+                                  //   child: _buildActionButton(
+                                  //     icon: Icons.restart_alt_rounded,
+                                  //     label: 'Reset Header',
+                                  //     color: kRed,
+                                  //     onTap: _resetDeviceHeader,
+                                  //   ),
+                                  // ),
+                                  // const SizedBox(width: 12),
                                   // Recalibrate speed button
                                   Expanded(
                                     child: _buildActionButton(
@@ -3528,7 +4851,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         ),
 
                       // Received Data Section
-                      if (_receivedData.isNotEmpty) ...[
+                      if (_receivedData.isNotEmpty &&
+                          isReceivedDataHidden == false) ...[
                         const SizedBox(height: 20),
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -3565,7 +4889,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                         tooltip: 'Clear',
                                       ),
                                       IconButton(
-                                        onPressed: _retrieveDataFromDevice,
+                                        onPressed: () => _retrieveDataFromDevice(
+                                          restartFlow: true,
+                                        ),
                                         icon: const Icon(
                                           Icons.refresh,
                                           color: kWhite,
@@ -3754,7 +5080,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                   children: [
                     FloatingActionButton.extended(
                       heroTag: 'reset',
-                      onPressed: _showResetConfirmDialog,
+                      onPressed: _handleResetDevicePressed,
                       icon: const Icon(Icons.restart_alt),
                       label: const Text('Reset Device'),
                       backgroundColor: kRed,
@@ -3767,7 +5093,8 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                     const SizedBox(width: 12),
                     FloatingActionButton.extended(
                       heroTag: 'getData',
-                      onPressed: _retrieveDataFromDevice,
+                      onPressed: () =>
+                          _retrieveDataFromDevice(restartFlow: true),
                       icon: const Icon(Icons.download),
                       label: const Text('Get Device Data'),
                       backgroundColor: kBlue,
@@ -3782,8 +5109,18 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
               : null,
         ),
 
-        // Registration Form Modal Overlay
-        if (_showRegistrationForm) ...[
+        // Header Details Modal Overlay
+        if (_showHeaderDetailsPopup) ...[
+          GestureDetector(
+            onTap: () => _closeHeaderDetailsPopup(),
+            child: Container(
+              color: kBlack.withValues(alpha: 0.5),
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+          Center(child: _buildHeaderDetailsPopup()),
+        ] else if (_showRegistrationForm) ...[
           // Semi-transparent background overlay
           GestureDetector(
             onTap: () {

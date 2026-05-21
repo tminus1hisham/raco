@@ -84,49 +84,129 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     }
   }
 
-  Future<void> _confirmAndToggleEngine(bool turnOn) async {
-    if (!turnOn) {
-      await showCupertinoDialog(
-        context: context,
-        builder: (_) => ActionDialog(
-          title: 'Turn Off Engine?',
-          message:
-              'Are you sure you want to remotely turn off the engine for ${widget.licensePlate}? The vehicle will be immobilised.',
-          confirmText: 'Turn Off',
-          cancelText: 'Cancel',
-          onConfirm: () => _toggleEngine(false),
-        ),
-      );
-    } else {
-      await _toggleEngine(true);
-    }
-  }
-
-  Future<void> _toggleEngine(bool turnOn) async {
+  Future<void> _showEngineReasonDialog(bool turnOn) async {
     if (_engineToggling) return;
-    setState(() {
-      _engineToggling = true;
-      _localEngineOn = turnOn;
-    });
+    final command = turnOn ? 'Restore' : 'Imobilize';
+    final label = turnOn ? 'Turn On Engine' : 'Turn Off Engine';
+    final color = turnOn ? kSuccessGreen : kRed;
+
+    final reasonController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadiusLG),
+        ),
+        title: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.power_settings_new_rounded,
+                color: color,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Vehicle: ${widget.licensePlate}',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: reasonController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: 'Reason',
+                  hintText: 'Enter reason for this action...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(kRadiusSM),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                ),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Reason is required' : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: color,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(kRadiusSM),
+              ),
+            ),
+            onPressed: () {
+              if (formKey.currentState!.validate()) Navigator.pop(ctx, true);
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _engineToggling = true);
     try {
-      final success = await ApiService.sendEngineCommand(
-        widget.devices.numberPlate,
-        turnOn,
+      final result = await ApiService.sendVehicleCommand(
+        deviceId: widget.devices.deviceId,
+        serialNumber: widget.devices.serial,
+        command: command,
+        numberPlate: widget.devices.numberPlate,
+        reason: reasonController.text.trim(),
       );
-      if (!success && mounted) {
-        setState(() => _localEngineOn = !turnOn);
+      if (mounted) {
+        final success = result['success'] == true;
+        if (success) setState(() => _localEngineOn = turnOn);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Failed to ${turnOn ? 'start' : 'stop'} engine. Please try again.',
+              success
+                  ? '$label command sent successfully'
+                  : result['message'] ?? 'Command failed',
             ),
-            backgroundColor: kRed,
+            backgroundColor: success ? kSuccessGreen : kRed,
           ),
         );
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _localEngineOn = !turnOn);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Network error. Please check your connection.'),
@@ -1045,8 +1125,10 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
           else
             Switch(
               value: isEngineOn,
-              onChanged: _confirmAndToggleEngine,
-              activeColor: kSuccessGreen,
+              activeThumbColor: kSuccessGreen,
+              inactiveThumbColor: kRed,
+              inactiveTrackColor: kRed.withValues(alpha: 0.25),
+              onChanged: _showEngineReasonDialog,
             ),
         ],
       ),

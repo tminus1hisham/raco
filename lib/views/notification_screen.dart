@@ -176,14 +176,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
-              child: _buildTopBar(col),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
-              child: _buildHero(col),
-            ),
+            // Padding(
+            //   padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+            //   child: _buildTopBar(col),
+            // ),
+            // Padding(
+            //   padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
+            //   child: _buildHero(col),
+            // ),
             const SizedBox(height: 18),
             _buildFilterRow(col),
             const SizedBox(height: 18),

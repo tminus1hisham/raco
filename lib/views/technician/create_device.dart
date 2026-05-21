@@ -258,7 +258,7 @@ class _TechnicianScreenState extends State<TechnicianScreen> {
                         },
                       ),
                       InputField(
-                        hintText: 'Registration Number',
+                        hintText: 'Number Plate',
                         prefixIcon: Icons.label_outline_sharp,
                         controller: _regController,
                         isRequired: true,

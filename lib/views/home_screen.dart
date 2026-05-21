@@ -7,6 +7,7 @@ import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/device_controller.dart';
 import 'package:atom/controllers/dashboard_controller.dart';
 import 'package:atom/models/vehicle_model.dart';
+import 'package:atom/services/in_app_update_service.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/cars/commands.dart';
@@ -80,6 +81,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     _checkLoginState();
     _initializeData();
+    InAppUpdateService.checkForUpdate();
   }
 
   Future<void> _checkLoginState() async {
@@ -1520,11 +1522,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildVehicleInfoCard(Device device) {
     final bool isOnline = device.isDeviceOnline;
     final bool isMoving = device.ignitionStatus == 1 && isOnline;
+    final Color statusColor = isOnline ? kSuccessGreen : kRed;
+    final String statusLabel = isOnline ? 'Online' : 'Offline';
     final Color speedColor = isMoving ? kSuccessGreen : context.col.textSecondary;
 
     return Container(
-      color: context.col.surface,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      decoration: BoxDecoration(
+        color: context.col.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -1532,58 +1539,46 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           // Drag handle
           Center(
             child: Container(
-              width: 32,
-              height: 3,
-              margin: const EdgeInsets.only(bottom: 10),
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
                 color: context.col.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
-          // Header: name + speed + signal + close
+          // Header row: plate + signal + close
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 device.numberPlate,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: context.col.textPrimary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Speed:${device.speed}km/h',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: speedColor,
-                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
                 ),
               ),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: kSuccessGreen,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  '${device.signalStrength}',
-                  style: const TextStyle(
-                    color: kWhite,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+              // Signal strength
+              Row(
+                children: [
+                  Icon(Icons.network_cell, color: context.col.textSecondary, size: 16),
+                  const SizedBox(width: 3),
+                  Text(
+                    '${device.signalStrength}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: context.col.textSecondary,
+                    ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(width: 6),
-              Icon(
-                Icons.battery_5_bar,
-                color: context.col.textSecondary,
-                size: 18,
-              ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 10),
+              // Close button
               GestureDetector(
                 onTap: () {
                   if (Get.isRegistered<DashboardController>()) {
@@ -1596,49 +1591,82 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   });
                   _updateVehicleAnnotations(_filteredDevices);
                 },
-                child: Icon(
-                  Icons.close,
-                  color: context.col.textSecondary,
-                  size: 20,
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    color: context.col.border.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.close, color: context.col.textSecondary, size: 15),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          // Location row
+          const SizedBox(height: 8),
+          // Status + speed row
           Row(
             children: [
-              Icon(Icons.location_on, color: kBlue, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  device.location.trim().isEmpty
-                      ? 'Location unavailable'
-                      : device.location,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: context.col.textPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                statusLabel,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: statusColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Icon(Icons.speed_rounded, size: 15, color: context.col.textSecondary),
+              const SizedBox(width: 4),
+              Text(
+                'Speed: ${device.speed} km/h',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: speedColor,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
+          // Group row
+          if (device.group.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Icon(Icons.business_rounded, color: kBlue, size: 15),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      device.group,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: context.col.textPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           // Timestamp row
           Row(
             children: [
-              Icon(
-                Icons.access_time,
-                color: context.col.textSecondary,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
+              Icon(Icons.access_time_rounded, color: context.col.textSecondary, size: 15),
+              const SizedBox(width: 6),
               Text(
                 _utils.formatTime(device.updatedAt),
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   color: context.col.textSecondary,
                 ),
               ),
@@ -1655,64 +1683,88 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Container(
       decoration: BoxDecoration(
         color: context.col.surface,
-        boxShadow: [kShadowMD],
+        border: Border(
+          top: BorderSide(color: context.col.border.withValues(alpha: 0.4), width: 1),
+        ),
       ),
       child: SafeArea(
         top: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _navBarItem(Icons.directions_car, 'Details', kBlue, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SelectedCarScreen(
-                    devices: device,
-                    carModel: '${device.type} ${device.make}'.trim(),
-                    licensePlate: device.numberPlate,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _navBarItem(
+                Icons.directions_car_rounded,
+                'Details',
+                'Vehicle info',
+                kBlue,
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SelectedCarScreen(
+                      devices: device,
+                      carModel: '${device.type} ${device.make}'.trim(),
+                      licensePlate: device.numberPlate,
+                    ),
                   ),
                 ),
-              );
-            }),
-            _navBarItem(Icons.route_rounded, 'Playback', kSuccessGreen, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      PlaybackScreen(numberPlate: device.numberPlate),
-                ),
-              );
-            }),
-            _navBarItem(Icons.gps_fixed, 'Tracking', const Color(0xFFF39C12), () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => VehicleLocationScreen(
-                    latitude: double.tryParse(device.latitude) ?? -1.2842,
-                    longitude: double.tryParse(device.longitude) ?? 36.8163,
-                    deviceId: device.deviceId,
-                    numberPlate: device.numberPlate,
+              ),
+              _navBarItem(
+                Icons.history_rounded,
+                'Playback',
+                'History & trips',
+                kSuccessGreen,
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PlaybackScreen(numberPlate: device.numberPlate),
                   ),
                 ),
-              );
-            }),
-            _navBarItem(Icons.terminal, 'Command', kBlue, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => Commands(device: device),
+              ),
+              _navBarItem(
+                Icons.gps_fixed_rounded,
+                'Tracking',
+                'Live tracking',
+                const Color(0xFFF39C12),
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VehicleLocationScreen(
+                      latitude: double.tryParse(device.latitude) ?? -1.2842,
+                      longitude: double.tryParse(device.longitude) ?? 36.8163,
+                      deviceId: device.deviceId,
+                      numberPlate: device.numberPlate,
+                    ),
+                  ),
                 ),
-              );
-            }),
-            _navBarItem(Icons.grid_on_rounded, 'Fence', kSuccessGreen, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => GeofencingScreen(numberPlate: device.numberPlate, device: device),
+              ),
+              _navBarItem(
+                Icons.terminal_rounded,
+                'Command',
+                'Send commands',
+                kBlue,
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => Commands(device: device),
+                  ),
                 ),
-              );
-            }),
-          ],
+              ),
+              _navBarItem(
+                Icons.fence_rounded,
+                'Fence',
+                'Geo-fencing',
+                kSuccessGreen,
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => GeofencingScreen(numberPlate: device.numberPlate, device: device),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1721,32 +1773,43 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _navBarItem(
     IconData icon,
     String label,
+    String subtitle,
     Color color,
     VoidCallback onTap,
   ) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: color,
+                color: color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: kWhite, size: 24),
+              child: Icon(icon, color: color, size: 22),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 5),
             Text(
               label,
               style: TextStyle(
                 fontSize: 11,
                 color: context.col.textPrimary,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 1),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 9,
+                color: context.col.textSecondary,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],

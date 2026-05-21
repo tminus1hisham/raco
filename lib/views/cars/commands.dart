@@ -15,23 +15,27 @@ class Commands extends StatefulWidget {
 }
 
 class _CommandsState extends State<Commands> {
-  bool _engineToggling = false;
+  String? _runningCommand;
 
-  Future<void> _toggleEngine(bool turnOn) async {
-    if (_engineToggling) return;
-    setState(() => _engineToggling = true);
+  Future<void> _sendCommand(String command, String reason) async {
+    setState(() => _runningCommand = command);
     try {
-      final success = await ApiService.sendEngineCommand(
-        widget.device.numberPlate,
-        turnOn,
+      final result = await ApiService.sendVehicleCommand(
+        deviceId: widget.device.deviceId,
+        serialNumber: widget.device.serial,
+        command: command,
+        numberPlate: widget.device.numberPlate,
+        reason: reason,
       );
       if (mounted) {
+        final success = result['success'] == true;
+        final label = _commandLabel(command);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               success
-                  ? 'Engine ${turnOn ? 'started' : 'stopped'} successfully'
-                  : 'Failed to ${turnOn ? 'start' : 'stop'} engine. Try again.',
+                  ? '$label command sent successfully'
+                  : result['message'] ?? 'Command failed',
             ),
             backgroundColor: success ? kSuccessGreen : kRed,
           ),
@@ -47,7 +51,118 @@ class _CommandsState extends State<Commands> {
         );
       }
     } finally {
-      if (mounted) setState(() => _engineToggling = false);
+      if (mounted) setState(() => _runningCommand = null);
+    }
+  }
+
+  String _commandLabel(String command) {
+    switch (command) {
+      case 'Restore':
+        return 'Engine On';
+      case 'Imobilize':
+        return 'Engine Off';
+      case 'Check':
+        return 'Check Status';
+      default:
+        return command;
+    }
+  }
+
+  Future<void> _showReasonDialog({
+    required String command,
+    required String label,
+    required Color color,
+    required IconData icon,
+  }) async {
+    if (_runningCommand != null) return;
+    final reasonController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadiusLG),
+        ),
+        title: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Vehicle: ${widget.device.numberPlate}',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: reasonController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: 'Reason',
+                  hintText: 'Enter reason for this command...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(kRadiusSM),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                ),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Reason is required' : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: color,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(kRadiusSM),
+              ),
+            ),
+            onPressed: () {
+              if (formKey.currentState!.validate()) Navigator.pop(ctx, true);
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _sendCommand(command, reasonController.text.trim());
     }
   }
 
@@ -166,8 +281,6 @@ class _CommandsState extends State<Commands> {
   @override
   Widget build(BuildContext context) {
     final col = context.col;
-    final isEngineOn = widget.device.ignitionStatus == 1;
-    final engineColor = isEngineOn ? kRed : kSuccessGreen;
 
     return Scaffold(
       backgroundColor: col.bg,
@@ -223,22 +336,73 @@ class _CommandsState extends State<Commands> {
                       _buildCommandItem(
                         col: col,
                         icon: Icons.power_settings_new_rounded,
-                        iconColor: engineColor,
-                        title: isEngineOn ? 'Stop Engine' : 'Start Engine',
-                        subtitle: isEngineOn
-                            ? "Remotely shut down the vehicle's engine."
-                            : "Remotely start the vehicle's engine.",
-                        trailing: _engineToggling
-                            ? SizedBox(
+                        iconColor: kSuccessGreen,
+                        title: 'Engine On',
+                        subtitle: "Restore the vehicle's engine power.",
+                        trailing: _runningCommand == 'Restore'
+                            ? const SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: engineColor,
+                                  color: kSuccessGreen,
                                 ),
                               )
                             : null,
-                        onTap: () => _toggleEngine(!isEngineOn),
+                        onTap: () => _showReasonDialog(
+                          command: 'Restore',
+                          label: 'Engine On',
+                          color: kSuccessGreen,
+                          icon: Icons.power_settings_new_rounded,
+                        ),
+                      ),
+                      _buildDivider(col),
+                      _buildCommandItem(
+                        col: col,
+                        icon: Icons.block_rounded,
+                        iconColor: kRed,
+                        title: 'Engine Off',
+                        subtitle: "Immobilize the vehicle's engine.",
+                        trailing: _runningCommand == 'Imobilize'
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: kRed,
+                                ),
+                              )
+                            : null,
+                        onTap: () => _showReasonDialog(
+                          command: 'Imobilize',
+                          label: 'Engine Off',
+                          color: kRed,
+                          icon: Icons.block_rounded,
+                        ),
+                      ),
+                      _buildDivider(col),
+                      _buildCommandItem(
+                        col: col,
+                        icon: Icons.radar_rounded,
+                        iconColor: kBlue,
+                        title: 'Check Status',
+                        subtitle: "Request the current vehicle status.",
+                        trailing: _runningCommand == 'Check'
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: kBlue,
+                                ),
+                              )
+                            : null,
+                        onTap: () => _showReasonDialog(
+                          command: 'Check',
+                          label: 'Check Status',
+                          color: kBlue,
+                          icon: Icons.radar_rounded,
+                        ),
                       ),
                       _buildDivider(col),
                       _buildCommandItem(

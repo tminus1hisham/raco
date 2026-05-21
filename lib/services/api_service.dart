@@ -527,6 +527,55 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> sendVehicleCommand({
+    required String deviceId,
+    required String serialNumber,
+    required String command,
+    required String numberPlate,
+    required String reason,
+  }) async {
+    final String token = await StorageService.getData('access_token');
+    final payload = {
+      'deviceId': deviceId,
+      'serialNumber': serialNumber,
+      'command': command,
+      'numberPlate': numberPlate,
+      'reason': reason,
+    };
+    debugPrint('[sendVehicleCommand] → POST $BASE_URL/devices/vehicle/commands');
+    debugPrint('[sendVehicleCommand] payload: ${jsonEncode(payload)}');
+    try {
+      final response = await http.post(
+        Uri.parse('$BASE_URL/devices/vehicle/commands'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(payload),
+      );
+      debugPrint('[sendVehicleCommand] status: ${response.statusCode}');
+      debugPrint('[sendVehicleCommand] body: ${response.body}');
+      _handleAuthError(response.statusCode);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        try {
+          return {'success': true, ...jsonDecode(response.body) as Map<String, dynamic>};
+        } catch (_) {
+          return {'success': true};
+        }
+      }
+      return {
+        'success': false,
+        'message': 'Command failed (${response.statusCode})',
+      };
+    } on SocketException catch (e) {
+      debugPrint('[sendVehicleCommand] SocketException: $e');
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      debugPrint('[sendVehicleCommand] error: $e');
+      throw Exception('An error occurred: $e');
+    }
+  }
+
   static Future<bool> sendEngineCommand(String numberPlate, bool start) async {
     // 1. Publish directly to the device via MQTT so the command arrives instantly.
     //    The device subscribes to orca/cmd/{numberPlate} and acts on the payload.
@@ -586,6 +635,157 @@ class ApiService {
           'message': 'Registration failed (${response.statusCode})',
         };
       }
+    }
+  }
+
+  /// Checks whether a device with the given serial number is registered
+  /// on the server (visible to this technician). Returns the matching
+  /// device record when found, or `null` otherwise.
+  ///
+  /// Uses the technician-devices endpoint because the per-serial GET endpoint
+  /// returns 403 for the technician role.
+  static Future<Map<String, dynamic>?> checkDeviceRegistration(
+    String serialNo,
+  ) async {
+    final serial = serialNo.trim();
+    if (serial.isEmpty) return null;
+
+    final token = await StorageService.getData('access_token');
+    final pathSegment = Uri.encodeComponent(serial);
+    final queryValue = Uri.encodeQueryComponent(serial);
+
+    // Canonical Swagger form: serialNo is required in BOTH path and query
+    // (see api.md /v1/api/devices/get/{serialNo}).
+    final response = await http.get(
+      Uri.parse('$BASE_URL/devices/get/$pathSegment?serialNo=$queryValue'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    debugPrint(
+      '[checkDeviceRegistration] serial=$serial, status=${response.statusCode}, '
+      'body=${response.body}',
+    );
+
+    // Any non-200 (401/403/404/etc) → treat as "not registered" rather than
+    // bouncing the technician to the login screen.
+    if (response.statusCode != 200) return null;
+
+    final body = response.body.trim();
+    if (body.isEmpty || body == 'null') return null;
+
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(body);
+    } catch (_) {
+      return null;
+    }
+    if (decoded == null) return null;
+
+    Map<String, dynamic>? payload;
+    if (decoded is Map<String, dynamic>) {
+      payload = decoded;
+      // Some APIs wrap the device in {"data": {...}} or {"device": {...}}
+      for (final wrapper in const ['data', 'device', 'result']) {
+        final inner = payload?[wrapper];
+        if (inner is Map<String, dynamic>) {
+          payload = inner;
+          break;
+        }
+      }
+      // Honor explicit "not found" envelopes
+      if (payload?['success'] == false) return null;
+    } else if (decoded is List) {
+      if (decoded.isEmpty) return null;
+      final first = decoded.first;
+      if (first is Map<String, dynamic>) payload = first;
+    }
+
+    if (payload == null || payload.isEmpty) return null;
+
+    String normalize(String s) =>
+        s.trim().toLowerCase().replaceAll(RegExp(r'[\s\-_]+'), '');
+    final needle = normalize(serial);
+
+    bool matchesNeedle(dynamic v) {
+      if (v == null) return false;
+      final s = normalize(v.toString());
+      if (s.isEmpty) return false;
+      return s == needle || s.contains(needle) || needle.contains(s);
+    }
+
+    // Require at least one identifier field to match the queried serial.
+    const idFields = [
+      'serial',
+      'Serial',
+      'MnfSerial',
+      'mnfSerial',
+      'MNFSerial',
+      'deviceId',
+      'DeviceId',
+      'certNo',
+      'CertNo',
+      'limiterID',
+      'LimiterID',
+      'imei',
+    ];
+    final hasMatch = idFields.any((k) => matchesNeedle(payload?[k]));
+    if (!hasMatch) {
+      debugPrint(
+        '[checkDeviceRegistration] 200 received but no identifier matched '
+        '"$serial". Treating as not registered. Payload keys: '
+        '${payload.keys.toList()}',
+      );
+      return null;
+    }
+
+    return payload;
+  }
+
+  static Future<void> submitDeviceDeleteRequest({
+    required String deviceId,
+    required String deviceSerialNumber,
+    required String requestedByFullname,
+    required String requestedByPhoneNumber,
+    required String requestedByRole,
+    required String reason,
+    required String previousNumberPlate,
+  }) async {
+    final token = await StorageService.getData('access_token');
+    debugPrint(
+      '[submitDeviceDeleteRequest] preparing request: '
+      'deviceId="$deviceId", serial="$deviceSerialNumber", '
+      'role="$requestedByRole", numberPlate="$previousNumberPlate"',
+    );
+    final payload = {
+      'deviceId': deviceId,
+      'deviceSerialNumber': deviceSerialNumber,
+      'requestedByFullname': requestedByFullname,
+      'requestedByPhoneNumber': requestedByPhoneNumber,
+      'requestedByRole': requestedByRole,
+      'reason': reason,
+      'previousNumberPlate': previousNumberPlate,
+    };
+
+    final response = await http.post(
+      Uri.parse('$BASE_URL/devices/create/device/delete/request'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(payload),
+    );
+    debugPrint(
+      '[submitDeviceDeleteRequest] status: ${response.statusCode}, '
+      'payload: ${jsonEncode(payload)}, body: ${response.body}',
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return;
+    } else {
+      _handleAuthError(response.statusCode);
+      throw Exception('Request failed (${response.statusCode})');
     }
   }
 
