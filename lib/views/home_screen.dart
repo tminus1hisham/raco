@@ -9,6 +9,7 @@ import 'package:atom/controllers/dashboard_controller.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/services/in_app_update_service.dart';
 import 'package:atom/services/local_storage_service.dart';
+import 'package:atom/utils/signal_tier.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/cars/commands.dart';
 import 'package:atom/views/cars/geofencing_screen.dart';
@@ -44,6 +45,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Annotation management
   PointAnnotationManager? _annotationManager;
   final Map<String, PointAnnotation> _vehicleAnnotations = {};
+  final Map<String, PointAnnotation> _plateAnnotations = {};
+  static final Map<String, Uint8List> _plateCalloutCache = {};
   String? _selectedVehiclePlate;
   Offset? _bannerScreenPos;
 
@@ -177,6 +180,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // ─── Map layer setup ─────────────────────────────────────────────────────
   Future<void> _setupMapLayers() async {
     _vehicleAnnotations.clear();
+    _plateAnnotations.clear();
     _breathingCircle = null;
     _circleAnnotationManager = null;
     _annotationManager = null;
@@ -222,6 +226,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     for (final plate in toRemove) {
       final ann = _vehicleAnnotations.remove(plate);
       if (ann != null) await _annotationManager!.delete(ann);
+      final plateAnn = _plateAnnotations.remove(plate);
+      if (plateAnn != null) await _annotationManager!.delete(plateAnn);
     }
 
     for (final device in devices) {
@@ -229,11 +235,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       final lng = double.tryParse(device.longitude) ?? 36.8163;
       final rotation = double.tryParse(device.course) ?? 0.0;
       final iconBytes = _getImageForDevice(device);
-      const iconSize = 1.2;
+      const iconSize = 0.9;
+      final point = Point(coordinates: Position(lng, lat));
 
       if (_vehicleAnnotations.containsKey(device.numberPlate)) {
         final ann = _vehicleAnnotations[device.numberPlate]!;
-        ann.geometry = Point(coordinates: Position(lng, lat));
+        ann.geometry = point;
         ann.iconRotate = rotation;
         ann.image = iconBytes;
         ann.iconSize = iconSize;
@@ -241,21 +248,113 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       } else {
         final ann = await _annotationManager!.create(
           PointAnnotationOptions(
-            geometry: Point(coordinates: Position(lng, lat)),
+            geometry: point,
             image: iconBytes,
             iconSize: iconSize,
             iconRotate: rotation,
-            textField: device.numberPlate,
-            textSize: 10.0,
-            textColor: 0xFFFFFFFF,
-            textHaloColor: 0xFF000000,
-            textHaloWidth: 1.0,
-            textOffset: [0.0, 2.0],
           ),
         );
         _vehicleAnnotations[device.numberPlate] = ann;
       }
+
+      // Number-plate callout (white rounded box with downward arrow).
+      final calloutBytes = await _getPlateCallout(device.numberPlate);
+      if (_plateAnnotations.containsKey(device.numberPlate)) {
+        final pAnn = _plateAnnotations[device.numberPlate]!;
+        pAnn.geometry = point;
+        await _annotationManager!.update(pAnn);
+      } else {
+        final pAnn = await _annotationManager!.create(
+          PointAnnotationOptions(
+            geometry: point,
+            image: calloutBytes,
+            iconSize: 1 / 3 * 2.1, // image rendered at 3x; displayed larger for legibility
+            iconAnchor: IconAnchor.BOTTOM,
+            iconOffset: [0.0, -38.0],
+            symbolSortKey: 100.0,
+          ),
+        );
+        _plateAnnotations[device.numberPlate] = pAnn;
+      }
     }
+  }
+
+  Future<Uint8List> _getPlateCallout(String text) async {
+    final cached = _plateCalloutCache[text];
+    if (cached != null) return cached;
+    final bytes = await _buildPlateCallout(text);
+    _plateCalloutCache[text] = bytes;
+    return bytes;
+  }
+
+  Future<Uint8List> _buildPlateCallout(String text) async {
+    const double scale = 3.0;
+    const double fontSize = 13.0;
+    const double padH = 10.0;
+    const double padV = 5.0;
+    const double radius = 7.0;
+    const double arrowW = 12.0;
+    const double arrowH = 6.0;
+    const double shadowPad = 4.0;
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(
+          color: Color(0xFF1B8F3A),
+          fontSize: fontSize * scale,
+          fontWeight: FontWeight.w700,
+          height: 1.1,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final double rectW = textPainter.width + padH * 2 * scale;
+    final double rectH = textPainter.height + padV * 2 * scale;
+    final double imgW = rectW + shadowPad * 2 * scale;
+    final double imgH = rectH + arrowH * scale + shadowPad * 2 * scale;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final double rectLeft = shadowPad * scale;
+    final double rectTop = shadowPad * scale;
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(rectLeft, rectTop, rectW, rectH),
+      Radius.circular(radius * scale),
+    );
+
+    // Drop shadow
+    final shadowPaint = Paint()
+      ..color = const Color(0x33000000)
+      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 4);
+    canvas.drawRRect(rrect.shift(const Offset(0, 1)), shadowPaint);
+
+    // White background
+    final bgPaint = Paint()..color = Colors.white;
+    canvas.drawRRect(rrect, bgPaint);
+
+    // Downward-pointing arrow
+    final double cx = rectLeft + rectW / 2;
+    final double arrowTop = rectTop + rectH - 0.5; // tiny overlap to avoid seam
+    final arrowPath = Path()
+      ..moveTo(cx - arrowW * scale / 2, arrowTop)
+      ..lineTo(cx + arrowW * scale / 2, arrowTop)
+      ..lineTo(cx, arrowTop + arrowH * scale)
+      ..close();
+    canvas.drawPath(arrowPath, bgPaint);
+
+    // Text
+    textPainter.paint(
+      canvas,
+      Offset(rectLeft + padH * scale, rectTop + padV * scale),
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(imgW.ceil(), imgH.ceil());
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
   }
 
   int _lastFrameRenderTime = 0;
@@ -527,6 +626,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _applyMapStyle(String style) {
     Navigator.pop(context);
     _vehicleAnnotations.clear();
+    _plateAnnotations.clear();
     _breathingCircle = null;
     _circleAnnotationManager = null;
     _annotationManager = null;
@@ -846,7 +946,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         body: TabBarView(
           physics: const NeverScrollableScrollPhysics(),
           children: [
-            CarsScreen(),
+            CarsScreen(showSearch: _showSearchOverlay),
             _buildMapTab(),
           ],
         ),
@@ -856,179 +956,336 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   PreferredSizeWidget _buildAppBar() {
     return PreferredSize(
-      preferredSize: const Size.fromHeight(80),
+      preferredSize: const Size.fromHeight(120),
       child: AppBar(
         backgroundColor: context.col.bg,
         elevation: 0,
-        toolbarHeight: 40,
-        title: Obx(() {
-          final model = _controller.devicesModel.value;
-          final total = model?.totalDevices ?? 0;
-          final online = model?.onlineDevices ?? 0;
-          final groups = (model?.devices
-                      .map((d) => d.group)
-                      .where((g) => g.isNotEmpty)
-                      .toSet()
-                      .toList() ??
-                  [])
-            ..sort();
-          final label = _selectedGroup == null
-              ? '$_userName[$total/$online]'
-              : '$_userName · $_selectedGroup';
-          return PopupMenuButton<String?>(
-            onSelected: (group) {
-              setState(() => _selectedGroup = group);
-              _applyFilters();
-              _updateVehicleAnnotations(_filteredDevices);
-            },
-            offset: const Offset(0, 40),
-            color: context.col.surface,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+        toolbarHeight: 56,
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        title: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: kSpaceLG),
+          child: Obx(() {
+            final model = _controller.devicesModel.value;
+            final total = model?.totalDevices ?? 0;
+            final online = model?.onlineDevices ?? 0;
+            final groups = (model?.devices
+                        .map((d) => d.group)
+                        .where((g) => g.isNotEmpty)
+                        .toSet()
+                        .toList() ??
+                    [])
+              ..sort();
+            return Row(
               children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: context.col.textPrimary,
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_drop_down,
-                  color: context.col.textPrimary,
-                  size: 20,
-                ),
+                Expanded(child: _buildFleetSelector(model, total, online, groups)),
+                const SizedBox(width: kSpaceSM),
+                _buildSearchIconBtn(),
               ],
-            ),
-            itemBuilder: (_) => [
-              PopupMenuItem<String?>(
-                value: null,
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 20,
-                      child: _selectedGroup == null
-                          ? const Icon(Icons.check, size: 16, color: kBlue)
-                          : null,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'All [$total/$online]',
-                      style: TextStyle(
-                        color: context.col.textPrimary,
-                        fontWeight: _selectedGroup == null
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                      ),
-                    ),
-                  ],
+            );
+          }),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(64),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(kSpaceLG, 0, kSpaceLG, kSpaceMD),
+            child: _buildSegmentedTabs(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFleetSelector(
+    DevicesModel? model,
+    int total,
+    int online,
+    List<String> groups,
+  ) {
+    final offline = (total - online).clamp(0, total);
+    final scopeLabel = _selectedGroup ?? 'All Fleets';
+    return PopupMenuButton<String?>(
+      onSelected: (group) {
+        setState(() => _selectedGroup = group);
+        _applyFilters();
+        _updateVehicleAnnotations(_filteredDevices);
+      },
+      offset: const Offset(0, 52),
+      color: context.col.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kRadiusMD),
+      ),
+      elevation: 6,
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: kSpaceMD, vertical: 6),
+        decoration: BoxDecoration(
+          color: context.col.surface,
+          borderRadius: BorderRadius.circular(kRadiusPill),
+          border: Border.all(
+            color: context.col.border.withValues(alpha: 0.4),
+            width: 1,
+          ),
+          boxShadow: [kShadowSM],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [kBlue, kBlue.withValues(alpha: 0.75)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                _userName.isNotEmpty ? _userName[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  color: kWhite,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              ...groups.map((g) {
-                final gDevices =
-                    model?.devices.where((d) => d.group == g).toList() ?? [];
-                final gTotal = gDevices.length;
-                final gOnline = gDevices.where((d) => d.isDeviceOnline).length;
-                return PopupMenuItem<String?>(
-                  value: g,
-                  child: Row(
+            ),
+            const SizedBox(width: kSpaceSM),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    scopeLabel,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: context.col.textPrimary,
+                      height: 1.1,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
                     children: [
-                      SizedBox(
-                        width: 20,
-                        child: _selectedGroup == g
-                            ? const Icon(Icons.check, size: 16, color: kBlue)
-                            : null,
+                      _statDot(color: kSuccessGreen),
+                      const SizedBox(width: 3),
+                      Text(
+                        '$online online',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: context.col.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       const SizedBox(width: 6),
+                      _statDot(color: kLightGrey),
+                      const SizedBox(width: 3),
                       Text(
-                        '$g [$gTotal/$gOnline]',
+                        '$offline offline',
                         style: TextStyle(
-                          color: context.col.textPrimary,
-                          fontWeight: _selectedGroup == g
-                              ? FontWeight.w600
-                              : FontWeight.normal,
+                          fontSize: 10,
+                          color: context.col.textSecondary,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
-                );
-              }),
-            ],
-          );
-        }),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.search, color: context.col.textPrimary, size: 22),
-            onPressed: () =>
-                setState(() => _showSearchOverlay = !_showSearchOverlay),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(40),
-          child: Container(
-            decoration: BoxDecoration(
-              color: context.col.bg,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  spreadRadius: 1,
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TabBar(
-              indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(kRadiusSM),
-                color: kBlue,
-                boxShadow: [
-                  BoxShadow(
-                    color: kBlue.withValues(alpha: 0.3),
-                    spreadRadius: 1,
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
                 ],
               ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              indicatorPadding: const EdgeInsets.all(4),
-              labelColor: kWhite,
-              unselectedLabelColor: context.col.textSecondary,
-              labelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              margin: const EdgeInsets.only(left: 4),
+              decoration: BoxDecoration(
+                color: kBlue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(kRadiusSM),
               ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              tabs: const [
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.menu, size: 18),
-                      SizedBox(width: 6),
-                      Text('List'),
-                    ],
+              child: Row(
+                children: [
+                  Text(
+                    '$total',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: kBlue,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
+                  const SizedBox(width: 3),
+                  Icon(Icons.arrow_drop_down, color: kBlue, size: 18),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      itemBuilder: (_) => [
+        PopupMenuItem<String?>(
+          value: null,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                child: _selectedGroup == null
+                    ? const Icon(Icons.check, size: 16, color: kBlue)
+                    : null,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'All [$total/$online]',
+                style: TextStyle(
+                  color: context.col.textPrimary,
+                  fontWeight: _selectedGroup == null
+                      ? FontWeight.w600
+                      : FontWeight.normal,
                 ),
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.location_on_outlined, size: 18),
-                      SizedBox(width: 6),
-                      Text('Map'),
-                    ],
+              ),
+            ],
+          ),
+        ),
+        ...groups.map((g) {
+          final gDevices =
+              model?.devices.where((d) => d.group == g).toList() ?? [];
+          final gTotal = gDevices.length;
+          final gOnline = gDevices.where((d) => d.isDeviceOnline).length;
+          return PopupMenuItem<String?>(
+            value: g,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  child: _selectedGroup == g
+                      ? const Icon(Icons.check, size: 16, color: kBlue)
+                      : null,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '$g [$gTotal/$gOnline]',
+                  style: TextStyle(
+                    color: context.col.textPrimary,
+                    fontWeight: _selectedGroup == g
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 ),
               ],
             ),
-          ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _statDot({required Color color}) => Container(
+        width: 6,
+        height: 6,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      );
+
+  List<Widget> _buildSignalTierIndicator(
+    int strength, {
+    double fontSize = 12,
+    FontWeight fontWeight = FontWeight.w600,
+  }) {
+    final tier = SignalTier.from(strength);
+    return [
+      Container(
+        width: 7,
+        height: 7,
+        decoration: BoxDecoration(color: tier.color, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: 4),
+      Text(
+        tier.label,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: tier.color,
         ),
+      ),
+    ];
+  }
+
+  Widget _buildSearchIconBtn() {
+    final active = _showSearchOverlay;
+    return InkWell(
+      borderRadius: BorderRadius.circular(kRadiusPill),
+      onTap: () =>
+          setState(() => _showSearchOverlay = !_showSearchOverlay),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: active ? kBlue : context.col.surface,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: active
+                ? kBlue
+                : context.col.border.withValues(alpha: 0.4),
+            width: 1,
+          ),
+          boxShadow: [kShadowSM],
+        ),
+        child: Icon(
+          Icons.search_rounded,
+          color: active ? kWhite : context.col.textPrimary,
+          size: 22,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSegmentedTabs() {
+    return SizedBox(
+      height: 52,
+      child: TabBar(
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        padding: EdgeInsets.zero,
+        labelPadding: const EdgeInsets.symmetric(horizontal: 20),
+        dividerColor: Colors.transparent,
+        indicator: _BrowserTabIndicator(color: context.col.surface),
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicatorPadding: EdgeInsets.zero,
+        labelColor: kBlue,
+        unselectedLabelColor: context.col.textPrimary,
+        labelStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.1,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.1,
+        ),
+        splashFactory: NoSplash.splashFactory,
+        overlayColor: WidgetStateProperty.all(Colors.transparent),
+        tabs: const [
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.format_list_bulleted_rounded, size: 16),
+                SizedBox(width: 8),
+                Text('List'),
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.location_on, size: 16),
+                SizedBox(width: 6),
+                Text('Map'),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1145,6 +1402,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       cameraOptions: CameraOptions(center: initialPosition, zoom: currentZoom),
       onMapCreated: (MapboxMap map) {
         _vehicleAnnotations.clear();
+        _plateAnnotations.clear();
         _breathingCircle = null;
         _circleAnnotationManager = null;
         _annotationManager = null;
@@ -1268,25 +1526,99 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ],
           ),
-          // Center: prev / next arrows
+          // Center: prev / next arrows (joined pill)
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _mapControlBtn(Icons.chevron_left, _showPreviousVehicle),
-                const SizedBox(width: 8),
-                _mapControlBtn(Icons.chevron_right, _showNextVehicle),
-              ],
+            child: Center(
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: context.col.surface,
+                  borderRadius: BorderRadius.circular(kRadiusPill),
+                  boxShadow: [kShadowSM],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 48,
+                      height: 44,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          Icons.chevron_left,
+                          color: context.col.textSecondary,
+                          size: 22,
+                        ),
+                        onPressed: _showPreviousVehicle,
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 22,
+                      color: context.col.border.withValues(alpha: 0.5),
+                    ),
+                    SizedBox(
+                      width: 48,
+                      height: 44,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          Icons.chevron_right,
+                          color: context.col.textSecondary,
+                          size: 22,
+                        ),
+                        onPressed: _showNextVehicle,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          // Right: zoom
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _mapControlBtn(Icons.add, _zoomIn),
-              const SizedBox(height: 8),
-              _mapControlBtn(Icons.remove, _zoomOut),
-            ],
+          // Right: zoom (joined vertical pill)
+          Container(
+            width: 44,
+            decoration: BoxDecoration(
+              color: context.col.surface,
+              borderRadius: BorderRadius.circular(kRadiusMD),
+              boxShadow: [kShadowSM],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      Icons.add,
+                      color: context.col.textSecondary,
+                      size: 20,
+                    ),
+                    onPressed: _zoomIn,
+                  ),
+                ),
+                Container(
+                  width: 22,
+                  height: 1,
+                  color: context.col.border.withValues(alpha: 0.5),
+                ),
+                SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      Icons.remove,
+                      color: context.col.textSecondary,
+                      size: 20,
+                    ),
+                    onPressed: _zoomOut,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1364,7 +1696,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final double top = screenPos.dy - cardHeight - arrowSize - 30;
 
     final bool isOnline = device.isDeviceOnline;
-    final bool isMoving = device.ignitionStatus == 1 && isOnline;
+    final double speedVal = double.tryParse(device.speed) ?? 0;
+    final bool isMoving =
+        isOnline && (device.ignitionStatus == 1 || speedVal > 0);
     final String statusLabel =
         !isOnline ? 'Offline' : (isMoving ? 'Moving' : 'Idle');
     final Color statusColor =
@@ -1431,7 +1765,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ],
                   ),
                   const SizedBox(height: 5),
-                  // Status + signal strength
+                  // Status + signal tier
                   Row(
                     children: [
                       Container(
@@ -1452,19 +1786,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ),
                       const Spacer(),
-                      Icon(
-                        Icons.signal_cellular_alt,
-                        size: 13,
-                        color: context.col.textSecondary,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${device.signalStrength}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: context.col.textSecondary,
-                        ),
-                      ),
+                      ..._buildSignalTierIndicator(device.signalStrength, fontSize: 11),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -1521,9 +1843,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildVehicleInfoCard(Device device) {
     final bool isOnline = device.isDeviceOnline;
-    final bool isMoving = device.ignitionStatus == 1 && isOnline;
-    final Color statusColor = isOnline ? kSuccessGreen : kRed;
-    final String statusLabel = isOnline ? 'Online' : 'Offline';
+    final double speedVal = double.tryParse(device.speed) ?? 0;
+    final bool isMoving =
+        isOnline && (device.ignitionStatus == 1 || speedVal > 0);
+    final String statusLabel =
+        !isOnline ? 'Offline' : (isMoving ? 'Moving' : 'Idle');
+    final Color statusColor =
+        !isOnline ? kRed : (isMoving ? kSuccessGreen : kBlue);
     final Color speedColor = isMoving ? kSuccessGreen : context.col.textSecondary;
 
     return Container(
@@ -1562,20 +1888,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
               const Spacer(),
-              // Signal strength
+              // Signal tier
               Row(
-                children: [
-                  Icon(Icons.network_cell, color: context.col.textSecondary, size: 16),
-                  const SizedBox(width: 3),
-                  Text(
-                    '${device.signalStrength}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: context.col.textSecondary,
-                    ),
-                  ),
-                ],
+                children: _buildSignalTierIndicator(
+                  device.signalStrength,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(width: 10),
               // Close button
@@ -1914,5 +2233,50 @@ class _CountdownRefreshButtonState extends State<_CountdownRefreshButton> {
         _triggerRefresh();
       },
     );
+  }
+}
+
+// Browser-style tab indicator: rounded top, flat bottom with bottom corners
+// that flare outward so the active tab visually "merges" into the content below.
+class _BrowserTabIndicator extends Decoration {
+  const _BrowserTabIndicator({required this.color});
+
+  final Color color;
+  static const double topRadius = 18;
+  static const double bottomFlare = 16;
+
+  @override
+  BoxPainter createBoxPainter([VoidCallback? onChanged]) =>
+      _BrowserTabPainter(this);
+}
+
+class _BrowserTabPainter extends BoxPainter {
+  _BrowserTabPainter(this.decoration);
+  final _BrowserTabIndicator decoration;
+
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    final size = configuration.size ?? Size.zero;
+    final rect = offset & size;
+    const r = _BrowserTabIndicator.topRadius;
+    const f = _BrowserTabIndicator.bottomFlare;
+    final bodyLeft = rect.left + f;
+    final bodyRight = rect.right - f;
+
+    final path = Path()
+      ..moveTo(bodyLeft + r, rect.top)
+      ..lineTo(bodyRight - r, rect.top)
+      ..quadraticBezierTo(bodyRight, rect.top, bodyRight, rect.top + r)
+      ..lineTo(bodyRight, rect.bottom - f)
+      ..quadraticBezierTo(bodyRight, rect.bottom, rect.right, rect.bottom)
+      ..lineTo(rect.left, rect.bottom)
+      ..quadraticBezierTo(bodyLeft, rect.bottom, bodyLeft, rect.bottom - f)
+      ..lineTo(bodyLeft, rect.top + r)
+      ..quadraticBezierTo(bodyLeft, rect.top, bodyLeft + r, rect.top)
+      ..close();
+
+    canvas.drawShadow(path, const Color(0xFF000000).withValues(alpha: 0.10),
+        3, false);
+    canvas.drawPath(path, Paint()..color = decoration.color..isAntiAlias = true);
   }
 }

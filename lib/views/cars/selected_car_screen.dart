@@ -5,6 +5,7 @@ import 'package:atom/controllers/renew_certificate_controller.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/services/local_storage_service.dart';
+import 'package:atom/utils/signal_tier.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/cars/commands.dart';
 import 'package:atom/views/cars/driver_behaviour.dart';
@@ -722,7 +723,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     final isCertificateExpired = _isCertificateExpired(
       widget.devices.certificateExpirey,
     );
-    final signalStrength = "${widget.devices.signalStrength}%";
+    final signalTier = SignalTier.from(widget.devices.signalStrength);
     final vehicleSpeed = "${widget.devices.speed} km/h";
     final vehicleLocation = widget.devices.location.trim().isEmpty
         ? "Location unavailable"
@@ -756,7 +757,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                           isOnline: isOnline,
                           isVehicleActive: isVehicleActive,
                           isCertificateExpired: isCertificateExpired,
-                          signalStrength: signalStrength,
+                          signalTier: signalTier,
                           vehicleSpeed: vehicleSpeed,
                           vehicleLocation: vehicleLocation,
                         ),
@@ -1162,7 +1163,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     required bool isOnline,
     required bool isVehicleActive,
     required bool isCertificateExpired,
-    required String signalStrength,
+    required SignalTier signalTier,
     required String vehicleSpeed,
     required String vehicleLocation,
   }) {
@@ -1255,7 +1256,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildInfoStat(label: 'Signal', value: signalStrength),
+                child: _buildSignalTierStat(signalTier),
               ),
             ],
           ),
@@ -1341,6 +1342,51 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
           fontSize: 12,
           fontWeight: FontWeight.w700,
         ),
+      ),
+    );
+  }
+
+  Widget _buildSignalTierStat(SignalTier tier) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: kWhite.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(kRadiusMD),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Signal',
+            style: TextStyle(
+              color: kWhite.withValues(alpha: 0.72),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: tier.color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                tier.label,
+                style: const TextStyle(
+                  color: kWhite,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

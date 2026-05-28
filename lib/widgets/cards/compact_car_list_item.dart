@@ -22,109 +22,138 @@ class CompactCarListItem extends StatelessWidget {
     return "Just now";
   }
 
+  double _speedValue() {
+    return double.tryParse(
+          device.speed.replaceAll(RegExp(r'[^0-9.]'), ''),
+        ) ??
+        0.0;
+  }
+
   String _getStatusText() {
-    double speedVal = double.tryParse(device.speed.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
-    
+    final speedVal = _speedValue();
+
     if (!device.isDeviceOnline) {
       DateTime? updated = DateTime.tryParse(device.updatedAt);
       return _formatDuration(updated);
-    } else if (speedVal > 0) {
-      return "${speedVal.toStringAsFixed(0)} km/h";
-    } else {
-      DateTime? updated = DateTime.tryParse(device.updatedAt);
-      String dur = updated != null ? _formatDuration(updated) : "";
-      return "Idle - $dur";
     }
+
+    return "${speedVal.toStringAsFixed(0)}km/h";
   }
 
   Color _getStatusColor() {
-    if (!device.isDeviceOnline) return kBlue; // Offline uses blue in the design
-    double speedVal = double.tryParse(device.speed.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
-    if (speedVal > 0) return kSuccessGreen; 
-    return const Color(0xFFF5B041); // Yellow/amber for idle
+    final speedVal = _speedValue();
+    if (speedVal > 80) return kRed;
+    if (!device.isDeviceOnline) return kBlue;
+    return kSuccessGreen;
+  }
+
+  String _vehicleAsset() {
+    final speedVal = _speedValue();
+    if (speedVal > 80) return 'assets/red_car.png';
+    if (!device.isDeviceOnline || !device.certificateActiveStatus) {
+      return 'assets/grey_car.png';
+    }
+    return 'assets/green_car.png';
+  }
+
+  bool _isBikeLike() {
+    final typeLower = device.type.toLowerCase();
+    final deviceTypeLower = device.deviceType.toLowerCase();
+    final nameLower = device.name.toLowerCase();
+    return typeLower.contains('bike') ||
+        typeLower.contains('motorcycle') ||
+        typeLower.contains('motorbike') ||
+        deviceTypeLower.contains('bike') ||
+        deviceTypeLower.contains('motorcycle') ||
+        nameLower.contains('bike');
   }
 
   Widget _getDeviceIcon(BuildContext context) {
-    final typeLower = device.type.toLowerCase();
-    final deviceTypeLower = device.deviceType.toLowerCase();
-    
-    IconData icon = Icons.directions_car;
-    Color iconColor = const Color(0xFFF5B041); // default yellow car
-    
-    if (typeLower.contains('person') || deviceTypeLower.contains('person') || device.name.toLowerCase().contains('person')) {
-      icon = Icons.person;
-      iconColor = const Color(0xFF82E0AA);
-    } else if (typeLower.contains('asset') || deviceTypeLower.contains('asset') || typeLower.contains('battery')) {
-      icon = Icons.battery_full;
-      iconColor = const Color(0xFF58D68D);
-    } else {
-      // Color based on status to roughly mimic screenshot
-      if (!device.isDeviceOnline) {
-        iconColor = kBlue.withOpacity(0.8);
-      } else if (_getStatusColor() == kSuccessGreen) {
-        iconColor = kSuccessGreen;
-      }
-    }
+    final speedVal = _speedValue();
+    final isOverspeeding = speedVal > 80;
+    final color = isOverspeeding
+        ? kRed
+        : (!device.isDeviceOnline ? context.col.textSecondary : kSuccessGreen);
 
     return Container(
-      width: 36,
-      height: 36,
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
-        color: context.col.surface,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: context.col.inputFill,
+        borderRadius: BorderRadius.circular(kRadiusSM),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, color: iconColor, size: 22),
+      child: _isBikeLike()
+          ? Icon(Icons.pedal_bike_rounded, color: color, size: 24)
+          : Image.asset(
+              _vehicleAsset(),
+              height: 36,
+              width: 30,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Icon(
+                Icons.directions_car_rounded,
+                color: color,
+                size: 24,
+              ),
+            ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final title = (device.numberPlate.isNotEmpty) ? device.numberPlate : device.name;
+    final title = (device.numberPlate.isNotEmpty)
+        ? device.numberPlate
+        : device.name;
     final statusColor = _getStatusColor();
-    
+
     return InkWell(
       onTap: onTap,
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 14.0),
+            padding: const EdgeInsets.fromLTRB(22, 6, 18, 6),
             child: Row(
               children: [
                 _getDeviceIcon(context),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Text(
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                       color: context.col.textPrimary,
+                      height: 1.0,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Text(
                   _getStatusText(),
                   style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
                     color: statusColor,
+                    height: 1.0,
                   ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.more_vert_rounded,
+                  color: context.col.textSecondary.withValues(alpha: 0.65),
+                  size: 18,
                 ),
               ],
             ),
           ),
-          Divider(height: 1, color: context.col.border.withOpacity(0.5), indent: 72, endIndent: 20),
+          Divider(
+            height: 1,
+            color: context.col.divider,
+            indent: 76,
+            endIndent: 22,
+          ),
         ],
       ),
     );

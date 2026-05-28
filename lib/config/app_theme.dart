@@ -96,6 +96,8 @@ extension AppColorsExt on BuildContext {
 class AppTheme {
   AppTheme._();
 
+  static final String? _fontFamily = GoogleFonts.poppins().fontFamily;
+
   static ThemeData get lightTheme => _build(
     brightness: Brightness.light,
     colors: AppColors.light,
@@ -144,10 +146,11 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
+      fontFamily: _fontFamily,
       scaffoldBackgroundColor: colors.bg,
       colorScheme: colorScheme,
       extensions: [colors],
-      textTheme: GoogleFonts.outfitTextTheme(
+      textTheme: GoogleFonts.poppinsTextTheme(
         TextTheme(
           headlineLarge: TextStyle(
             fontSize: 25,

@@ -726,21 +726,23 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ),
             ],
           ),
-          child: Column(
+          child: Stack(
             children: [
-              Container(
-                width: 44,
-                height: 4,
-                margin: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: col.divider,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+              Column(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: col.divider,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
                   children: [
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -859,7 +861,33 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       label: 'Notification ID',
                       value: '#${notification.id}',
                     ),
-                  ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                top: 8,
+                right: 12,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => Navigator.of(context).pop(),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: col.divider.withValues(alpha: 0.45),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: col.textSecondary,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],

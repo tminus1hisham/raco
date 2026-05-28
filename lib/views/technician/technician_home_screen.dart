@@ -3315,7 +3315,6 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
           style: TextStyle(
             color: col.textSecondary,
             fontSize: 12,
-            fontFamily: 'Monospace',
           ),
         ),
         trailing: SizedBox(
@@ -4918,7 +4917,6 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                     _receivedData,
                                     style: const TextStyle(
                                       color: kWhite,
-                                      fontFamily: 'Monospace',
                                       fontSize: 12,
                                     ),
                                   ),

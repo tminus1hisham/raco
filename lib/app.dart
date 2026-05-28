@@ -45,6 +45,9 @@ class _MyAppState extends State<MyApp> {
         if (snapshot.connectionState != ConnectionState.done) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: ThemeMode.system,
             home: Scaffold(
               body: Center(
                 child: LoadingAnimationWidget.fourRotatingDots(
@@ -59,6 +62,9 @@ class _MyAppState extends State<MyApp> {
         if (snapshot.hasError) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: ThemeMode.system,
             home: Scaffold(
               body: Center(child: Text("Error: ${snapshot.error}")),
             ),

@@ -25,35 +25,35 @@ class NotificationCard extends StatelessWidget {
     final cardColor = context.isDark ? col.surface : Colors.white;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: context.isDark ? 0.22 : 0.08),
-            blurRadius: 26,
-            offset: const Offset(0, 14),
+            color: Colors.black.withValues(alpha: context.isDark ? 0.18 : 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(18),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(18),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
             child: Stack(
               children: [
                 Padding(
-                  padding: EdgeInsets.only(right: isRead ? 0 : 22),
+                  padding: EdgeInsets.only(right: isRead ? 0 : 16),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _IconBlock(visual: visual),
-                      const SizedBox(width: 18),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,7 +65,7 @@ class NotificationCard extends StatelessWidget {
                                   child: Text(
                                     notification.title,
                                     style: TextStyle(
-                                      fontSize: 18,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.w700,
                                       height: 1.12,
                                       color: context.isDark
@@ -74,13 +74,13 @@ class NotificationCard extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 8),
                                 Text(
                                   _formatTimestamp(notification.createdAt),
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.8,
+                                    letterSpacing: 0.6,
                                     color: context.isDark
                                         ? col.textSecondary
                                         : const Color(0xFF51678E),
@@ -88,10 +88,10 @@ class NotificationCard extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 6),
                             Wrap(
-                              spacing: 10,
-                              runSpacing: 8,
+                              spacing: 6,
+                              runSpacing: 4,
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 _MetaPill(
@@ -106,21 +106,21 @@ class NotificationCard extends StatelessWidget {
                                 Text(
                                   secondaryMeta,
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                     color: _detailAccentColor(visual.kind),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 6),
                             Text(
                               notification.message,
-                              maxLines: 4,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 15,
-                                height: 1.5,
+                                fontSize: 12,
+                                height: 1.35,
                                 color: context.isDark
                                     ? col.textSecondary
                                     : const Color(0xFF334A7A),
@@ -135,10 +135,10 @@ class NotificationCard extends StatelessWidget {
                 if (!isRead)
                   Positioned(
                     right: 2,
-                    top: 82,
+                    top: 4,
                     child: Container(
-                      width: 12,
-                      height: 12,
+                      width: 8,
+                      height: 8,
                       decoration: const BoxDecoration(
                         color: Color(0xFF1661C5),
                         shape: BoxShape.circle,
@@ -320,21 +320,21 @@ class _IconBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 68,
-      height: 68,
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
         color: visual.softColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
         child: Container(
-          width: 34,
-          height: 34,
+          width: 24,
+          height: 24,
           decoration: BoxDecoration(
             color: visual.color,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(visual.icon, color: kWhite, size: 18),
+          child: Icon(visual.icon, color: kWhite, size: 14),
         ),
       ),
     );
@@ -355,15 +355,15 @@ class _MetaPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: FontWeight.w700,
           color: textColor,
         ),
