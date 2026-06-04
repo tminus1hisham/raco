@@ -27,7 +27,7 @@
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>NSCameraUsageDescription</key>
-		<string>We need camera access to capture photos and scan images.</string>
+		<string>App will need camera access to capture photos and access gallery for your profile picture.</string>
 		<key>NSDocumentsFolderUsageDescription</key>
 		<string>We need access to store and open downloaded files.</string>
 		<key>NSFaceIDUsageDescription</key>

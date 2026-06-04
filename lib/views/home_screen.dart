@@ -13,11 +13,13 @@ import 'package:atom/utils/signal_tier.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/views/cars/commands.dart';
 import 'package:atom/views/cars/geofencing_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/views/cars/vehicle_live_location.dart';
 import 'package:atom/views/playback_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle, ByteData;
+import 'package:flutter/services.dart'
+    show rootBundle, ByteData, SystemUiOverlayStyle, Brightness;
 import 'package:geolocator/geolocator.dart' hide Position;
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart'
@@ -883,7 +885,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   group,
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: isActive ? FontWeight.w300 : FontWeight.w300,
                     color: isActive ? kBlue : context.col.textPrimary,
                   ),
                 ),
@@ -942,6 +944,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       length: 2,
       initialIndex: 1,
       child: Scaffold(
+        backgroundColor: context.col.surface,
         appBar: _buildAppBar(),
         body: TabBarView(
           physics: const NeverScrollableScrollPhysics(),
@@ -955,14 +958,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final isDark = context.isDark;
+    final gradientColors = isDark
+        ? [
+            kBlue.withValues(alpha: 0.32),
+            kBlue.withValues(alpha: 0.10),
+            context.col.surface,
+          ]
+        : [
+            const Color(0xFFB8C8E8),
+            const Color(0xFFD6DEEF),
+            context.col.surface,
+          ];
     return PreferredSize(
       preferredSize: const Size.fromHeight(120),
       child: AppBar(
-        backgroundColor: context.col.bg,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         toolbarHeight: 56,
         automaticallyImplyLeading: false,
         titleSpacing: 0,
+        systemOverlayStyle: isDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark.copyWith(
+                statusBarBrightness: Brightness.light,
+                statusBarIconBrightness: Brightness.dark,
+              ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: const [0.0, 0.7, 1.0],
+              colors: gradientColors,
+            ),
+          ),
+        ),
         title: Padding(
           padding: const EdgeInsets.symmetric(horizontal: kSpaceLG),
           child: Obx(() {
@@ -988,7 +1019,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(64),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(kSpaceLG, 0, kSpaceLG, kSpaceMD),
+            padding: const EdgeInsets.fromLTRB(kSpaceLG, kSpaceMD, kSpaceLG, 0),
             child: _buildSegmentedTabs(),
           ),
         ),
@@ -1136,11 +1167,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               const SizedBox(width: 6),
               Text(
                 'All [$total/$online]',
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   color: context.col.textPrimary,
                   fontWeight: _selectedGroup == null
-                      ? FontWeight.w600
-                      : FontWeight.normal,
+                      ? FontWeight.w500
+                      : FontWeight.w300,
                 ),
               ),
             ],
@@ -1164,11 +1195,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 const SizedBox(width: 6),
                 Text(
                   '$g [$gTotal/$gOnline]',
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     color: context.col.textPrimary,
                     fontWeight: _selectedGroup == g
-                        ? FontWeight.w600
-                        : FontWeight.normal,
+                        ? FontWeight.w500
+                        : FontWeight.w300,
                   ),
                 ),
               ],
@@ -1245,7 +1276,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         isScrollable: true,
         tabAlignment: TabAlignment.start,
         padding: EdgeInsets.zero,
-        labelPadding: const EdgeInsets.symmetric(horizontal: 20),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 44),
         dividerColor: Colors.transparent,
         indicator: _BrowserTabIndicator(color: context.col.surface),
         indicatorSize: TabBarIndicatorSize.tab,
@@ -1264,7 +1295,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         splashFactory: NoSplash.splashFactory,
         overlayColor: WidgetStateProperty.all(Colors.transparent),
-        tabs: const [
+        tabs: const [  
           Tab(
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1745,6 +1776,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ),
                       GestureDetector(
+                        behavior: HitTestBehavior.opaque,
                         onTap: () {
                           if (Get.isRegistered<DashboardController>()) {
                             Get.find<DashboardController>().isNavVisible.value = true;
@@ -1756,10 +1788,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           });
                           _updateVehicleAnnotations(_filteredDevices);
                         },
-                        child: Icon(
-                          Icons.close,
-                          size: 14,
-                          color: context.col.textSecondary,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Icon(
+                            Icons.close,
+                            size: 14,
+                            color: context.col.textSecondary,
+                          ),
                         ),
                       ),
                     ],

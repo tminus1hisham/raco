@@ -49,6 +49,10 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
   static Uint8List? _cachedBlueIcon;
   static Uint8List? _cachedRedIcon;
 
+  // In-flight icon load, so the annotation setup can await it instead of
+  // racing against it.
+  Future<void>? _iconLoadFuture;
+
   StreamSubscription? _mqttSubscription;
   Timer? _mqttRetryTimer;
 
@@ -74,7 +78,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
     _initGeofenceMonitor();
     // Subscribe immediately — no need to wait for the icon to load first.
     _subscribeToVehicleTopic();
-    _loadCarIcon();
+    _iconLoadFuture = _loadCarIcon();
   }
 
   Future<void> _initGeofenceMonitor() async {
@@ -238,21 +242,26 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
     _annotationManager = null;
     _vehicleAnnotation = null;
     if (mapboxMap == null || !mounted) return;
+
+    // Make sure the icons are loaded before creating the annotation. Otherwise
+    // on the very first open the marker is created with a null image and stays
+    // invisible until the page is reopened (when the static cache is warm).
+    await (_iconLoadFuture ??= _loadCarIcon());
+    if (!mounted) return;
+
     final manager =
         await mapboxMap!.annotations.createPointAnnotationManager();
     if (!mounted) return;
     _annotationManager = manager;
     final speedVal = double.tryParse(speed) ?? 0;
-    final icon = (_cachedGreenIcon != null && _cachedBlueIcon != null && _cachedRedIcon != null)
-        ? _iconForSpeed(speedVal)
-        : carIcon;
+    final icon = _iconForSpeed(speedVal);
     final ann = await manager.create(
       PointAnnotationOptions(
         geometry: Point(
           coordinates: Position(_animLng, _animLat),
         ),
         image: icon,
-        iconSize: 1.6,
+        iconSize: 0.8,
         iconRotate: _bearing,
         textField: numberPlate.toUpperCase(),
         textSize: 11.0,

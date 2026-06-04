@@ -276,20 +276,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               children: [
                 _buildTopBar(col),
-                const SizedBox(height: 28),
+                const SizedBox(height: 16),
                 _buildProfileBlock(
                   col: col,
                   user: user,
                   displayName: displayName,
                   email: email,
                 ),
-                const SizedBox(height: 34),
+                const SizedBox(height: 22),
                 _buildSectionLabel('Appearance', col),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 _buildAppearanceSelector(col),
-                const SizedBox(height: 34),
+                const SizedBox(height: 22),
                 _buildSectionLabel('General Settings', col),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 _buildSettingsCard(
                   col,
                   [
@@ -324,9 +324,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 34),
+                const SizedBox(height: 22),
                 _buildSectionLabel('Information', col),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 _buildSettingsCard(
                   col,
                   [
@@ -346,7 +346,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 34),
+                const SizedBox(height: 22),
                 _buildLogoutButton(col),
               ],
             ),
@@ -398,15 +398,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       children: [
         SizedBox(
-          width: 152,
-          height: 150,
+          width: 122,
+          height: 120,
           child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
               Container(
-                width: 130,
-                height: 130,
+                width: 104,
+                height: 104,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: context.isDark
@@ -442,16 +442,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               Positioned(
-                right: 12,
-                bottom: 10,
+                right: 6,
+                bottom: 4,
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () => _openScreen(const AccountScreen()),
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.circular(20),
                     child: Ink(
-                      width: 48,
-                      height: 48,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: accent,
                         shape: BoxShape.circle,
@@ -471,23 +471,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         Text(
           displayName,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 20,
             fontWeight: FontWeight.w700,
             height: 1.1,
             color: _headlineColor(col),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
           email,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             color: _supportingTextColor(col),
           ),
         ),
@@ -592,7 +592,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
-          height: 112,
+          height: 84,
           decoration: BoxDecoration(
             color: isSelected ? _activeOptionFill(col) : _inactiveOptionFill(col),
             borderRadius: BorderRadius.circular(24),
@@ -619,14 +619,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Icon(
                 icon,
-                size: 28,
+                size: 24,
                 color: isSelected ? accent : _supportingTextColor(col),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 8),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: isSelected ? accent : _headlineColor(col),
                 ),
@@ -676,19 +676,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
               Container(
-                width: 54,
-                height: 54,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: _iconBackground(col),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(icon, color: _primaryBlue(col), size: 26),
+                child: Icon(icon, color: _primaryBlue(col), size: 22),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -696,16 +696,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: _headlineColor(col),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         color: _supportingTextColor(col),
                       ),
                     ),
@@ -742,7 +742,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         },
         borderRadius: BorderRadius.circular(28),
         child: Ink(
-          padding: const EdgeInsets.symmetric(vertical: 20),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
             color: _logoutBackground(col),
             borderRadius: BorderRadius.circular(28),

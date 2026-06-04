@@ -362,7 +362,7 @@ class _AccountScreenState extends State<AccountScreen> {
             SafeArea(
               child: Column(
                 children: [
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
                   customHeader(
                     label: "Profile",
                     icon: Icons.person,
@@ -371,13 +371,13 @@ class _AccountScreenState extends State<AccountScreen> {
                       Navigator.pop(context);
                     },
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: GlassContainer(
                       borderRadius: BorderRadius.circular(16),
                       child: Padding(
-                        padding: const EdgeInsets.all(15),
+                        padding: const EdgeInsets.all(12),
                       child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -385,8 +385,8 @@ class _AccountScreenState extends State<AccountScreen> {
                           alignment: Alignment.center,
                           children: [
                             Container(
-                              height: 130,
-                              width: 130,
+                              height: 96,
+                              width: 96,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: col.border,
@@ -405,13 +405,13 @@ class _AccountScreenState extends State<AccountScreen> {
                                       child: Image.network(
                                         user.profileImage!,
                                         fit: BoxFit.cover,
-                                        width: 130,
-                                        height: 130,
+                                        width: 96,
+                                        height: 96,
                                         errorBuilder:
                                             (context, error, stackTrace) {
                                               return Icon(
                                                 Icons.person,
-                                                size: 80,
+                                                size: 56,
                                                 color: col.textSecondary,
                                               );
                                             },
@@ -419,14 +419,14 @@ class _AccountScreenState extends State<AccountScreen> {
                                     )
                                   : Icon(
                                       Icons.person,
-                                      size: 80,
+                                      size: 56,
                                       color: col.textSecondary,
                                     ),
                             ),
 
                             Positioned(
                               bottom: 0,
-                              right: 100,
+                              right: 78,
                               child: GestureDetector(
                                 onTap: () async {
                                   _showImageSourceModal(context);
@@ -457,7 +457,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           ],
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
 
                         _buildInfoRow(
                           col,
@@ -465,7 +465,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           'Full Name',
                           user.fullName,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
 
                         _buildInfoRow(
                           col,
@@ -473,7 +473,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           'Email',
                           user.emailAddress,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
 
                         _buildInfoRow(
                           col,
@@ -481,14 +481,14 @@ class _AccountScreenState extends State<AccountScreen> {
                           'Phone',
                           user.phoneNumber,
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 20),
 
                         PrimaryGradientButton(
                           onPressed: () =>
                               _showEditProfileModal(context),
                           text: "Edit Profile",
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
 
                         CustomBorderButton(
                           callBackFunction: () {
@@ -531,15 +531,15 @@ class _AccountScreenState extends State<AccountScreen> {
     return Row(
       children: [
         Container(
-          width: 40,
-          height: 40,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
             color: kBlue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: kBlue, size: 20),
+          child: Icon(icon, color: kBlue, size: 18),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -547,7 +547,7 @@ class _AccountScreenState extends State<AccountScreen> {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   color: col.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
@@ -555,7 +555,7 @@ class _AccountScreenState extends State<AccountScreen> {
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   color: col.textPrimary,
                   fontWeight: FontWeight.w500,
                 ),
