@@ -1256,7 +1256,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildSignalTierStat(signalTier),
+                child: _buildSignalTierStat(signalTier, isOnline: isOnline),
               ),
             ],
           ),
@@ -1346,7 +1346,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     );
   }
 
-  Widget _buildSignalTierStat(SignalTier tier) {
+  Widget _buildSignalTierStat(SignalTier tier, {required bool isOnline}) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1371,13 +1371,15 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                 width: 10,
                 height: 10,
                 decoration: BoxDecoration(
-                  color: tier.color,
+                  color: isOnline
+                      ? tier.color
+                      : kWhite.withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
-                tier.label,
+                isOnline ? tier.label : 'N/A',
                 style: const TextStyle(
                   color: kWhite,
                   fontSize: 16,
