@@ -139,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen>
                         child: Hero(
                           tag: "logo",
                           child: Image(
-                            image: const AssetImage('assets/orca_logo.png'),
+                            image: const AssetImage('assets/orca_logo1.png'),
                             height: 130,
                             width: 130,
                           ),

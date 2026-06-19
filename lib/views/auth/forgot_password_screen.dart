@@ -73,7 +73,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       child: Hero(
                         tag: "logo",
                         child: Image.asset(
-                          'assets/orca_logo.png',
+                          'assets/orca_logo1.png',
                           height: 180,
                           width: 180,
                         ),

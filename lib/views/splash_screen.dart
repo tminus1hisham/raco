@@ -81,7 +81,7 @@ class _RadarSplashScreenState extends State<RadarSplashScreen>
                     child: Transform.scale(
                       scale: pulseScale,
                       child: Image.asset(
-                        'assets/orca_logo.png',
+                        'assets/orca_logo1.png',
                         width: 140,
                         fit: BoxFit.contain,
                       ),
