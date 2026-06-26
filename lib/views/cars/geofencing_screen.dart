@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -28,7 +29,7 @@ class GeofencingScreen extends StatefulWidget {
 class _GeofencingScreenState extends State<GeofencingScreen> {
   MapboxMap? mapboxMap;
   PointAnnotationManager? _pointAnnotationManager;
-  CircleAnnotationManager? _circleAnnotationManager;
+  PolygonAnnotationManager? _polygonAnnotationManager;
   String? _mapStyleUri;
   Point? selectedPoint;
   final GeoFenceController _geoFenceController = GeoFenceController();
@@ -38,7 +39,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   final TextEditingController zoneNameController = TextEditingController();
 
   List<PointAnnotationOptions> markers = [];
-  List<CircleAnnotationOptions> circles = [];
+  List<PolygonAnnotationOptions> circles = [];
   GeofenceModel? selectedGeofence;
   bool isAddingGeofence = false;
   bool isSaveEnabled = false;
@@ -119,13 +120,13 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
 
   Future<void> _setupAnnotationManagers() async {
     _pointAnnotationManager = null;
-    _circleAnnotationManager = null;
+    _polygonAnnotationManager = null;
     if (mapboxMap == null || !mounted) return;
 
-    final circleManager =
-        await mapboxMap!.annotations.createCircleAnnotationManager();
+    final polygonManager =
+        await mapboxMap!.annotations.createPolygonAnnotationManager();
     if (!mounted) return;
-    _circleAnnotationManager = circleManager;
+    _polygonAnnotationManager = polygonManager;
 
     final pointManager =
         await mapboxMap!.annotations.createPointAnnotationManager();
@@ -133,6 +134,86 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
     _pointAnnotationManager = pointManager;
 
     await _refreshMapAnnotations();
+  }
+
+  // Builds a geodesic circle polygon (an actual radius in metres on the map,
+  // which scales correctly with zoom — unlike CircleAnnotation whose radius is
+  // measured in screen pixels).
+  Polygon _circlePolygon(Position center, double radiusMeters, {int steps = 64}) {
+    const earthRadius = 6378137.0; // metres
+    final lat = center.lat * math.pi / 180.0;
+    final lng = center.lng * math.pi / 180.0;
+    final d = radiusMeters / earthRadius;
+
+    final ring = <Position>[];
+    for (int i = 0; i <= steps; i++) {
+      final bearing = 2 * math.pi * i / steps;
+      final lat2 = math.asin(
+        math.sin(lat) * math.cos(d) +
+            math.cos(lat) * math.sin(d) * math.cos(bearing),
+      );
+      final lng2 = lng +
+          math.atan2(
+            math.sin(bearing) * math.sin(d) * math.cos(lat),
+            math.cos(d) - math.sin(lat) * math.sin(lat2),
+          );
+      ring.add(Position(lng2 * 180.0 / math.pi, lat2 * 180.0 / math.pi));
+    }
+    return Polygon(coordinates: [ring]);
+  }
+
+  // Smoothly zooms the camera so the whole radius circle stays visible, keeping
+  // the center pinned. Called as the slider changes so growing the radius
+  // visibly expands the coverage area (the map eases out) instead of the circle
+  // flooding the viewport at a fixed zoom.
+  bool _fittingCamera = false;
+  Future<void> _fitCameraToRadius(Position center, double radiusMeters) async {
+    final map = mapboxMap;
+    if (map == null || _fittingCamera) return;
+    _fittingCamera = true;
+    try {
+      await _fitCameraToRadiusInner(map, center, radiusMeters);
+    } finally {
+      _fittingCamera = false;
+    }
+  }
+
+  Future<void> _fitCameraToRadiusInner(
+    MapboxMap map,
+    Position center,
+    double radiusMeters,
+  ) async {
+    // Bounding box of the circle, derived from its ring extremes.
+    final ring = _circlePolygon(center, radiusMeters).coordinates.first;
+    var minLat = 90.0, maxLat = -90.0, minLng = 180.0, maxLng = -180.0;
+    for (final p in ring) {
+      final lat = p.lat.toDouble();
+      final lng = p.lng.toDouble();
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+    }
+
+    final bounds = CoordinateBounds(
+      southwest: Point(coordinates: Position(minLng, minLat)),
+      northeast: Point(coordinates: Position(maxLng, maxLat)),
+      infiniteBounds: false,
+    );
+
+    final camera = await map.cameraForCoordinateBounds(
+      bounds,
+      MbxEdgeInsets(top: 60, left: 60, bottom: 60, right: 60),
+      null,
+      null,
+      null,
+      null,
+    );
+    if (!mounted) return;
+
+    // Pin the camera on the geofence center and ease there smoothly.
+    camera.center = Point(coordinates: center);
+    await map.easeTo(camera, MapAnimationOptions(duration: 250));
   }
 
   // ── Map markers ───────────────────────────────────────────────────────────
@@ -158,12 +239,15 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
         ),
       );
       circles.add(
-        CircleAnnotationOptions(
-          geometry: point,
-          circleRadius: selectedGeofence!.radius.toDouble(),
-          circleColor: kBlue.withValues(alpha: 0.2).toARGB32(),
-          circleStrokeColor: kBlue.toARGB32(),
-          circleStrokeWidth: 2.0,
+        PolygonAnnotationOptions(
+          // radius is stored in metres
+          geometry: _circlePolygon(
+            point.coordinates,
+            selectedGeofence!.radius.toDouble(),
+          ),
+          fillColor: kBlue.toARGB32(),
+          fillOpacity: 0.6,
+          fillOutlineColor: kBlue.toARGB32(),
         ),
       );
     }
@@ -182,12 +266,11 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
         ),
       );
       circles.add(
-        CircleAnnotationOptions(
-          geometry: selectedPoint!,
-          circleRadius: radiusKm * 1000,
-          circleColor: kBlue.withValues(alpha: 0.08).toARGB32(),
-          circleStrokeColor: kBlue.toARGB32(),
-          circleStrokeWidth: 2.0,
+        PolygonAnnotationOptions(
+          geometry: _circlePolygon(selectedPoint!.coordinates, radiusKm * 1000),
+          fillColor: kBlue.toARGB32(),
+          fillOpacity: 0.08,
+          fillOutlineColor: kBlue.toARGB32(),
         ),
       );
     }
@@ -203,10 +286,10 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
         await _pointAnnotationManager!.createMulti(markers);
       }
     }
-    if (_circleAnnotationManager != null) {
-      await _circleAnnotationManager!.deleteAll();
+    if (_polygonAnnotationManager != null) {
+      await _polygonAnnotationManager!.deleteAll();
       if (circles.isNotEmpty) {
-        await _circleAnnotationManager!.createMulti(circles);
+        await _polygonAnnotationManager!.createMulti(circles);
       }
     }
   }
@@ -530,6 +613,9 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
               onChanged: (value) {
                 setState(() => radiusKm = value);
                 _updateMapMarkers();
+                if (selectedPoint != null) {
+                  _fitCameraToRadius(selectedPoint!.coordinates, value * 1000);
+                }
               },
             ),
           ),
@@ -622,7 +708,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
               // loadStyleURI is called on the native side. They will be
               // recreated by _setupAnnotationManagers via onStyleLoadedListener.
               _pointAnnotationManager = null;
-              _circleAnnotationManager = null;
+              _polygonAnnotationManager = null;
               setState(() => _mapStyleUri = uri);
             },
           ),
