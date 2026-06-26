@@ -30,6 +30,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   MapboxMap? mapboxMap;
   PointAnnotationManager? _pointAnnotationManager;
   PolygonAnnotationManager? _polygonAnnotationManager;
+  PolylineAnnotationManager? _polylineAnnotationManager;
   String? _mapStyleUri;
   Point? selectedPoint;
   final GeoFenceController _geoFenceController = GeoFenceController();
@@ -40,6 +41,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
 
   List<PointAnnotationOptions> markers = [];
   List<PolygonAnnotationOptions> circles = [];
+  List<PolylineAnnotationOptions> outlines = [];
   GeofenceModel? selectedGeofence;
   bool isAddingGeofence = false;
   bool isSaveEnabled = false;
@@ -121,12 +123,18 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   Future<void> _setupAnnotationManagers() async {
     _pointAnnotationManager = null;
     _polygonAnnotationManager = null;
+    _polylineAnnotationManager = null;
     if (mapboxMap == null || !mounted) return;
 
     final polygonManager =
         await mapboxMap!.annotations.createPolygonAnnotationManager();
     if (!mounted) return;
     _polygonAnnotationManager = polygonManager;
+
+    final polylineManager =
+        await mapboxMap!.annotations.createPolylineAnnotationManager();
+    if (!mounted) return;
+    _polylineAnnotationManager = polylineManager;
 
     final pointManager =
         await mapboxMap!.annotations.createPointAnnotationManager();
@@ -221,6 +229,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
   void _updateMapMarkers() {
     markers.clear();
     circles.clear();
+    outlines.clear();
 
     if (selectedGeofence != null) {
       final point = Point(
@@ -238,16 +247,24 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
           textSize: 12.0,
         ),
       );
+      // radius is stored in metres
+      final ring = _circlePolygon(
+        point.coordinates,
+        selectedGeofence!.radius.toDouble(),
+      );
       circles.add(
         PolygonAnnotationOptions(
-          // radius is stored in metres
-          geometry: _circlePolygon(
-            point.coordinates,
-            selectedGeofence!.radius.toDouble(),
-          ),
+          geometry: ring,
           fillColor: kBlue.toARGB32(),
           fillOpacity: 0.6,
           fillOutlineColor: kBlue.toARGB32(),
+        ),
+      );
+      outlines.add(
+        PolylineAnnotationOptions(
+          geometry: LineString(coordinates: ring.coordinates.first),
+          lineColor: kBlue.toARGB32(),
+          lineWidth: 4.0,
         ),
       );
     }
@@ -265,12 +282,20 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
           textOffset: [0.0, 2.5],
         ),
       );
+      final ring = _circlePolygon(selectedPoint!.coordinates, radiusKm * 1000);
       circles.add(
         PolygonAnnotationOptions(
-          geometry: _circlePolygon(selectedPoint!.coordinates, radiusKm * 1000),
+          geometry: ring,
           fillColor: kBlue.toARGB32(),
           fillOpacity: 0.08,
           fillOutlineColor: kBlue.toARGB32(),
+        ),
+      );
+      outlines.add(
+        PolylineAnnotationOptions(
+          geometry: LineString(coordinates: ring.coordinates.first),
+          lineColor: kBlue.toARGB32(),
+          lineWidth: 4.0,
         ),
       );
     }
@@ -290,6 +315,12 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
       await _polygonAnnotationManager!.deleteAll();
       if (circles.isNotEmpty) {
         await _polygonAnnotationManager!.createMulti(circles);
+      }
+    }
+    if (_polylineAnnotationManager != null) {
+      await _polylineAnnotationManager!.deleteAll();
+      if (outlines.isNotEmpty) {
+        await _polylineAnnotationManager!.createMulti(outlines);
       }
     }
   }
@@ -427,6 +458,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
         selectedGeofence = null;
         markers.clear();
         circles.clear();
+        outlines.clear();
       });
       await _loadExistingGeofences();
     }
@@ -709,6 +741,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
               // recreated by _setupAnnotationManagers via onStyleLoadedListener.
               _pointAnnotationManager = null;
               _polygonAnnotationManager = null;
+              _polylineAnnotationManager = null;
               setState(() => _mapStyleUri = uri);
             },
           ),
@@ -741,6 +774,7 @@ class _GeofencingScreenState extends State<GeofencingScreen> {
                     selectedGeofence = null;
                     markers.clear();
                     circles.clear();
+                    outlines.clear();
                   }
                 });
               },
