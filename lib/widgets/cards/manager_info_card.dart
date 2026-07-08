@@ -17,78 +17,165 @@ class ManagerInfoCard extends StatelessWidget {
     this.onDelete,
   });
 
+  String get _initials {
+    final parts = fullName.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts.first.isEmpty) return '?';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return (parts.first[0] + parts.last[0]).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(left: 20, right: 20, top: 10),
-      child: GestureDetector(
-        onTap: onPressed,
-        child: Container(
-          padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: kWhite,
-            borderRadius: BorderRadius.circular(kRadiusLG),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 12),
+      child: Material(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(kRadiusLG),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          splashColor: kBlue.withValues(alpha: 0.06),
+          highlightColor: kBlue.withValues(alpha: 0.04),
+          child: Ink(
+            decoration: BoxDecoration(
+              color: kWhite,
+              borderRadius: BorderRadius.circular(kRadiusLG),
+              border: Border.all(color: kDivider),
+              boxShadow: [kShadowSM],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 52,
+                    height: 52,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: kBlue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(kRadiusSM),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          kBlue,
+                          kBlue.withValues(alpha: 0.75),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(kRadiusMD),
                     ),
-                    child: Icon(Icons.person_outline, color: kBlue, size: 20),
+                    child: Text(
+                      _initials,
+                      style: const TextStyle(
+                        color: kWhite,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                   ),
-
-                  SizedBox(width: 16),
-
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           fullName,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
                             color: kBlack,
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          phoneNumber,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: kGrey,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        const SizedBox(height: 6),
+                        _MetaLine(
+                          icon: Icons.phone_outlined,
+                          text: phoneNumber,
                         ),
+                        if (emailAddress.trim().isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          _MetaLine(
+                            icon: Icons.email_outlined,
+                            text: emailAddress,
+                          ),
+                        ],
                       ],
                     ),
                   ),
-
+                  const SizedBox(width: 8),
                   if (onDelete != null)
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: kRed.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(kRadiusSM),
-                      ),
-                      child: IconButton(
-                        onPressed: onDelete,
-                        icon: Icon(Icons.delete_outline),
-                        color: kRed,
-                      ),
+                    _CircleIconButton(
+                      icon: Icons.delete_outline,
+                      color: kRed,
+                      onPressed: onDelete!,
+                    )
+                  else
+                    const Icon(
+                      Icons.chevron_right,
+                      color: kLightGrey,
                     ),
                 ],
               ),
-            ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MetaLine extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _MetaLine({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: kGrey),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              color: kGrey,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CircleIconButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
+
+  const _CircleIconButton({
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color.withValues(alpha: 0.1),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: SizedBox(
+          width: 38,
+          height: 38,
+          child: Icon(icon, color: color, size: 20),
         ),
       ),
     );

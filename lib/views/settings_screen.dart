@@ -31,10 +31,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ? Get.find<AuthController>()
       : Get.put(AuthController());
 
-  final UserResourceController _userController =
-      Get.isRegistered<UserResourceController>()
-      ? Get.find<UserResourceController>()
-      : Get.put(UserResourceController());
+  final UserProfileController _userController =
+      Get.isRegistered<UserProfileController>()
+      ? Get.find<UserProfileController>()
+      : Get.put(UserProfileController());
 
   DashboardController? get _dashboardControllerOrNull =>
       Get.isRegistered<DashboardController>()

@@ -26,7 +26,7 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  final UserResourceController controller = Get.put(UserResourceController());
+  final UserProfileController controller = Get.put(UserProfileController());
   String profileUrl = '';
   XFile? profileImage;
   bool isUploadingImage = false;

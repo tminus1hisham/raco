@@ -3,7 +3,7 @@ import 'package:atom/services/api_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
-class UserResourceController extends GetxController {
+class UserProfileController extends GetxController {
   var user = Rxn<UserModel>();
   var isLoading = false.obs;
 

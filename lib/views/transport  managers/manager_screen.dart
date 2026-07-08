@@ -50,6 +50,141 @@ class _ManagerScreenState extends State<ManagerScreen> {
     );
   }
 
+  Widget _buildSkeletonList() {
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 4),
+      itemCount: 6,
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.only(left: 20, right: 20, top: 12),
+        child: Container(
+          height: 84,
+          decoration: BoxDecoration(
+            color: kWhite,
+            borderRadius: BorderRadius.circular(kRadiusLG),
+            border: Border.all(color: kDivider),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: kInputBg,
+                  borderRadius: BorderRadius.circular(kRadiusMD),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 140,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: kInputBg,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 100,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: kInputBg,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      color: kBlue.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.people_outline,
+                      color: kBlue,
+                      size: 44,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    "No managers yet",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: kBlack,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Add your first transport manager to\nget started.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.4,
+                      color: kGrey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: _showAddManagerBottomSheet,
+                    icon: Icon(Icons.add, color: kWhite, size: 20),
+                    label: Text(
+                      "Add Manager",
+                      style: TextStyle(
+                        color: kWhite,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kBlue,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(kRadiusMD),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(
@@ -69,11 +204,36 @@ class _ManagerScreenState extends State<ManagerScreen> {
                       Navigator.pop(context);
                     },
                   ),
+                  if (!userController.isLoading.value &&
+                      userController.users.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                      child: Row(
+                        children: [
+                          Text(
+                            "${userController.users.length} "
+                            "${userController.users.length == 1 ? 'manager' : 'managers'}",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: kGrey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   Expanded(
                     child: RefreshIndicator(
                       onRefresh: () => userController.fetchUsers(),
                       color: kBlue,
-                      child: ListView.builder(
+                      child:
+                          userController.isLoading.value &&
+                              userController.users.isEmpty
+                          ? _buildSkeletonList()
+                          : userController.users.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 100, top: 4),
                         itemCount: userController.users.length,
                         itemBuilder: (context, index) {
                           final manager = userController.users[index];
@@ -151,10 +311,18 @@ class _ManagerScreenState extends State<ManagerScreen> {
               ),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
+        floatingActionButton: FloatingActionButton.extended(
           onPressed: _showAddManagerBottomSheet,
           backgroundColor: kBlue,
-          child: Icon(Icons.add, color: kWhite),
+          elevation: 2,
+          icon: Icon(Icons.add, color: kWhite),
+          label: Text(
+            "Add Manager",
+            style: TextStyle(
+              color: kWhite,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );
