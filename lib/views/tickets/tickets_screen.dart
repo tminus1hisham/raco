@@ -299,7 +299,8 @@ class _TicketsScreenState extends State<TicketsScreen> {
 
   void _showCreateTicketSheet() {
     final commentController = TextEditingController();
-    final selectedType = kTicketTypes.first.obs;
+    // Starts unselected so the user makes a deliberate choice.
+    final selectedType = Rx<String?>(null);
     final attachmentUrl = ''.obs;
     final isUploading = false.obs;
     final uploader = ImageUploaderService();
@@ -450,6 +451,13 @@ class _TicketsScreenState extends State<TicketsScreen> {
                               value: selectedType.value,
                               isExpanded: true,
                               dropdownColor: col.surface,
+                              hint: Text(
+                                'Select ticket type',
+                                style: TextStyle(
+                                  color: col.textSecondary,
+                                  fontSize: 15,
+                                ),
+                              ),
                               icon: Icon(Icons.keyboard_arrow_down,
                                   color: col.textSecondary),
                               style: TextStyle(
@@ -535,6 +543,17 @@ class _TicketsScreenState extends State<TicketsScreen> {
                               ? 'Submitting...'
                               : 'Submit Ticket',
                           onPressed: () async {
+                            final ticketType = selectedType.value;
+                            if (ticketType == null) {
+                              Get.snackbar(
+                                'Validation Error',
+                                'Please select a ticket type',
+                                backgroundColor: kRed.withValues(alpha: 0.1),
+                                colorText: kRed,
+                              );
+                              return;
+                            }
+
                             final comment = commentController.text.trim();
                             if (comment.isEmpty) {
                               Get.snackbar(
@@ -550,7 +569,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                             final success = await controller.createTicket(
                               CreateTicketModel(
                                 comment: comment,
-                                ticketType: selectedType.value,
+                                ticketType: ticketType,
                                 attachments: attachmentUrl.value,
                               ),
                             );
