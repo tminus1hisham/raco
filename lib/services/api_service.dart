@@ -12,6 +12,7 @@ import 'package:atom/models/playback_model.dart';
 import 'package:atom/models/profile_picture_model.dart';
 import 'package:atom/models/report_model.dart';
 import 'package:atom/models/technician_device_model.dart';
+import 'package:atom/models/ticket_model.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/models/user_model.dart';
 import 'package:atom/models/company_model.dart';
@@ -906,6 +907,125 @@ class ApiService {
       return false;
     } catch (_) {
       return false;
+    }
+  }
+
+  // ─── Support tickets ──────────────────────────────────────────────────────
+
+  /// Fetches every ticket (`/v1/api/tickets/get/all`).
+  static Future<List<TicketModel>> fetchTickets() async {
+    String token = await StorageService.getData('access_token');
+
+    final response = await http.get(
+      Uri.parse('$BASE_URL/tickets/get/all'),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final body = response.body.trim();
+      if (body.isEmpty || body == 'null') return <TicketModel>[];
+      final decoded = jsonDecode(body);
+      if (decoded is List) {
+        return TicketModel.fromJsonList(decoded);
+      } else if (decoded is Map && decoded['data'] is List) {
+        return TicketModel.fromJsonList(decoded['data'] as List);
+      }
+      return <TicketModel>[];
+    } else {
+      _handleAuthError(response.statusCode);
+      throw Exception('Failed to load tickets');
+    }
+  }
+
+  /// Creates a new ticket (`/v1/api/tickets/create`). Anyone can create one.
+  static Future<bool> createTicket(CreateTicketModel request) async {
+    String token = await StorageService.getData('access_token');
+
+    try {
+      final response = await http.post(
+        Uri.parse('$BASE_URL/tickets/create'),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else {
+        _handleAuthError(response.statusCode);
+        throw Exception('Failed to create ticket (${response.statusCode})');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred while creating the ticket: $e');
+    }
+  }
+
+  /// Updates an existing ticket (`/v1/api/tickets/update/{id}`).
+  static Future<bool> updateTicket(int id, CreateTicketModel request) async {
+    String token = await StorageService.getData('access_token');
+
+    try {
+      final response = await http.put(
+        Uri.parse('$BASE_URL/tickets/update/$id'),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else {
+        _handleAuthError(response.statusCode);
+        throw Exception('Failed to update ticket (${response.statusCode})');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred while updating the ticket: $e');
+    }
+  }
+
+  /// Resolves/closes a ticket with a new [status] and [remarks]
+  /// (`/v1/api/tickets/close/{id}`). Used by admins and technicians.
+  static Future<bool> closeTicket(
+    int id,
+    String status,
+    String remarks,
+  ) async {
+    String token = await StorageService.getData('access_token');
+
+    try {
+      final uri = Uri.parse('$BASE_URL/tickets/close/$id').replace(
+        queryParameters: {'status': status, 'remarks': remarks},
+      );
+
+      final response = await http.put(
+        uri,
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else {
+        _handleAuthError(response.statusCode);
+        throw Exception('Failed to resolve ticket (${response.statusCode})');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      throw Exception('An error occurred while resolving the ticket: $e');
     }
   }
 

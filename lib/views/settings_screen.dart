@@ -13,6 +13,7 @@ import 'package:atom/views/settings/contact_us.dart';
 import 'package:atom/views/settings/delete_account.dart';
 import 'package:atom/views/settings/privacy_policy.dart';
 import 'package:atom/views/settings/terms_and_conditions.dart';
+import 'package:atom/views/tickets/tickets_screen.dart';
 import 'package:atom/views/transport%20%20managers/manager_screen.dart';
 import 'package:atom/widgets/modal/custom_alert.dart';
 import 'package:flutter/cupertino.dart';
@@ -313,6 +314,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title: 'Change Password',
                       subtitle: 'Security and authentication',
                       onTap: () => _openScreen(ChangePassword()),
+                    ),
+                    _buildSettingsTile(
+                      col: col,
+                      icon: Icons.confirmation_number_outlined,
+                      title: 'Support Tickets',
+                      subtitle: 'Raise and track maintenance requests',
+                      onTap: () => _openScreen(const TicketsScreen()),
                     ),
                     if (_role == 'Admin')
                       _buildSettingsTile(

@@ -153,10 +153,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _updateVehicleAnnotations(_filteredDevices);
-        if (!_hasFitAllCars && _filteredDevices.isNotEmpty) {
-          _fitAllCarsOnMap(_filteredDevices);
-          _hasFitAllCars = true;
-        }
+        _maybeFitAllCarsOnLoad();
       });
     } catch (e) {
       print('Error initializing data: $e');
@@ -197,7 +194,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         await mapboxMap!.annotations.createPointAnnotationManager();
     if (!mounted) return;
     _annotationManager = pointManager;
-    _updateVehicleAnnotations(_filteredDevices);
+    await _updateVehicleAnnotations(_filteredDevices);
+    _maybeFitAllCarsOnLoad();
+  }
+
+  // Fits all vehicles into view exactly once on first load. Both the data
+  // fetch and the map style load can finish in either order, so this is called
+  // from both paths and guarded so it only runs when the map is ready and
+  // vehicles are available.
+  void _maybeFitAllCarsOnLoad() {
+    if (_hasFitAllCars) return;
+    if (mapboxMap == null || _filteredDevices.isEmpty) return;
+    _hasFitAllCars = true;
+    _fitAllCarsOnMap(_filteredDevices);
   }
 
   // ─── Icon & annotation helpers ───────────────────────────────────────────
@@ -502,7 +511,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _fitAllCarsOnMap(List<Device> devices) {
+  Future<void> _fitAllCarsOnMap(List<Device> devices) async {
     if (mapboxMap == null || devices.isEmpty) return;
     final points = devices
         .where(
@@ -520,20 +529,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         )
         .toList();
     if (points.isEmpty) return;
-    double sumLat = 0, sumLng = 0;
-    for (final p in points) {
-      sumLat += p.coordinates.lat.toDouble();
-      sumLng += p.coordinates.lng.toDouble();
+
+    // Single vehicle: no bounds to fit, just center on it at a sensible zoom.
+    if (points.length == 1) {
+      await mapboxMap!.flyTo(
+        CameraOptions(center: points.first, zoom: 15.0),
+        MapAnimationOptions(duration: 1000),
+      );
+      return;
     }
-    mapboxMap!.flyTo(
-      CameraOptions(
-        center: Point(
-          coordinates: Position(sumLng / points.length, sumLat / points.length),
+
+    try {
+      // Let Mapbox compute the camera that fits every vehicle, with padding so
+      // markers/plate callouts aren't clipped at the screen edges.
+      final camera = await mapboxMap!.cameraForCoordinatesPadding(
+        points,
+        CameraOptions(bearing: 0, pitch: 0),
+        MbxEdgeInsets(top: 120, left: 60, bottom: 160, right: 60),
+        15.0, // maxZoom so a tight cluster doesn't zoom in too far
+        null,
+      );
+      await mapboxMap!.flyTo(camera, MapAnimationOptions(duration: 1000));
+    } catch (_) {
+      // Fallback: center on the average position.
+      double sumLat = 0, sumLng = 0;
+      for (final p in points) {
+        sumLat += p.coordinates.lat.toDouble();
+        sumLng += p.coordinates.lng.toDouble();
+      }
+      await mapboxMap!.flyTo(
+        CameraOptions(
+          center: Point(
+            coordinates:
+                Position(sumLng / points.length, sumLat / points.length),
+          ),
+          zoom: 10.0,
         ),
-        zoom: 10.0,
-      ),
-      null,
-    );
+        null,
+      );
+    }
   }
 
   Future<void> _loadCustomIcons() async {

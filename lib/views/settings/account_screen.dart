@@ -173,6 +173,7 @@ class _AccountScreenState extends State<AccountScreen> {
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
           child: GlassContainer(
+            isSheet: true,
             borderRadius: const BorderRadius.vertical(
               top: Radius.circular(20),
             ),
