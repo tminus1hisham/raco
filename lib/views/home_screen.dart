@@ -46,8 +46,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Annotation management
   PointAnnotationManager? _annotationManager;
+  Cancelable? _annotationTapListener;
   final Map<String, PointAnnotation> _vehicleAnnotations = {};
   final Map<String, PointAnnotation> _plateAnnotations = {};
+  final Map<String, String> _annotationVehiclePlates = {};
   static final Map<String, Uint8List> _plateCalloutCache = {};
   String? _selectedVehiclePlate;
   Offset? _bannerScreenPos;
@@ -178,8 +180,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // ─── Map layer setup ─────────────────────────────────────────────────────
   Future<void> _setupMapLayers() async {
+    _annotationTapListener?.cancel();
+    _annotationTapListener = null;
     _vehicleAnnotations.clear();
     _plateAnnotations.clear();
+    _annotationVehiclePlates.clear();
     _breathingCircle = null;
     _circleAnnotationManager = null;
     _annotationManager = null;
@@ -194,6 +199,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         await mapboxMap!.annotations.createPointAnnotationManager();
     if (!mounted) return;
     _annotationManager = pointManager;
+    _annotationTapListener = pointManager.tapEvents(
+      onTap: _onPointAnnotationTapped,
+    );
     await _updateVehicleAnnotations(_filteredDevices);
     _maybeFitAllCarsOnLoad();
   }
@@ -236,9 +244,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         .toList();
     for (final plate in toRemove) {
       final ann = _vehicleAnnotations.remove(plate);
-      if (ann != null) await _annotationManager!.delete(ann);
+      if (ann != null) {
+        _annotationVehiclePlates.remove(ann.id);
+        await _annotationManager!.delete(ann);
+      }
       final plateAnn = _plateAnnotations.remove(plate);
-      if (plateAnn != null) await _annotationManager!.delete(plateAnn);
+      if (plateAnn != null) {
+        _annotationVehiclePlates.remove(plateAnn.id);
+        await _annotationManager!.delete(plateAnn);
+      }
     }
 
     for (final device in devices) {
@@ -266,6 +280,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         );
         _vehicleAnnotations[device.numberPlate] = ann;
+        _annotationVehiclePlates[ann.id] = device.numberPlate;
       }
 
       // Number-plate callout (white rounded box with downward arrow).
@@ -286,6 +301,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         );
         _plateAnnotations[device.numberPlate] = pAnn;
+        _annotationVehiclePlates[pAnn.id] = device.numberPlate;
       }
     }
   }
@@ -437,14 +453,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     if (nearest != null && minDist < 0.0005) {
-      if (Get.isRegistered<DashboardController>()) {
-        Get.find<DashboardController>().isNavVisible.value = false;
-      }
-      setState(() => _selectedVehiclePlate = nearest!.numberPlate);
-      _updateVehicleAnnotations(_filteredDevices);
-      _focusOnDevice(nearest);
-      _updateBannerPosition();
+      _selectVehicle(nearest);
     }
+  }
+
+  void _onPointAnnotationTapped(PointAnnotation annotation) {
+    final plate = _annotationVehiclePlates[annotation.id];
+    if (plate == null) return;
+
+    final device = _filteredDevices.firstWhereOrNull(
+      (d) => d.numberPlate == plate,
+    );
+    if (device != null) _selectVehicle(device);
+  }
+
+  void _selectVehicle(Device device) {
+    if (Get.isRegistered<DashboardController>()) {
+      Get.find<DashboardController>().isNavVisible.value = false;
+    }
+    setState(() => _selectedVehiclePlate = device.numberPlate);
+    _focusOnDevice(device);
+    _updateBannerPosition();
   }
 
   void _focusOnDevice(Device device) {
@@ -661,8 +690,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _applyMapStyle(String style) {
     Navigator.pop(context);
+    _annotationTapListener?.cancel();
+    _annotationTapListener = null;
     _vehicleAnnotations.clear();
     _plateAnnotations.clear();
+    _annotationVehiclePlates.clear();
     _breathingCircle = null;
     _circleAnnotationManager = null;
     _annotationManager = null;
@@ -966,6 +998,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       Get.find<DashboardController>().isNavVisible.value = true;
     }
     _searchController.dispose();
+    _annotationTapListener?.cancel();
     _breathingController.dispose();
     super.dispose();
   }
@@ -1466,8 +1499,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       styleUri: _currentMapStyle,
       cameraOptions: CameraOptions(center: initialPosition, zoom: currentZoom),
       onMapCreated: (MapboxMap map) {
+        _annotationTapListener?.cancel();
+        _annotationTapListener = null;
         _vehicleAnnotations.clear();
         _plateAnnotations.clear();
+        _annotationVehiclePlates.clear();
         _breathingCircle = null;
         _circleAnnotationManager = null;
         _annotationManager = null;

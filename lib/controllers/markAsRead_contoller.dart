@@ -8,7 +8,7 @@ class MarkasreadController extends GetxController {
 
   Future<bool> markAsRead(
     BuildContext context,
-    List<String> notifications,
+    List<int> notifications,
   ) async {
     isLoading.value = true;
     try {

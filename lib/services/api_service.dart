@@ -407,7 +407,9 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>?> markAllNotificationsAsRead(List request) async {
+  Future<Map<String, dynamic>?> markAllNotificationsAsRead(
+    List<int> request,
+  ) async {
     String token = await StorageService.getData('access_token');
 
     try {

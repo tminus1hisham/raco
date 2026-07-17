@@ -12,7 +12,20 @@ class VehicleDetails extends StatefulWidget {
   final String vehiclePlate;
   final Device device;
 
-  VehicleDetails({required this.vehiclePlate, required this.device});
+  /// Engine state as the opening screen currently shows it. Falls back to the
+  /// device reading when absent, so this screen still stands on its own.
+  final bool? isEngineOn;
+
+  /// Reports a confirmed engine change back, so the caller does not keep
+  /// showing the state this screen has just moved away from.
+  final ValueChanged<bool>? onEngineChanged;
+
+  VehicleDetails({
+    required this.vehiclePlate,
+    required this.device,
+    this.isEngineOn,
+    this.onEngineChanged,
+  });
 
   @override
   State<VehicleDetails> createState() => _VehicleDetailsState();
@@ -26,7 +39,7 @@ class _VehicleDetailsState extends State<VehicleDetails> {
   @override
   void initState() {
     super.initState();
-    _engineOn = widget.device.ignitionStatus == 1;
+    _engineOn = widget.isEngineOn ?? (widget.device.ignitionStatus == 1);
   }
 
   @override
@@ -478,6 +491,7 @@ class _VehicleDetailsState extends State<VehicleDetails> {
         final success = result['success'] == true;
         if (success) {
           setState(() => _engineOn = command == 'Restore');
+          widget.onEngineChanged?.call(_engineOn);
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -42,9 +42,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> _refreshNotifications() => _controller.fetchNotifications();
 
   Future<void> _markAllAsRead() async {
+    if (_markAsReadController.isLoading.value) return;
+
     final unreadIds = _controller.notifications
         .where((notification) => !notification.isRead)
-        .map((notification) => notification.id.toString())
+        .map((notification) => notification.id)
         .toList();
 
     if (unreadIds.isEmpty) return;
@@ -74,7 +76,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     if (notification.isRead) return;
 
     final success = await _markAsReadController.markAsRead(context, [
-      notification.id.toString(),
+      notification.id,
     ]);
     if (!success) return;
 
@@ -185,6 +187,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
             //   child: _buildHero(col),
             // ),
             const SizedBox(height: 18),
+            _buildNotificationActions(col),
+            const SizedBox(height: 8),
             _buildFilterRow(col),
             const SizedBox(height: 18),
             Expanded(
@@ -216,6 +220,68 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Color _titleColor(AppColors col) {
     return context.isDark ? col.textPrimary : const Color(0xFF1454C4);
+  }
+
+  Widget _buildNotificationActions(AppColors col) {
+    return Obx(() {
+      final unreadCount = _controller.notifications
+          .where((notification) => !notification.isRead)
+          .length;
+      final isMarkingAsRead = _markAsReadController.isLoading.value;
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                unreadCount == 1
+                    ? '1 unread notification'
+                    : '$unreadCount unread notifications',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: col.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: unreadCount > 0 && !isMarkingAsRead
+                  ? _markAllAsRead
+                  : null,
+              style: TextButton.styleFrom(
+                foregroundColor: _titleColor(col),
+                disabledForegroundColor: col.textSecondary.withValues(
+                  alpha: 0.55,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: isMarkingAsRead
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: _titleColor(col),
+                      ),
+                    )
+                  : const Text(
+                      'Mark all as read',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildTopBar(AppColors col) {
