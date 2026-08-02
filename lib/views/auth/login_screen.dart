@@ -105,7 +105,9 @@ class _LoginScreenState extends State<LoginScreen>
       await CustomAlertDialog(
         context: context,
         title: "Error",
-        message: "Failed to login, please check your credentials",
+        message: authController.loginError.value.isNotEmpty
+            ? authController.loginError.value
+            : "Failed to login, please check your credentials",
         icon: "assets/animations/Failed.json",
         buttonColor: kRed,
       );

@@ -31,7 +31,7 @@ class MqttService {
 
   // Initialize MQTT Client
   Future<void> initializeMqtt() async {
-    _client = MqttServerClient('uat-broker.atomiot.live', '');
+    _client = MqttServerClient('orca-broker-prod.atomiot.live', '');
     _client.logging(on: false);
     _client.setProtocolV311();
     _client.keepAlivePeriod = 20;
@@ -46,7 +46,7 @@ class MqttService {
         .withWillTopic('willtopic')
         .withWillMessage('My Will message')
         .withWillQos(MqttQos.atLeastOnce)
-        .authenticateAs('admin_main', 'admin_orca_eagles-eye-2025');
+        .authenticateAs('AdminOrca', 'X9vshr1pBXo6vs8hbMPAM3kow');
 
     _client.connectionMessage = connMess;
 

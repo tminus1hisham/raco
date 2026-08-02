@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/services/api_service.dart';
+import 'package:atom/controllers/device_controller.dart';
 import 'package:atom/controllers/renew_certificate_controller.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/routes/routes.dart';
@@ -21,6 +22,7 @@ import 'package:atom/widgets/custom_header.dart';
 import 'package:atom/widgets/inputs/custom_input.dart';
 import 'package:atom/widgets/modal/custom_alert.dart';
 import 'package:atom/widgets/modal/infomation_modal.dart';
+import 'package:atom/widgets/modal/speed_limit_sheet.dart';
 import 'package:atom/widgets/vehicle/vehicle_widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -51,10 +53,15 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
   bool _engineToggling = false;
   bool? _localEngineOn; // optimistic local state while API request is in flight
 
+  /// Over-speed threshold, seeded from the dashboard payload and updated
+  /// whenever a new one is saved from this screen.
+  double? _speedLimit;
+
   @override
   void initState() {
     super.initState();
     fetchPhoneNumber();
+    _speedLimit = widget.devices.customSpeedLimit;
   }
 
   final RenewCertificateController _controller = Get.put(
@@ -812,6 +819,24 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
     );
   }
 
+  Future<void> _openSpeedLimitSheet() async {
+    final saved = await showSpeedLimitSheet(
+      context: context,
+      device: widget.devices,
+      currentLimit: _speedLimit,
+    );
+    if (saved == null || !mounted) return;
+
+    setState(() => _speedLimit = saved);
+
+    // This screen was handed a Device instance that the refetch cannot replace,
+    // so _speedLimit above keeps it current. The refetch is for the dashboard
+    // screens behind it, which rebuild from the controller.
+    if (Get.isRegistered<DeviceController>()) {
+      Get.find<DeviceController>().fetchDevices(silent: true);
+    }
+  }
+
   void _openCertificate(bool isExpired) {
     final certUrl = widget.devices.certificateUrl;
     if (!isExpired &&
@@ -988,6 +1013,15 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                                   ),
                                 );
                               },
+                            ),
+                            VehicleActionTile(
+                              icon: Icons.speed_rounded,
+                              tint: const Color(0xFFF39C12),
+                              title: 'Speed Limit',
+                              subtitle: _speedLimit == null
+                                  ? 'Set a custom over-speed threshold'
+                                  : 'Alerts above ${_speedLimit!.toStringAsFixed(0)} km/h',
+                              onTap: _openSpeedLimitSheet,
                             ),
                             VehicleActionTile(
                               icon: Icons.history_toggle_off_rounded,

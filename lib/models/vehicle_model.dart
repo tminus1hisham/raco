@@ -89,6 +89,9 @@ class Device {
   final String createdBy;
   final String updatedBy;
   final String speed;
+
+  /// Custom over-speed threshold in km/h. 0 when none has been set.
+  final double speedLimit;
   final String latitude;
   final String longitude;
   final int ignitionStatus;
@@ -135,6 +138,7 @@ class Device {
     required this.createdBy,
     required this.updatedBy,
     required this.speed,
+    this.speedLimit = 0,
     required this.latitude,
     required this.longitude,
     required this.ignitionStatus,
@@ -183,6 +187,7 @@ class Device {
       createdBy: json['createdBy'] ?? "",
       updatedBy: json['updatedBy'] ?? "",
       speed: (json['isDeviceOnline'] ?? false) ? (json['speed'] ?? "0") : "0",
+      speedLimit: (json['speedLimit'] as num?)?.toDouble() ?? 0,
       latitude: json['latitude'] ?? "",
       longitude: json['longitude'] ?? "",
       ignitionStatus: json['ignitionStatus'] ?? 0,
@@ -232,6 +237,7 @@ class Device {
       "createdBy": createdBy,
       "updatedBy": updatedBy,
       "speed": speed,
+      "speedLimit": speedLimit,
       "latitude": latitude,
       "longitude": longitude,
       "ignitionStatus": ignitionStatus,
@@ -249,4 +255,7 @@ class Device {
       "course": course,
     };
   }
+
+  /// The configured over-speed threshold, or null when the vehicle has none.
+  double? get customSpeedLimit => speedLimit > 0 ? speedLimit : null;
 }

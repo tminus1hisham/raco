@@ -20,6 +20,9 @@ class AuthController extends GetxController {
   var userRole = ''.obs;
   var adminPhoneNumber = ''.obs;
 
+  /// Last login failure, ready to show to the user. Empty when there is none.
+  var loginError = ''.obs;
+
   final AuthService _authService = AuthService();
 
   Future<bool> register(BuildContext context) async {
@@ -53,6 +56,7 @@ class AuthController extends GetxController {
 
   Future<bool> login(BuildContext context) async {
     isLoading.value = true;
+    loginError.value = '';
 
     try {
       final loginModel = LoginModel(
@@ -65,16 +69,37 @@ class AuthController extends GetxController {
         ipAddress: ipAddress.value.trim(),
       );
 
+      // Empty fields are a common cause of a 400 that looks like a wrong
+      // password, so name them before the request goes out.
+      final missing = <String>[
+        if (loginModel.phoneNumber.isEmpty) 'phoneNumber',
+        if (loginModel.password.isEmpty) 'password',
+        if (loginModel.firebaseToken.isEmpty) 'firebaseToken',
+        if (loginModel.deviceModel.isEmpty) 'deviceModel',
+        if (loginModel.ipAddress.isEmpty) 'ipAddress',
+      ];
+      if (missing.isNotEmpty) {
+        debugPrint('[Auth/login] empty fields being sent: ${missing.join(', ')}');
+      }
+
       final result = await _authService.login(loginModel);
 
       if (result != null) {
         Get.offAllNamed(AppRoutes.dashboard);
         return true;
-      } else {
-        return false;
       }
-    } catch (e) {
-      debugPrint('Login failed: $e');
+
+      loginError.value = 'Login failed, please try again.';
+      debugPrint('[Auth/login] service returned null without throwing');
+      return false;
+    } on AuthException catch (e) {
+      loginError.value = e.message;
+      debugPrint('[Auth/login] FAILED $e');
+      return false;
+    } catch (e, stack) {
+      loginError.value = 'Something went wrong. Please try again.';
+      debugPrint('[Auth/login] FAILED with ${e.runtimeType}: $e');
+      debugPrint('[Auth/login] stack: $stack');
       return false;
     } finally {
       isLoading.value = false;

@@ -45,11 +45,11 @@ final kShadowLG = BoxShadow(
   offset: const Offset(0, 6),
 );
 
-// const String BASE_URL = 'https://tracking-api.greenthumb.co.ke/v1/api';
-// const String base_url = 'https://tracking-api.greenthumb.co.ke/api';
+// const String BASE_URL = 'https://uat-orca-api.atomiot.live/v1/api';
+// const String base_url = 'https://uat-orca-api.atomiot.live/v1/api';
 
-const String BASE_URL = 'https://uat-orca-api.atomiot.live/v1/api';
-const String base_url = 'https://uat-orca-api.atomiot.live/v1/api';
+const String BASE_URL = 'https://orca-tracking-api.atomiot.live/v1/api';
+const String base_url = 'https://orca-tracking-api.atomiot.live/v1/api';
 
 // const String base_url = 'https://staging-api.ndai.africa/v1/api';
 

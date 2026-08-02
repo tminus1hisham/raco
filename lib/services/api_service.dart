@@ -530,6 +530,99 @@ class ApiService {
     }
   }
 
+  /// Reads the over-speed threshold currently set on the device, in km/h.
+  ///
+  /// Returns null when the vehicle has no custom limit, or when the value
+  /// could not be read.
+  static Future<double?> fetchSpeedLimit(String deviceId) async {
+    final String token = await StorageService.getData('access_token');
+    final uri = Uri.parse(
+      '$BASE_URL/devices/get/speed/limit',
+    ).replace(queryParameters: {'deviceId': deviceId});
+    debugPrint('[fetchSpeedLimit] → GET $uri');
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      debugPrint('[fetchSpeedLimit] status: ${response.statusCode}');
+      debugPrint('[fetchSpeedLimit] body: ${response.body}');
+      _handleAuthError(response.statusCode);
+      if (response.statusCode != 200) return null;
+      final limit = _readSpeedLimit(jsonDecode(response.body));
+      return (limit != null && limit > 0) ? limit : null;
+    } catch (e) {
+      debugPrint('[fetchSpeedLimit] error: $e');
+      return null;
+    }
+  }
+
+  /// The endpoint is untyped in the spec, so accept a bare number as well as
+  /// the wrapper shapes the other Devices endpoints use.
+  static double? _readSpeedLimit(dynamic body) {
+    if (body is num) return body.toDouble();
+    if (body is String) return double.tryParse(body);
+    if (body is Map) {
+      for (final key in ['speedLimit', 'newSpeedLimit', 'data', 'result']) {
+        if (body.containsKey(key)) {
+          final value = _readSpeedLimit(body[key]);
+          if (value != null) return value;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Sets the over-speed threshold the device alerts on, in km/h.
+  static Future<Map<String, dynamic>> updateSpeedLimit({
+    required String deviceId,
+    required double newSpeedLimit,
+  }) async {
+    final String token = await StorageService.getData('access_token');
+    final uri = Uri.parse('$BASE_URL/devices/update/speed/limit').replace(
+      queryParameters: {
+        'deviceId': deviceId,
+        'newSpeedLimit': newSpeedLimit.toString(),
+      },
+    );
+    debugPrint('[updateSpeedLimit] → PUT $uri');
+    try {
+      final response = await http.put(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      debugPrint('[updateSpeedLimit] status: ${response.statusCode}');
+      debugPrint('[updateSpeedLimit] body: ${response.body}');
+      _handleAuthError(response.statusCode);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        try {
+          return {
+            'success': true,
+            ...jsonDecode(response.body) as Map<String, dynamic>,
+          };
+        } catch (_) {
+          return {'success': true};
+        }
+      }
+      return {
+        'success': false,
+        'message': 'Failed to update speed limit (${response.statusCode})',
+      };
+    } on SocketException catch (e) {
+      debugPrint('[updateSpeedLimit] SocketException: $e');
+      throw Exception('Network error, please check your connection');
+    } catch (e) {
+      debugPrint('[updateSpeedLimit] error: $e');
+      throw Exception('An error occurred: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> sendVehicleCommand({
     required String deviceId,
     required String serialNumber,

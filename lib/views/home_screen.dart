@@ -17,6 +17,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:atom/views/cars/selected_car_screen.dart';
 import 'package:atom/views/cars/vehicle_live_location.dart';
 import 'package:atom/views/playback_screen.dart';
+import 'package:atom/widgets/modal/speed_limit_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show rootBundle, ByteData, SystemUiOverlayStyle, Brightness;
@@ -53,6 +54,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   static final Map<String, Uint8List> _plateCalloutCache = {};
   String? _selectedVehiclePlate;
   Offset? _bannerScreenPos;
+
+  /// Speed limits saved from this screen, keyed by number plate. These take
+  /// precedence over the dashboard payload until it is refetched.
+  final Map<String, double> _speedLimitByPlate = {};
 
   CircleAnnotationManager? _circleAnnotationManager;
   CircleAnnotation? _breathingCircle;
@@ -127,6 +132,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (!mounted) return;
       _applyFilters();
       await _updateVehicleAnnotations(_filteredDevices);
+      await _followSelectedVehicle();
 
       if (_trackedCarPlate != null) {
         final tracked = _filteredDevices
@@ -484,6 +490,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       CameraOptions(center: Point(coordinates: Position(lng, lat)), zoom: 15.0),
       null,
     );
+  }
+
+  /// Keeps the camera on the selected vehicle as it moves and re-anchors its
+  /// banner to the marker's new screen position. Without this the marker drifts
+  /// off-screen on every position refresh while the banner stays behind at the
+  /// coordinates the vehicle occupied when it was tapped.
+  Future<void> _followSelectedVehicle() async {
+    if (mapboxMap == null || _selectedVehiclePlate == null) return;
+    final device = _filteredDevices.firstWhereOrNull(
+      (d) => d.numberPlate == _selectedVehiclePlate,
+    );
+    if (device == null) return;
+    final lat = double.tryParse(device.latitude) ?? -1.2842;
+    final lng = double.tryParse(device.longitude) ?? 36.8163;
+    try {
+      await mapboxMap!.easeTo(
+        CameraOptions(center: Point(coordinates: Position(lng, lat))),
+        MapAnimationOptions(duration: 800),
+      );
+    } catch (_) {}
+    if (!mounted) return;
+    await _updateBannerPosition();
   }
 
   Future<void> _updateBannerPosition() async {
@@ -2056,6 +2084,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   fontWeight: FontWeight.w500,
                 ),
               ),
+              const Spacer(),
+              _buildSpeedLimitChip(device),
             ],
           ),
           const SizedBox(height: 8),
@@ -2097,6 +2127,66 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// Tappable pill in the vehicle card that opens the speed limit sheet, and
+  /// shows the limit once one has been set from here.
+  Widget _buildSpeedLimitChip(Device device) {
+    const tint = Color(0xFFF39C12);
+    final limit =
+        _speedLimitByPlate[device.numberPlate] ?? device.customSpeedLimit;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () async {
+        final saved = await showSpeedLimitSheet(
+          context: context,
+          device: device,
+          currentLimit: limit,
+        );
+        if (saved == null || !mounted) return;
+
+        // Show the new limit straight away, then refetch so every screen
+        // reading the dashboard payload sees it too.
+        setState(() => _speedLimitByPlate[device.numberPlate] = saved);
+        await _refreshData();
+        if (!mounted) return;
+
+        // Drop the override once the server confirms it, so a limit changed
+        // elsewhere later on is not masked by this stale entry.
+        final refreshed = _filteredDevices.firstWhereOrNull(
+          (d) => d.numberPlate == device.numberPlate,
+        );
+        if (refreshed?.customSpeedLimit == saved) {
+          setState(() => _speedLimitByPlate.remove(device.numberPlate));
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: tint.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: tint.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.tune_rounded, size: 13, color: tint),
+            const SizedBox(width: 5),
+            Text(
+              limit == null
+                  ? 'Set limit'
+                  : 'Limit ${limit.toStringAsFixed(0)} km/h',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: tint,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
