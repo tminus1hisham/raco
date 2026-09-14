@@ -1,4 +1,5 @@
 import 'package:atom/models/login_model.dart';
+import 'package:atom/services/push_notification_service.dart';
 import 'package:atom/models/register_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -62,7 +63,8 @@ class AuthController extends GetxController {
       final loginModel = LoginModel(
         phoneNumber: phoneNumber.value.trim(),
         password: password.value.trim(),
-        firebaseToken: userFirebaseToken.value.trim(),
+        firebaseToken:
+            await PushNotificationService.instance.tokenForLogin() ?? '',
         deviceModel: deviceModel.value.trim(),
         userAgent: userAgent.value.trim(),
         location: location.value.trim(),
@@ -79,7 +81,9 @@ class AuthController extends GetxController {
         if (loginModel.ipAddress.isEmpty) 'ipAddress',
       ];
       if (missing.isNotEmpty) {
-        debugPrint('[Auth/login] empty fields being sent: ${missing.join(', ')}');
+        debugPrint(
+          '[Auth/login] empty fields being sent: ${missing.join(', ')}',
+        );
       }
 
       final result = await _authService.login(loginModel);
@@ -125,6 +129,11 @@ class AuthController extends GetxController {
     final success = await _authService.logoutUser();
     if (success) {
       Get.offAllNamed(AppRoutes.login);
+    } else {
+      Get.snackbar(
+        'Could not sign out',
+        'Please check your connection and try again.',
+      );
     }
   }
 }

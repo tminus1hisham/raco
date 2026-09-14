@@ -134,12 +134,9 @@ class DriverBehaviourReport {
     final countedTotal = overspeed + reckless + braking + acceleration;
 
     return DriverBehaviourReport(
-      safetyScore: _readDouble(source, const [
-        'safetyScore',
-        'driverScore',
-        'performanceScore',
-        'score',
-      ]),
+      safetyScore: _hasRecognizedValue(source) || events.isNotEmpty
+          ? _calculateDriverScore(overspeed, reckless)
+          : null,
       rating: _readRating(source),
       overspeedEvents: overspeed,
       recklessDrivingEvents: reckless,
@@ -350,3 +347,9 @@ int? _readInt(Map<String, dynamic> json, List<String> keys) {
   final value = _readDouble(json, keys);
   return value?.round();
 }
+
+double _calculateDriverScore(
+  int overspeedEvents,
+  int recklessDrivingEvents,
+) =>
+    (100 - (overspeedEvents * 5 + recklessDrivingEvents * 10)).toDouble();

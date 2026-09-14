@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:atom/models/notification_permission.dart';
 import 'package:atom/services/api_service.dart';
+import 'package:atom/services/push_notification_service.dart';
 import 'package:atom/views/settings/notification_permissions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FakePermissionsApi extends ApiService {
   bool failLoad = false;
+  bool initialValue = true;
   Completer<void>? save;
   NotificationPermission? updated;
   bool? enabled;
@@ -17,7 +19,8 @@ class FakePermissionsApi extends ApiService {
   fetchNotificationPermissions() async {
     if (failLoad) throw Exception('Offline');
     return {
-      for (final permission in NotificationPermission.values) permission: true,
+      for (final permission in NotificationPermission.values)
+        permission: initialValue,
     };
   }
 
@@ -33,12 +36,53 @@ class FakePermissionsApi extends ApiService {
 }
 
 void main() {
-  Future<void> mount(WidgetTester tester, FakePermissionsApi api) async {
+  test(
+    'parses notification status from a communications response envelope',
+    () {
+      final parsed = ApiService.parseNotificationPermissions({
+        'success': true,
+        'data': {
+          'speedLimitNotification': true,
+          'signalTamperingNotification': false,
+          'batteryTamperingNotification': true,
+          'engineOnNotification': false,
+          'engineOffNotification': true,
+        },
+      });
+
+      expect(parsed[NotificationPermission.speedLimit], isTrue);
+      expect(parsed[NotificationPermission.signalTampering], isFalse);
+      expect(parsed[NotificationPermission.batteryTampering], isTrue);
+      expect(parsed[NotificationPermission.engineOn], isFalse);
+      expect(parsed[NotificationPermission.engineOff], isTrue);
+    },
+  );
+
+  test('rejects incomplete notification status responses', () {
+    expect(
+      () => ApiService.parseNotificationPermissions({
+        'success': true,
+        'data': {'speedLimitNotification': true},
+      }),
+      throwsFormatException,
+    );
+  });
+
+  Future<void> mount(
+    WidgetTester tester,
+    FakePermissionsApi api, {
+    Future<void> Function()? enablePush,
+  }) async {
     tester.view.physicalSize = const Size(400, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
-      MaterialApp(home: NotificationPermissionsScreen(apiService: api)),
+      MaterialApp(
+        home: NotificationPermissionsScreen(
+          apiService: api,
+          enablePush: enablePush,
+        ),
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -58,6 +102,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<SwitchListTile>(tile).value, isFalse);
     expect(tester.widget<SwitchListTile>(tile).onChanged, isNotNull);
+  });
+
+  testWidgets('registers push before enabling the server alert', (
+    tester,
+  ) async {
+    final api = FakePermissionsApi()..initialValue = false;
+    final permission = Completer<void>();
+    await mount(tester, api, enablePush: () => permission.future);
+    await tester.tap(
+      find.byKey(const ValueKey(NotificationPermission.speedLimit)),
+    );
+    await tester.pump();
+    expect(api.updated, isNull);
+    permission.complete();
+    await tester.pumpAndSettle();
+    expect(api.updated, NotificationPermission.speedLimit);
+    expect(api.enabled, isTrue);
+  });
+
+  testWidgets('denied permission restores toggle without updating the API', (
+    tester,
+  ) async {
+    final api = FakePermissionsApi()..initialValue = false;
+    await mount(
+      tester,
+      api,
+      enablePush: () async {
+        throw const PushNotificationException('Notifications are blocked.');
+      },
+    );
+    final tile = find.byKey(const ValueKey(NotificationPermission.speedLimit));
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    expect(api.updated, isNull);
+    expect(tester.widget<SwitchListTile>(tile).value, isFalse);
+    expect(find.text('Notifications are blocked.'), findsOneWidget);
   });
 
   testWidgets('restores the previous value when saving fails', (tester) async {

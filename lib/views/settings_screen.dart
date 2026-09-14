@@ -65,6 +65,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await Future.wait([_userController.fetchUserProfile(), _loadLocalProfile()]);
   }
 
+  bool get _canManageNotificationPermissions {
+    final normalizedRole = (_role ?? '').toLowerCase().replaceAll(' ', '');
+    return normalizedRole == 'admin' || normalizedRole == 'superadmin';
+  }
+
   void _openNotifications() {
     _openScreen(const NotificationPermissionsScreen());
   }
@@ -174,12 +179,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 10),
                 ProfileGroupCard(
                   children: [
-                    ProfileActionTile(
-                      icon: Icons.notifications_active_outlined,
-                      title: 'Notifications',
-                      subtitle: 'Choose which alerts you receive',
-                      onTap: _openNotifications,
-                    ),
+                    if (_canManageNotificationPermissions)
+                      ProfileActionTile(
+                        icon: Icons.notifications_active_outlined,
+                        title: 'Notifications',
+                        subtitle: 'Choose which alerts you receive',
+                        onTap: _openNotifications,
+                      ),
                     ProfileActionTile(
                       icon: Icons.lock_reset_rounded,
                       title: 'Change Password',

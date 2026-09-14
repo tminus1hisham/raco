@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "593490506583",
+    "project_id": "eagleseye-c88ab",
+    "storage_bucket": "eagleseye-c88ab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:593490506583:android:3b2b3bbe212d851bff4412",
+        "android_client_info": {
+          "package_name": "com.mobile.orca"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5Rn0PDy-OveahH6b2-O3aBobQURbpcI8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -184,6 +184,21 @@ void main() {
       expect(find.text('Managers'), findsNothing);
     });
 
+    testWidgets('shows notification permissions only for admins and superadmins', (
+      tester,
+    ) async {
+      await _pump(tester, const SettingsScreen(), user: _sampleUser());
+      expect(find.text('Notifications'), findsOneWidget);
+
+      SharedPreferences.setMockInitialValues({'userRole': 'superadmin'});
+      await _pump(tester, const SettingsScreen(), user: _sampleUser());
+      expect(find.text('Notifications'), findsOneWidget);
+
+      SharedPreferences.setMockInitialValues({'userRole': 'Driver'});
+      await _pump(tester, const SettingsScreen(), user: _sampleUser());
+      expect(find.text('Notifications'), findsNothing);
+    });
+
     testWidgets('appearance control changes the theme mode', (tester) async {
       await _pump(tester, const SettingsScreen(), user: _sampleUser());
 

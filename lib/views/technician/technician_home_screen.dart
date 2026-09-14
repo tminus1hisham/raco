@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:atom/models/company_model.dart';
 import 'package:atom/services/api_service.dart';
 import 'package:atom/models/register_device_model.dart';
+import 'package:atom/utils/utils.dart';
 import 'package:flutter_bluetooth_classic_serial/flutter_bluetooth_classic.dart'
     as bt_serial;
 
@@ -137,6 +138,7 @@ class ConnectDeviceScreen extends StatefulWidget {
 
 class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
   final GlobalKey<FormState> _registrationFormKey = GlobalKey<FormState>();
+  final Utils _utils = Utils();
 
   TextEditingController _frequencyController = TextEditingController(text: '0');
   FocusNode _frequencyFocusNode = FocusNode();
@@ -562,7 +564,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
   Future<void> _saveCompany() async {
     final companyName = _companyController.text.trim();
-    final companyPhone = _companyPhoneController.text.trim();
+    final companyPhone = _utils.normalizePhoneNumber(
+      _companyPhoneController.text,
+    );
 
     if (companyName.isEmpty || companyPhone.isEmpty) return;
 
@@ -1056,10 +1060,12 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     final bufferedResponse = _orcaIdBuffer.toString();
     final orcaIdData = _extractOrcaIdResponseData(bufferedResponse);
     final hasBalancedJson = _hasBalancedJsonPayload(bufferedResponse);
-    final hasCertificateNumber =
-        _normalizeDeviceValue(orcaIdData?['LimiterID']).isNotEmpty;
-    final hasSerialNumber =
-        _normalizeDeviceValue(orcaIdData?['MnfSerial']).isNotEmpty;
+    final hasCertificateNumber = _normalizeDeviceValue(
+      orcaIdData?['LimiterID'],
+    ).isNotEmpty;
+    final hasSerialNumber = _normalizeDeviceValue(
+      orcaIdData?['MnfSerial'],
+    ).isNotEmpty;
 
     if (orcaIdData != null &&
         (hasBalancedJson || (hasCertificateNumber && hasSerialNumber))) {
@@ -1082,10 +1088,12 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
 
     final orcaIdData = _extractOrcaIdResponseData(rawResponse);
     final hasBalancedJson = _hasBalancedJsonPayload(rawResponse);
-    final hasCertificateNumber =
-        _normalizeDeviceValue(orcaIdData?['LimiterID']).isNotEmpty;
-    final hasSerialNumber =
-        _normalizeDeviceValue(orcaIdData?['MnfSerial']).isNotEmpty;
+    final hasCertificateNumber = _normalizeDeviceValue(
+      orcaIdData?['LimiterID'],
+    ).isNotEmpty;
+    final hasSerialNumber = _normalizeDeviceValue(
+      orcaIdData?['MnfSerial'],
+    ).isNotEmpty;
     final hasBothMappedFields = hasCertificateNumber && hasSerialNumber;
 
     if (orcaIdData != null &&
@@ -1565,10 +1573,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
     _orcaIdTimeoutTimer = Timer(const Duration(seconds: 5), () {
       if (_awaitingOrcaId) {
         debugPrint('GetOrcaid> — no response received after 3s');
-        _flushOrcaIdBuffer(
-          finalizePartial: true,
-          allowSerialFallback: true,
-        );
+        _flushOrcaIdBuffer(finalizePartial: true, allowSerialFallback: true);
         if (_awaitingOrcaId) {
           setState(() => _awaitingOrcaId = false);
         }
@@ -1893,13 +1898,13 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
             ]);
       String numberPlate =
           _resolvedHeaderDetails['registrationNumber']?.isNotEmpty == true
-              ? _resolvedHeaderDetails['registrationNumber']!
-              : _resolveDeviceValue(_deviceData, const [
-                  'reg',
-                  'Reg',
-                  'numberPlate',
-                  'Rg',
-                ]);
+          ? _resolvedHeaderDetails['registrationNumber']!
+          : _resolveDeviceValue(_deviceData, const [
+              'reg',
+              'Reg',
+              'numberPlate',
+              'Rg',
+            ]);
       String deviceId = _resolveDeviceId(_deviceData);
       if (deviceId.isEmpty) {
         deviceId = _normalizeDeviceValue(_resolvedHeaderDetails['headerId']);
@@ -1913,7 +1918,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       // Fall back to last-connected device saved in prefs
       if (serial.isEmpty || numberPlate.isEmpty || deviceId.isEmpty) {
         final savedSerial = await StorageService.getData('lastDevice_serial');
-        final savedPlate = await StorageService.getData('lastDevice_numberPlate');
+        final savedPlate = await StorageService.getData(
+          'lastDevice_numberPlate',
+        );
         final savedId = await StorageService.getData('lastDevice_id');
         if (serial.isEmpty && savedSerial is String) {
           serial = _normalizeDeviceValue(savedSerial);
@@ -1936,7 +1943,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       // Mark that the next reconnect is post-reset so GetOrcaid fires automatically
       setState(() => _pendingPostResetFlow = true);
 
-      final technicianPhone = _technicianPhoneController.text.trim();
+      final technicianPhone = _utils.normalizePhoneNumber(
+        _technicianPhoneController.text,
+      );
       debugPrint(
         '[ResetRequest] resolved payload — '
         'deviceId="$deviceId", serial="$serial", numberPlate="$numberPlate", '
@@ -2047,8 +2056,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(kRadiusMD),
-                          borderSide:
-                              const BorderSide(color: kRed, width: 1.5),
+                          borderSide: const BorderSide(color: kRed, width: 1.5),
                         ),
                         labelStyle: TextStyle(color: col.textSecondary),
                         hintStyle: TextStyle(
@@ -2071,10 +2079,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: kRed,
                           foregroundColor: kWhite,
-                          disabledBackgroundColor:
-                              kRed.withValues(alpha: 0.3),
-                          disabledForegroundColor:
-                              kWhite.withValues(alpha: 0.5),
+                          disabledBackgroundColor: kRed.withValues(alpha: 0.3),
+                          disabledForegroundColor: kWhite.withValues(
+                            alpha: 0.5,
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(kRadiusMD),
@@ -2833,12 +2841,14 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       // Prepare the registration data
       Map<String, dynamic> registrationData = {
         "company": _companyController.text.trim(),
-        "companyPhone": _companyPhoneController.text.trim(),
+        "companyPhone": _utils.normalizePhoneNumber(
+          _companyPhoneController.text,
+        ),
         "technicianId": int.tryParse(_technicianIdController.text.trim()) ?? 0,
         "technicianName": _technicianNameController.text.trim(),
         "Name": _nameController.text.trim(),
         "ID": _idController.text.trim(),
-        "Phone": _phoneController.text.trim(),
+        "Phone": _utils.normalizePhoneNumber(_phoneController.text),
         "reg": _regController.text.trim(),
         "chassis": _chassisController.text.trim(),
         "make": _makeController.text.trim(),
@@ -2850,9 +2860,9 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         "agentID": _agentIDController.text.trim(),
         "location": _locationController.text.trim(),
         "email": _emailController.text.trim(),
-        "agentPhone": _agentPhoneController.text.trim(),
+        "agentPhone": _utils.normalizePhoneNumber(_agentPhoneController.text),
         "businessReg": _businessRegController.text.trim(),
-        "group": _groupController.text.trim() ?? 'NONE',
+        "group": "PUBLIC",
       };
 
       debugPrint('Registration data: $registrationData');
@@ -3312,10 +3322,7 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
         ),
         subtitle: Text(
           device.address,
-          style: TextStyle(
-            color: col.textSecondary,
-            fontSize: 12,
-          ),
+          style: TextStyle(color: col.textSecondary, fontSize: 12),
         ),
         trailing: SizedBox(
           width: 130,
@@ -4041,58 +4048,6 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Technician Information Section
-                      Text(
-                        'Technician Information',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: kBlue,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        controller: _technicianIdController,
-                        decoration: InputDecoration(
-                          labelText: 'Technician ID',
-                          hintText: 'Enter technician ID',
-                          prefixIcon: Icon(Icons.badge),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        readOnly: _technicianIdController.text.isNotEmpty,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Technician ID is required";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        controller: _technicianNameController,
-                        decoration: InputDecoration(
-                          labelText: 'Technician Name',
-                          hintText: 'Enter technician name',
-                          prefixIcon: Icon(Icons.person),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                          ),
-                        ),
-                        readOnly: _technicianNameController.text.isNotEmpty,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Technician name is required";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
                       // Device Owner Information Section
                       Text(
                         'Device Owner Information',
@@ -4229,284 +4184,6 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                         },
                       ),
                       const SizedBox(height: 12),
-
-                      // Device Information Section
-                      Text(
-                        'Device Information',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: kBlue,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        controller: _certNoController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'Certificate Number',
-                          hintText: 'Certificate',
-                          prefixIcon: const Icon(Icons.verified),
-                          suffixIcon: const Icon(
-                            Icons.lock_outline,
-                            size: 18,
-                          ),
-                          filled: true,
-                          fillColor: context.col.bg,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                          ),
-                          disabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                            borderSide: BorderSide(
-                              color: context.col.border,
-                            ),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Certificate number is required";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        controller: _serialController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'Device Serial Number',
-                          hintText: 'Serial',
-                          prefixIcon: const Icon(Icons.numbers),
-                          suffixIcon: const Icon(
-                            Icons.lock_outline,
-                            size: 18,
-                          ),
-                          filled: true,
-                          fillColor: context.col.bg,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                          ),
-                          disabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                            borderSide: BorderSide(
-                              color: context.col.border,
-                            ),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Serial number is required";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        controller: _dateController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'Date',
-                          hintText: 'Populated from device',
-                          prefixIcon: const Icon(Icons.calendar_today),
-                          suffixIcon: const Icon(
-                            Icons.lock_outline,
-                            size: 18,
-                          ),
-                          filled: true,
-                          fillColor: context.col.bg,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                          ),
-                          disabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                            borderSide: BorderSide(
-                              color: context.col.border,
-                            ),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Date is required";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Agent Information Section
-                      Text(
-                        'Agent Information',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: kBlue,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        controller: _agentController,
-                        decoration: InputDecoration(
-                          labelText: 'Agent Name',
-                          hintText: 'Enter agent name',
-                          prefixIcon: Icon(Icons.person_add),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                          ),
-                        ),
-                        readOnly: _agentController.text.isNotEmpty,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Agent name is required";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        controller: _agentIDController,
-                        decoration: InputDecoration(
-                          labelText: 'Agent ID',
-                          hintText: 'Enter agent ID',
-                          prefixIcon: Icon(Icons.badge_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                          ),
-                        ),
-                        readOnly: _agentIDController.text.isNotEmpty,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Agent ID is required";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        controller: _locationController,
-                        decoration: InputDecoration(
-                          labelText: 'Location',
-                          hintText: 'Enter location',
-                          prefixIcon: Icon(Icons.location_on),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                          ),
-                        ),
-                        readOnly: _locationController.text.isNotEmpty,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Location is required";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        controller: _emailController,
-                        decoration: InputDecoration(
-                          labelText: 'Email',
-                          hintText: 'Enter email address',
-                          prefixIcon: Icon(Icons.email),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                          ),
-                        ),
-                        readOnly: _emailController.text.isNotEmpty,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Email is required";
-                          }
-                          if (!RegExp(
-                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                          ).hasMatch(value)) {
-                            return "Enter a valid email address";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        controller: _agentPhoneController,
-                        decoration: InputDecoration(
-                          labelText: 'Agent Phone',
-                          hintText: 'Enter agent phone number',
-                          prefixIcon: Icon(Icons.phone_iphone),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                          ),
-                        ),
-                        readOnly: _agentPhoneController.text.isNotEmpty,
-                        keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Agent phone is required";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        controller: _businessRegController,
-                        decoration: InputDecoration(
-                          labelText: 'Business Registration',
-                          hintText: 'Enter business registration number',
-                          prefixIcon: Icon(Icons.app_registration),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                          ),
-                        ),
-                        readOnly: _businessRegController.text.isNotEmpty,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Business registration is required";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      DropdownButtonFormField<String>(
-                        value: _selectedGroup,
-                        decoration: InputDecoration(
-                          labelText: 'Group',
-                          hintText: 'Select group',
-                          prefixIcon: Icon(Icons.group),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(kRadiusSM),
-                          ),
-                        ),
-                        items: _groupOptions
-                            .map(
-                              (g) => DropdownMenuItem<String>(
-                                value: g,
-                                child: Text(g),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedGroup = value;
-                            _groupController.text = value ?? '';
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Group is required";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
 
                       // Register Button
                       ElevatedButton(
@@ -4888,9 +4565,10 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
                                         tooltip: 'Clear',
                                       ),
                                       IconButton(
-                                        onPressed: () => _retrieveDataFromDevice(
-                                          restartFlow: true,
-                                        ),
+                                        onPressed: () =>
+                                            _retrieveDataFromDevice(
+                                              restartFlow: true,
+                                            ),
                                         icon: const Icon(
                                           Icons.refresh,
                                           color: kWhite,

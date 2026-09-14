@@ -24,7 +24,7 @@ void main() {
         },
       });
 
-      expect(report.safetyScore, 86.5);
+      expect(report.safetyScore, 90);
       expect(report.rating, 'Safe');
       expect(report.overspeedEvents, 2);
       expect(report.harshBrakingEvents, 1);
@@ -45,6 +45,7 @@ void main() {
       expect(report.harshBrakingEvents, 1);
       expect(report.rapidAccelerationEvents, 1);
       expect(report.totalEvents, 2);
+      expect(report.safetyScore, 100);
       expect(report.averageSpeed, 40);
       expect(report.topSpeed, 50);
       expect(report.hasData, isTrue);
@@ -54,6 +55,7 @@ void main() {
       final report = DriverBehaviourReport.fromJson({});
 
       expect(report.hasData, isFalse);
+      expect(report.safetyScore, isNull);
       expect(report.totalEvents, 0);
       expect(report.events, isEmpty);
     });
@@ -65,6 +67,7 @@ void main() {
       });
 
       expect(report.hasData, isTrue);
+      expect(report.safetyScore, 100);
       expect(report.totalEvents, 0);
       expect(report.overspeedEvents, 0);
       expect(report.recklessDrivingEvents, 0);
@@ -78,6 +81,7 @@ void main() {
 
       expect(report.overspeedEvents, 4);
       expect(report.recklessDrivingEvents, 2);
+      expect(report.safetyScore, 60);
       expect(report.totalEvents, 6);
     });
   });

@@ -1,11 +1,13 @@
 import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
+import 'package:atom/controllers/device_controller.dart';
 import 'package:atom/models/vehicle_model.dart';
 import 'package:atom/services/api_service.dart';
 import 'package:atom/utils/utils.dart';
 import 'package:atom/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class VehicleDetails extends StatefulWidget {
@@ -35,18 +37,48 @@ class _VehicleDetailsState extends State<VehicleDetails> {
   final _utils = Utils();
   bool _engineToggling = false;
   late bool _engineOn;
+  Device? _refreshedDevice;
 
   @override
   void initState() {
     super.initState();
-    _engineOn = widget.isEngineOn ?? (widget.device.ignitionStatus == 1);
+    _engineOn = widget.isEngineOn ?? _isEngineOn(widget.device.ignitionStatus);
+  }
+
+  Device get _device => _refreshedDevice ?? widget.device;
+
+  bool _isEngineOn(int ignitionStatus) => ignitionStatus == 0;
+
+  Future<void> _refreshDevice() async {
+    final controller = Get.isRegistered<DeviceController>()
+        ? Get.find<DeviceController>()
+        : Get.put(DeviceController());
+
+    await controller.fetchDevices(silent: true);
+    final devices = controller.devicesModel.value?.devices ?? [];
+    Device? refreshed;
+    for (final device in devices) {
+      if (device.deviceId == widget.device.deviceId ||
+          device.numberPlate == widget.device.numberPlate) {
+        refreshed = device;
+        break;
+      }
+    }
+
+    if (refreshed == null || !mounted) return;
+    setState(() {
+      _refreshedDevice = refreshed;
+      _engineOn = _isEngineOn(refreshed!.ignitionStatus);
+    });
+    widget.onEngineChanged?.call(_engineOn);
   }
 
   @override
   Widget build(BuildContext context) {
     final col = context.col;
-    final isCertActive = widget.device.certificateActiveStatus;
-    final isOnline = widget.device.isDeviceOnline;
+    final device = _device;
+    final isCertActive = device.certificateActiveStatus;
+    final isOnline = device.isDeviceOnline;
 
     return Scaffold(
       backgroundColor: col.bg,
@@ -62,217 +94,219 @@ class _VehicleDetailsState extends State<VehicleDetails> {
               icon: Icons.directions_car,
             ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.only(bottom: 32),
-                children: [
-                  // ── Vehicle Details ────────────────────────────────
-                  _buildSectionHeader(
-                    col: col,
-                    title: 'Vehicle Details',
-                    icon: Icons.directions_car_rounded,
-                    color: kBlue,
-                  ),
-                  _buildCard(
-                    col: col,
-                    children: [
-                      _buildRow(
-                        col: col,
-                        icon: Icons.car_repair_rounded,
-                        iconColor: kBlue,
-                        label: 'Make',
-                        value: widget.device.make,
-                      ),
-                      _buildDivider(col),
-                      _buildRow(
-                        col: col,
-                        icon: Icons.confirmation_number_outlined,
-                        iconColor: kBlue,
-                        label: 'Chassis Number',
-                        value: widget.device.chassis,
-                      ),
-                      _buildDivider(col),
-                      _buildRow(
-                        col: col,
-                        icon: Icons.pin_outlined,
-                        iconColor: kBlue,
-                        label: 'Number Plate',
-                        value: widget.device.numberPlate,
-                      ),
-                    ],
-                  ),
-
-                  // ── Ownership & Contact ────────────────────────────
-                  _buildSectionHeader(
-                    col: col,
-                    title: 'Ownership & Contact',
-                    icon: Icons.person_rounded,
-                    color: const Color(0xFF7C3AED),
-                  ),
-                  _buildCard(
-                    col: col,
-                    children: [
-                      _buildRow(
-                        col: col,
-                        icon: Icons.badge_outlined,
-                        iconColor: const Color(0xFF7C3AED),
-                        label: 'Owner ID',
-                        value: widget.device.ownerId,
-                      ),
-                      _buildDivider(col),
-                      _buildRow(
-                        col: col,
-                        icon: Icons.phone_outlined,
-                        iconColor: const Color(0xFF7C3AED),
-                        label: 'Phone',
-                        value: widget.device.phone,
-                      ),
-                      _buildDivider(col),
-                      _buildRow(
-                        col: col,
-                        icon: Icons.email_outlined,
-                        iconColor: const Color(0xFF7C3AED),
-                        label: 'Email',
-                        value: widget.device.email,
-                      ),
-                      _buildDivider(col),
-                      _buildRow(
-                        col: col,
-                        icon: Icons.business_outlined,
-                        iconColor: const Color(0xFF7C3AED),
-                        label: 'Business Reg',
-                        value: widget.device.businessReg,
-                      ),
-                    ],
-                  ),
-
-                  // ── Certificate & Compliance ───────────────────────
-                  _buildSectionHeader(
-                    col: col,
-                    title: 'Certificate & Compliance',
-                    icon: Icons.verified_rounded,
-                    color: isCertActive ? kSuccessGreen : kRed,
-                  ),
-                  _buildCard(
-                    col: col,
-                    children: [
-                      _buildRow(
-                        col: col,
-                        icon: Icons.numbers_outlined,
-                        iconColor: isCertActive ? kSuccessGreen : kRed,
-                        label: 'Certificate Number',
-                        value: widget.device.certNo,
-                      ),
-                      _buildDivider(col),
-                      _buildUrlRow(
-                        col: col,
-                        label: 'Certificate URL',
-                        url: widget.device.certificateUrl,
-                        color: isCertActive ? kSuccessGreen : kRed,
-                      ),
-                      _buildDivider(col),
-                      _buildRow(
-                        col: col,
-                        icon: Icons.shield_outlined,
-                        iconColor: isCertActive ? kSuccessGreen : kRed,
-                        label: 'Certificate Status',
-                        value: isCertActive ? 'Active' : 'Inactive',
-                        statusColor: isCertActive ? kSuccessGreen : kRed,
-                      ),
-                      _buildDivider(col),
-                      _buildRow(
-                        col: col,
-                        icon: Icons.calendar_today_outlined,
-                        iconColor: isCertActive ? kSuccessGreen : kRed,
-                        label: 'Certificate Expiry',
-                        value: _utils.formatDate(
-                          widget.device.certificateExpirey,
+              child: RefreshIndicator(
+                onRefresh: _refreshDevice,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 32),
+                  children: [
+                    // ── Vehicle Details ────────────────────────────────
+                    _buildSectionHeader(
+                      col: col,
+                      title: 'Vehicle Details',
+                      icon: Icons.directions_car_rounded,
+                      color: kBlue,
+                    ),
+                    _buildCard(
+                      col: col,
+                      children: [
+                        _buildRow(
+                          col: col,
+                          icon: Icons.car_repair_rounded,
+                          iconColor: kBlue,
+                          label: 'Make',
+                          value: device.make,
                         ),
-                      ),
-                    ],
-                  ),
+                        _buildDivider(col),
+                        _buildRow(
+                          col: col,
+                          icon: Icons.confirmation_number_outlined,
+                          iconColor: kBlue,
+                          label: 'Chassis Number',
+                          value: device.chassis,
+                        ),
+                        _buildDivider(col),
+                        _buildRow(
+                          col: col,
+                          icon: Icons.pin_outlined,
+                          iconColor: kBlue,
+                          label: 'Number Plate',
+                          value: device.numberPlate,
+                        ),
+                      ],
+                    ),
 
-                  // ── Installation & Device ──────────────────────────
-                  _buildSectionHeader(
-                    col: col,
-                    title: 'Installation & Device',
-                    icon: Icons.settings_input_antenna_rounded,
-                    color: const Color(0xFFF59E0B),
-                  ),
-                  _buildCard(
-                    col: col,
-                    children: [
-                      _buildRow(
-                        col: col,
-                        icon: Icons.engineering_rounded,
-                        iconColor: const Color(0xFFF59E0B),
-                        label: 'Technician Name',
-                        value: widget.device.technicianName,
-                      ),
-                      _buildDivider(col),
-                      _buildRow(
-                        col: col,
-                        icon: Icons.router_rounded,
-                        iconColor: const Color(0xFFF59E0B),
-                        label: 'Device Type',
-                        value: widget.device.deviceType,
-                      ),
-                      _buildDivider(col),
-                      _buildRow(
-                        col: col,
-                        icon: Icons.wifi_tethering_rounded,
-                        iconColor: isOnline ? kSuccessGreen : kRed,
-                        label: 'Device Status',
-                        value: isOnline ? 'Online' : 'Offline',
-                        statusColor: isOnline ? kSuccessGreen : kRed,
-                      ),
-                    ],
-                  ),
+                    // ── Ownership & Contact ────────────────────────────
+                    _buildSectionHeader(
+                      col: col,
+                      title: 'Ownership & Contact',
+                      icon: Icons.person_rounded,
+                      color: const Color(0xFF7C3AED),
+                    ),
+                    _buildCard(
+                      col: col,
+                      children: [
+                        _buildRow(
+                          col: col,
+                          icon: Icons.badge_outlined,
+                          iconColor: const Color(0xFF7C3AED),
+                          label: 'Owner ID',
+                          value: device.ownerId,
+                        ),
+                        _buildDivider(col),
+                        _buildRow(
+                          col: col,
+                          icon: Icons.phone_outlined,
+                          iconColor: const Color(0xFF7C3AED),
+                          label: 'Phone',
+                          value: device.phone,
+                        ),
+                        _buildDivider(col),
+                        _buildRow(
+                          col: col,
+                          icon: Icons.email_outlined,
+                          iconColor: const Color(0xFF7C3AED),
+                          label: 'Email',
+                          value: device.email,
+                        ),
+                        _buildDivider(col),
+                        _buildRow(
+                          col: col,
+                          icon: Icons.business_outlined,
+                          iconColor: const Color(0xFF7C3AED),
+                          label: 'Business Reg',
+                          value: device.businessReg,
+                        ),
+                      ],
+                    ),
 
-                  // ── Agent & Details ────────────────────────────────
-                  _buildSectionHeader(
-                    col: col,
-                    title: 'Agent & Details',
-                    icon: Icons.support_agent_rounded,
-                    color: const Color(0xFF6366F1),
-                  ),
-                  _buildCard(
-                    col: col,
-                    children: [
-                      _buildRow(
-                        col: col,
-                        icon: Icons.person_pin_outlined,
-                        iconColor: const Color(0xFF6366F1),
-                        label: 'Agent',
-                        value: widget.device.agent,
-                      ),
-                      _buildDivider(col),
-                      _buildRow(
-                        col: col,
-                        icon: Icons.badge_outlined,
-                        iconColor: const Color(0xFF6366F1),
-                        label: 'Agent ID',
-                        value: widget.device.agentID,
-                      ),
-                      _buildDivider(col),
-                      _buildRow(
-                        col: col,
-                        icon: Icons.phone_forwarded_outlined,
-                        iconColor: const Color(0xFF6366F1),
-                        label: 'Agent Phone',
-                        value: widget.device.agentPhone,
-                      ),
-                    ],
-                  ),
+                    // ── Certificate & Compliance ───────────────────────
+                    _buildSectionHeader(
+                      col: col,
+                      title: 'Certificate & Compliance',
+                      icon: Icons.verified_rounded,
+                      color: isCertActive ? kSuccessGreen : kRed,
+                    ),
+                    _buildCard(
+                      col: col,
+                      children: [
+                        _buildRow(
+                          col: col,
+                          icon: Icons.numbers_outlined,
+                          iconColor: isCertActive ? kSuccessGreen : kRed,
+                          label: 'Certificate Number',
+                          value: device.certNo,
+                        ),
+                        _buildDivider(col),
+                        _buildUrlRow(
+                          col: col,
+                          label: 'Certificate URL',
+                          url: device.certificateUrl,
+                          color: isCertActive ? kSuccessGreen : kRed,
+                        ),
+                        _buildDivider(col),
+                        _buildRow(
+                          col: col,
+                          icon: Icons.shield_outlined,
+                          iconColor: isCertActive ? kSuccessGreen : kRed,
+                          label: 'Certificate Status',
+                          value: isCertActive ? 'Active' : 'Inactive',
+                          statusColor: isCertActive ? kSuccessGreen : kRed,
+                        ),
+                        _buildDivider(col),
+                        _buildRow(
+                          col: col,
+                          icon: Icons.calendar_today_outlined,
+                          iconColor: isCertActive ? kSuccessGreen : kRed,
+                          label: 'Certificate Expiry',
+                          value: _utils.formatDate(device.certificateExpirey),
+                        ),
+                      ],
+                    ),
 
-                  // ── Engine Control ─────────────────────────────────
-                  _buildSectionHeader(
-                    col: col,
-                    title: 'Engine Control',
-                    icon: Icons.power_settings_new_rounded,
-                    color: _engineOn ? kSuccessGreen : kRed,
-                  ),
-                  _buildEngineToggleCard(col: col, isEngineOn: _engineOn),
-                ],
+                    // ── Installation & Device ──────────────────────────
+                    _buildSectionHeader(
+                      col: col,
+                      title: 'Installation & Device',
+                      icon: Icons.settings_input_antenna_rounded,
+                      color: const Color(0xFFF59E0B),
+                    ),
+                    _buildCard(
+                      col: col,
+                      children: [
+                        _buildRow(
+                          col: col,
+                          icon: Icons.engineering_rounded,
+                          iconColor: const Color(0xFFF59E0B),
+                          label: 'Technician Name',
+                          value: device.technicianName,
+                        ),
+                        _buildDivider(col),
+                        _buildRow(
+                          col: col,
+                          icon: Icons.router_rounded,
+                          iconColor: const Color(0xFFF59E0B),
+                          label: 'Device Type',
+                          value: device.deviceType,
+                        ),
+                        _buildDivider(col),
+                        _buildRow(
+                          col: col,
+                          icon: Icons.wifi_tethering_rounded,
+                          iconColor: isOnline ? kSuccessGreen : kRed,
+                          label: 'Device Status',
+                          value: isOnline ? 'Online' : 'Offline',
+                          statusColor: isOnline ? kSuccessGreen : kRed,
+                        ),
+                      ],
+                    ),
+
+                    // ── Agent & Details ────────────────────────────────
+                    _buildSectionHeader(
+                      col: col,
+                      title: 'Agent & Details',
+                      icon: Icons.support_agent_rounded,
+                      color: const Color(0xFF6366F1),
+                    ),
+                    _buildCard(
+                      col: col,
+                      children: [
+                        _buildRow(
+                          col: col,
+                          icon: Icons.person_pin_outlined,
+                          iconColor: const Color(0xFF6366F1),
+                          label: 'Agent',
+                          value: device.agent,
+                        ),
+                        _buildDivider(col),
+                        _buildRow(
+                          col: col,
+                          icon: Icons.badge_outlined,
+                          iconColor: const Color(0xFF6366F1),
+                          label: 'Agent ID',
+                          value: device.agentID,
+                        ),
+                        _buildDivider(col),
+                        _buildRow(
+                          col: col,
+                          icon: Icons.phone_forwarded_outlined,
+                          iconColor: const Color(0xFF6366F1),
+                          label: 'Agent Phone',
+                          value: device.agentPhone,
+                        ),
+                      ],
+                    ),
+
+                    // ── Engine Control ─────────────────────────────────
+                    _buildSectionHeader(
+                      col: col,
+                      title: 'Engine Control',
+                      icon: Icons.power_settings_new_rounded,
+                      color: _engineOn ? kSuccessGreen : kRed,
+                    ),
+                    _buildEngineToggleCard(col: col, isEngineOn: _engineOn),
+                  ],
+                ),
               ),
             ),
           ],
@@ -307,7 +341,9 @@ class _VehicleDetailsState extends State<VehicleDetails> {
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: statusColor.withValues(alpha: 0.20)),
+                  border: Border.all(
+                    color: statusColor.withValues(alpha: 0.20),
+                  ),
                 ),
                 child: Icon(
                   Icons.power_settings_new_rounded,
@@ -370,7 +406,9 @@ class _VehicleDetailsState extends State<VehicleDetails> {
                       inactiveTrackColor: kRed.withValues(alpha: 0.25),
                       onChanged: (_) => _showEngineReasonDialog(
                         command: isEngineOn ? 'Imobilize' : 'Restore',
-                        label: isEngineOn ? 'Turn Off Engine' : 'Turn On Engine',
+                        label: isEngineOn
+                            ? 'Turn Off Engine'
+                            : 'Turn On Engine',
                         color: isEngineOn ? kRed : kSuccessGreen,
                       ),
                     ),
@@ -387,104 +425,109 @@ class _VehicleDetailsState extends State<VehicleDetails> {
     required Color color,
   }) async {
     final reasonController = TextEditingController();
+    final reasonFocusNode = FocusNode();
     final formKey = GlobalKey<FormState>();
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(kRadiusLG),
-        ),
-        title: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.power_settings_new_rounded,
-                color: color,
-                size: 18,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(kRadiusLG),
+          ),
+          title: Row(
             children: [
-              Text(
-                'Vehicle: ${widget.device.numberPlate}',
-                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.power_settings_new_rounded,
+                  color: color,
+                  size: 18,
+                ),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: reasonController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'Reason',
-                  hintText: 'Enter reason for this action...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(kRadiusSM),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Reason is required' : null,
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: color,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(kRadiusSM),
-              ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Vehicle: ${_device.numberPlate}',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: reasonController,
+                  focusNode: reasonFocusNode,
+                  autofocus: true,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Reason',
+                    hintText: 'Enter reason for this action...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(kRadiusSM),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Reason is required'
+                      : null,
+                ),
+              ],
             ),
-            onPressed: () {
-              if (formKey.currentState!.validate()) Navigator.pop(ctx, true);
-            },
-            child: const Text('Confirm'),
           ),
-        ],
-      ),
-    );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(kRadiusSM),
+                ),
+              ),
+              onPressed: () {
+                if (formKey.currentState!.validate()) Navigator.pop(ctx, true);
+              },
+              child: const Text('Confirm'),
+            ),
+          ],
+        ),
+      );
 
-    if (confirmed != true || !mounted) return;
+      if (confirmed != true || !mounted) return;
 
-    setState(() => _engineToggling = true);
-    try {
+      setState(() => _engineToggling = true);
+      final device = _device;
       final result = await ApiService.sendVehicleCommand(
-        deviceId: widget.device.deviceId,
-        serialNumber: widget.device.serial,
+        deviceId: device.deviceId,
+        serialNumber: device.serial,
         command: command,
-        numberPlate: widget.device.numberPlate,
+        numberPlate: device.numberPlate,
         reason: reasonController.text.trim(),
       );
       if (mounted) {
@@ -512,6 +555,8 @@ class _VehicleDetailsState extends State<VehicleDetails> {
       }
     } finally {
       if (mounted) setState(() => _engineToggling = false);
+      reasonFocusNode.dispose();
+      reasonController.dispose();
     }
   }
 

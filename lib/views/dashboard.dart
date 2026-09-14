@@ -5,6 +5,7 @@ import 'package:atom/controllers/dashboard_controller.dart';
 import 'package:atom/controllers/notifcations_controller.dart';
 import 'package:atom/routes/routes.dart';
 import 'package:atom/services/auth_service.dart';
+import 'package:atom/services/push_notification_service.dart';
 import 'package:atom/services/local_storage_service.dart';
 import 'package:atom/views/notification_screen.dart';
 import 'package:atom/views/settings_screen.dart';
@@ -23,7 +24,7 @@ class Dashboard extends StatefulWidget {
   State<Dashboard> createState() => _DashboardState();
 }
 
-class _DashboardState extends State<Dashboard> {
+class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   String? role;
   late final DashboardController _dashboardController = Get.put(
     DashboardController(),
@@ -34,12 +35,30 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) PushNotificationService.instance.dashboardReady();
+    });
     if (!Get.isRegistered<NotificationsController>()) {
       _notificationsController = Get.put(NotificationsController());
     } else {
       _notificationsController = Get.find<NotificationsController>();
     }
     _fetchRole();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      PushNotificationService.instance.syncToken();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    PushNotificationService.instance.dashboardClosed();
+    super.dispose();
   }
 
   Future<void> _fetchRole() async {

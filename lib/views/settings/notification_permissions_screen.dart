@@ -1,13 +1,19 @@
 import 'package:atom/config/profile_palette.dart';
 import 'package:atom/models/notification_permission.dart';
 import 'package:atom/services/api_service.dart';
+import 'package:atom/services/push_notification_service.dart';
 import 'package:atom/widgets/profile/profile_widgets.dart';
 import 'package:flutter/material.dart';
 
 class NotificationPermissionsScreen extends StatefulWidget {
-  const NotificationPermissionsScreen({super.key, this.apiService});
+  const NotificationPermissionsScreen({
+    super.key,
+    this.apiService,
+    this.enablePush,
+  });
 
   final ApiService? apiService;
+  final Future<void> Function()? enablePush;
 
   @override
   State<NotificationPermissionsScreen> createState() =>
@@ -51,14 +57,20 @@ class _NotificationPermissionsScreenState
       _saving.add(permission);
     });
     try {
+      if (enabled) {
+        await (widget.enablePush ??
+            PushNotificationService.instance.enableNotifications)();
+      }
       await _api.updateNotificationPermission(permission, enabled);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() => _permissions![permission] = previous);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Could not save ${permission.title.toLowerCase()} alerts. Please try again.',
+            error is PushNotificationException
+                ? error.message
+                : 'Could not save ${permission.title.toLowerCase()} alerts. Please try again.',
           ),
         ),
       );
@@ -140,7 +152,7 @@ class _NotificationPermissionsScreenState
                           style: TextStyle(color: palette.supporting),
                         ),
                         value: _permissions![permission]!,
-                        onChanged: _saving.contains(permission)
+                        onChanged: _saving.isNotEmpty
                             ? null
                             : (value) => _update(permission, value),
                       ),

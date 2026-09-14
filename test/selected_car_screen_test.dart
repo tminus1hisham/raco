@@ -68,13 +68,13 @@ void main() {
 
   tearDown(Get.reset);
 
-  testWidgets('composes the hero, engine control and both sections', (
-    tester,
-  ) async {
+  testWidgets('composes the hero and both sections', (tester) async {
     await _pump(tester, _device());
 
     expect(find.byType(VehicleHeroCard), findsOneWidget);
-    expect(find.byType(VehicleEngineCard), findsOneWidget);
+    expect(find.byType(RefreshIndicator), findsOneWidget);
+    expect(find.byType(VehicleEngineCard), findsNothing);
+    expect(find.text('Engine Control'), findsNothing);
     expect(find.text('QUICK ACTIONS'), findsOneWidget);
     expect(find.text('VEHICLE MANAGEMENT'), findsOneWidget);
 
@@ -98,8 +98,9 @@ void main() {
   testWidgets('states each vehicle fact once', (tester) async {
     await _pump(tester, _device());
 
-    // Engine state belongs to the engine card, not also to a hero chip.
-    expect(find.text('Running'), findsOneWidget);
+    // Engine controls live in Details, not on the selected car overview.
+    expect(find.text('Running'), findsNothing);
+    expect(find.text('Immobilized'), findsNothing);
     expect(find.text('Engine On'), findsNothing);
     expect(find.text('Engine Off'), findsNothing);
 
@@ -143,71 +144,23 @@ void main() {
   testWidgets('an immobilized engine reads as such', (tester) async {
     await _pump(tester, _device(ignitionStatus: 0));
 
-    expect(find.text('Immobilized'), findsOneWidget);
+    expect(find.text('Immobilized'), findsNothing);
     expect(find.text('Running'), findsNothing);
   });
 
   testWidgets('a vehicle with no fix leaves the location footer inert', (
     tester,
   ) async {
-    await _pump(
-      tester,
-      _device(latitude: '', longitude: '', location: ''),
-    );
+    await _pump(tester, _device(latitude: '', longitude: '', location: ''));
 
     expect(find.text('Location unavailable'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('has no engine switch on the overview', (tester) async {
+    await _pump(tester, _device(ignitionStatus: 1));
 
-  group('engine confirmation', () {
-    testWidgets('immobilizing warns and demands a reason before it will send', (
-      tester,
-    ) async {
-      await _pump(tester, _device(ignitionStatus: 1));
-
-      await tester.tap(find.byType(Switch));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      expect(find.text('Turn Off Engine'), findsOneWidget);
-      expect(
-        find.textContaining('engine will not start again'),
-        findsOneWidget,
-      );
-
-      // Confirming with no reason must not dismiss the dialog.
-      await tester.tap(find.text('Turn Off'));
-      await tester.pump();
-      expect(find.text('Reason is required'), findsOneWidget);
-      expect(find.text('Turn Off Engine'), findsOneWidget);
-    });
-
-    testWidgets('cancelling leaves the engine untouched', (tester) async {
-      await _pump(tester, _device(ignitionStatus: 1));
-
-      await tester.tap(find.byType(Switch));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      await tester.tap(find.text('Cancel'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      expect(find.text('Turn Off Engine'), findsNothing);
-      expect(find.text('Running'), findsOneWidget);
-    });
-
-    testWidgets('restoring an engine raises no immobilize warning', (
-      tester,
-    ) async {
-      await _pump(tester, _device(ignitionStatus: 0));
-
-      await tester.tap(find.byType(Switch));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      expect(find.text('Turn On Engine'), findsOneWidget);
-      expect(find.textContaining('engine will not start again'), findsNothing);
-    });
+    expect(find.byType(Switch), findsNothing);
+    expect(find.text('Turn Off Engine'), findsNothing);
+    expect(find.text('Turn On Engine'), findsNothing);
   });
 }

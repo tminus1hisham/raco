@@ -59,7 +59,7 @@ class RegisterDeviceModel {
       email: json['email'] ?? '',
       agentPhone: json['agentPhone'] ?? '',
       businessReg: json['businessReg'] ?? '',
-      group: json['group'] ?? '',
+      group: 'PUBLIC',
     );
   }
 
@@ -83,7 +83,7 @@ class RegisterDeviceModel {
       'email': email,
       'agentPhone': agentPhone,
       'businessReg': businessReg,
-      'group': group,
+      'group': 'PUBLIC',
     };
   }
 }

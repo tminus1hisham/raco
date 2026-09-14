@@ -27,32 +27,164 @@ import 'local_storage_service.dart';
 import 'mqtt_client.dart';
 
 class ApiService {
-  Future<Map<NotificationPermission, bool>> fetchNotificationPermissions() async {
+  static Future<void> _notificationUpdate = Future.value();
+
+  Future<void> _queueNotificationUpdate(Future<void> Function() update) {
+    final operation = _notificationUpdate.then((_) => update());
+    _notificationUpdate = operation.catchError((_) {});
+    return operation;
+  }
+
+  /// Preserve the account fields required by the documented full-user update.
+  Future<void> registerFirebaseToken(String firebaseToken) =>
+      _queueNotificationUpdate(() => _registerFirebaseToken(firebaseToken));
+
+  Future<void> _registerFirebaseToken(String firebaseToken) async {
     final account = await fetchUserData();
-    if (account == null || NotificationPermission.values.any(
-      (permission) => account[permission.field] is! bool,
-    )) {
+    if (account == null) throw Exception('Unable to load account');
+    if (account['firebaseToken'] == firebaseToken) return;
+    final token = await StorageService.getData('access_token');
+    final response = await http
+        .put(
+          Uri.parse('$BASE_URL/auth/update/user'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({...account, 'firebaseToken': firebaseToken}),
+        )
+        .timeout(const Duration(seconds: 30));
+    if (response.statusCode != 200) {
+      _handleAuthError(response.statusCode);
+      throw Exception('Unable to register device for notifications');
+    }
+    final result = jsonDecode(response.body);
+    if (result is! Map || result['success'] != true) {
+      throw Exception('Unable to register device for notifications');
+    }
+  }
+
+  Future<Map<NotificationPermission, bool>>
+  fetchNotificationPermissions() async {
+    final token = await StorageService.getData('access_token');
+    final response = await http
+        .get(
+          Uri.parse('$BASE_URL/communications/get/notifications/status'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        )
+        .timeout(const Duration(seconds: 30));
+    if (response.statusCode != 200) {
+      _handleAuthError(response.statusCode);
       throw Exception('Notification settings are unavailable');
+    }
+    try {
+      return parseNotificationPermissions(jsonDecode(response.body));
+    } catch (_) {
+      throw Exception('Notification settings are unavailable');
+    }
+  }
+
+  @visibleForTesting
+  static Map<NotificationPermission, bool> parseNotificationPermissions(
+    dynamic decoded,
+  ) {
+    final source = _findNotificationStatusSource(decoded);
+    if (source == null) {
+      throw const FormatException('Missing notification settings');
     }
     return {
       for (final permission in NotificationPermission.values)
-        permission: account[permission.field] as bool,
+        permission: _readRequiredNotificationBool(source, permission),
     };
+  }
+
+  static Map<String, dynamic>? _findNotificationStatusSource(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      final hasAllFields = NotificationPermission.values.every(
+        (permission) => _readNotificationBool(value[permission.field]) != null,
+      );
+      if (hasAllFields) return value;
+
+      for (final key in const [
+        'data',
+        'notifications',
+        'notificationStatus',
+        'notificationStatuses',
+        'status',
+        'result',
+        'message',
+      ]) {
+        final nested = _findNotificationStatusSource(value[key]);
+        if (nested != null) return nested;
+      }
+    }
+    if (value is List && value.isNotEmpty) {
+      for (final item in value) {
+        final nested = _findNotificationStatusSource(item);
+        if (nested != null) return nested;
+      }
+    }
+    if (value is String && value.trim().startsWith('{')) {
+      try {
+        return _findNotificationStatusSource(jsonDecode(value));
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  static bool _readRequiredNotificationBool(
+    Map<String, dynamic> source,
+    NotificationPermission permission,
+  ) {
+    final value = _readNotificationBool(source[permission.field]);
+    if (value == null) {
+      throw FormatException('Missing ${permission.field}');
+    }
+    return value;
+  }
+
+  static bool? _readNotificationBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) {
+      if (value == 1) return true;
+      if (value == 0) return false;
+    }
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' || normalized == '1') return true;
+      if (normalized == 'false' || normalized == '0') return false;
+    }
+    return null;
   }
 
   Future<void> updateNotificationPermission(
     NotificationPermission permission,
     bool enabled,
+  ) => _queueNotificationUpdate(
+    () => _updateNotificationPermission(permission, enabled),
+  );
+
+  Future<void> _updateNotificationPermission(
+    NotificationPermission permission,
+    bool enabled,
   ) async {
     final token = await StorageService.getData('access_token');
-    final response = await http.put(
-      Uri.parse('$BASE_URL/communications/update/${permission.path}/notifications')
-          .replace(queryParameters: {'status': enabled.toString()}),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 30));
+    final response = await http
+        .put(
+          Uri.parse(
+            '$BASE_URL/communications/update/${permission.path}/notifications',
+          ).replace(queryParameters: {'status': enabled.toString()}),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        )
+        .timeout(const Duration(seconds: 30));
     if (response.statusCode != 200) {
       _handleAuthError(response.statusCode);
       throw Exception('Unable to update notification settings');
@@ -137,16 +269,22 @@ class ApiService {
       throw ArgumentError('Vehicle serial number is missing');
     }
     final token = await StorageService.getData('access_token');
-    final response = await http.get(
-      Uri.parse('$base_url/devices/get/${Uri.encodeComponent(serialNumber.trim())}'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-    ).timeout(const Duration(seconds: 15));
+    final response = await http
+        .get(
+          Uri.parse(
+            '$base_url/devices/get/${Uri.encodeComponent(serialNumber.trim())}',
+          ),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        )
+        .timeout(const Duration(seconds: 15));
     if (response.statusCode != 200) {
       _handleAuthError(response.statusCode);
-      throw Exception('Unable to refresh vehicle location (${response.statusCode})');
+      throw Exception(
+        'Unable to refresh vehicle location (${response.statusCode})',
+      );
     }
     return Device.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
@@ -331,10 +469,7 @@ class ApiService {
   }) async {
     final token = await StorageService.getData('access_token');
     final uri = Uri.parse('$base_url/devices/get/driver/behaviour').replace(
-      queryParameters: {
-        'serialNo': serialNo.trim(),
-        'reportType': reportType,
-      },
+      queryParameters: {'serialNo': serialNo.trim(), 'reportType': reportType},
     );
 
     try {
@@ -356,7 +491,9 @@ class ApiService {
       }
 
       _handleAuthError(response.statusCode);
-      throw Exception(_apiMessage(response.body) ?? 'Unable to load driver behaviour');
+      throw Exception(
+        _apiMessage(response.body) ?? 'Unable to load driver behaviour',
+      );
     } on SocketException {
       throw Exception('Network error, please check your connection');
     } on FormatException {
@@ -368,7 +505,8 @@ class ApiService {
     try {
       final decoded = jsonDecode(body);
       if (decoded is Map) {
-        final message = decoded['message'] ?? decoded['error'] ?? decoded['title'];
+        final message =
+            decoded['message'] ?? decoded['error'] ?? decoded['title'];
         return message?.toString();
       }
     } catch (_) {
@@ -748,7 +886,9 @@ class ApiService {
       'numberPlate': numberPlate,
       'reason': reason,
     };
-    debugPrint('[sendVehicleCommand] → POST $BASE_URL/devices/vehicle/commands');
+    debugPrint(
+      '[sendVehicleCommand] → POST $BASE_URL/devices/vehicle/commands',
+    );
     debugPrint('[sendVehicleCommand] payload: ${jsonEncode(payload)}');
     try {
       final response = await http.post(
@@ -764,7 +904,10 @@ class ApiService {
       _handleAuthError(response.statusCode);
       if (response.statusCode == 200 || response.statusCode == 201) {
         try {
-          return {'success': true, ...jsonDecode(response.body) as Map<String, dynamic>};
+          return {
+            'success': true,
+            ...jsonDecode(response.body) as Map<String, dynamic>,
+          };
         } catch (_) {
           return {'success': true};
         }
@@ -1208,17 +1351,13 @@ class ApiService {
 
   /// Resolves/closes a ticket with a new [status] and [remarks]
   /// (`/v1/api/tickets/close/{id}`). Used by admins and technicians.
-  static Future<bool> closeTicket(
-    int id,
-    String status,
-    String remarks,
-  ) async {
+  static Future<bool> closeTicket(int id, String status, String remarks) async {
     String token = await StorageService.getData('access_token');
 
     try {
-      final uri = Uri.parse('$BASE_URL/tickets/close/$id').replace(
-        queryParameters: {'status': status, 'remarks': remarks},
-      );
+      final uri = Uri.parse(
+        '$BASE_URL/tickets/close/$id',
+      ).replace(queryParameters: {'status': status, 'remarks': remarks});
 
       final response = await http.put(
         uri,

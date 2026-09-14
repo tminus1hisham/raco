@@ -12,6 +12,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'local_storage_service.dart';
+import 'push_notification_service.dart';
 
 /// Error thrown by [AuthService] carrying enough detail to tell apart a bad
 /// password from a bad URL, a dead server or a malformed response.
@@ -401,15 +402,37 @@ class AuthService {
 
   Future<bool> logoutUser() async {
     try {
-      await StorageService.storeData({'isLoggedin': false});
-      await StorageService.removeData("userId");
-      await StorageService.removeData("userName");
-      await StorageService.removeData("userRole");
-      await StorageService.removeData("userDbId");
+      await PushNotificationService.instance.logout();
+    } catch (e, stack) {
+      _log('logout', 'push cleanup failed: ${e.runtimeType}: $e');
+      _log('logout', 'stack: $stack');
+    }
 
+    try {
+      await StorageService.storeData({'isLoggedin': false});
+      for (final key in _authStorageKeys) {
+        await StorageService.removeData(key);
+      }
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      _log('logout', 'local cleanup failed: ${e.runtimeType}: $e');
+      _log('logout', 'stack: $stack');
       return false;
     }
   }
+
+  static const List<String> _authStorageKeys = [
+    'access_token',
+    'refreshToken',
+    'userId',
+    'userName',
+    'userRole',
+    'userDbId',
+    'agentId',
+    'agentName',
+    'agentEmail',
+    'agentPhone',
+    'businessReg',
+    'agentLocation',
+  ];
 }

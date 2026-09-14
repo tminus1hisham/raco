@@ -54,7 +54,11 @@ class Utils {
   }
 
   String normalizePhoneNumber(String value) {
-    value = value.trim();
+    value = value.trim().replaceAll(RegExp(r'[\s()+-]'), '');
+
+    if (value.isEmpty) {
+      return value;
+    }
 
     if (value.startsWith("0")) {
       value = "254${value.substring(1)}";

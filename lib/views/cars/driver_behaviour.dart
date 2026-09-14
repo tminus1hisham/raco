@@ -61,7 +61,11 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
 
   void _selectPeriod(_ReportPeriod period) {
     if (period == _period) return;
-    setState(() => _period = period);
+    setState(() {
+      _period = period;
+      _report = null;
+      _error = null;
+    });
     _loadReport();
   }
 
@@ -159,11 +163,11 @@ class _DriverBehaviourState extends State<DriverBehaviour> {
 }
 
 enum _ReportPeriod {
-  today('Today', 'today'),
-  yesterday('Yesterday', 'yesterday'),
-  thisWeek('This week', 'this week'),
-  thisMonth('This month', 'this month'),
-  thisYear('This year', 'this year');
+  today('Today', 'Today'),
+  yesterday('Yesterday', 'Yesterday'),
+  thisWeek('This week', 'ThisWeek'),
+  thisMonth('This month', 'ThisMonth'),
+  thisYear('This year', 'ThisYear');
 
   final String label;
   final String apiValue;
@@ -482,9 +486,9 @@ class _ReportContent extends StatelessWidget {
 
   Color _scoreColor(double? score, int eventCount) {
     if (score == null) return eventCount == 0 ? kSuccessGreen : kRed;
-    if (score >= 80) return kSuccessGreen;
-    if (score >= 60) return const Color(0xFFFFC857);
-    return const Color(0xFFFF7070);
+    if (score <= 40) return kRed;
+    if (score <= 70) return const Color(0xFF7C3AED);
+    return kSuccessGreen;
   }
 
   String _scoreLabel(double? score) {
