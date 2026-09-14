@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -7,26 +6,27 @@ import 'package:atom/config/app_theme.dart';
 import 'package:atom/config/constants.dart';
 import 'package:atom/controllers/fetch_geofence_controller.dart';
 import 'package:atom/services/geofence_monitor_service.dart';
-import 'package:atom/services/mqtt_client.dart';
+import 'package:atom/services/api_service.dart';
 import 'package:atom/widgets/map/map_style_switcher.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle, ByteData;
-import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class VehicleLocationScreen extends StatefulWidget {
   final double latitude;
   final double longitude;
   final String deviceId;
+  final String serialNumber;
   final String numberPlate;
 
   const VehicleLocationScreen({
-    Key? key,
+    super.key,
     required this.latitude,
     required this.longitude,
     required this.deviceId,
+    required this.serialNumber,
     required this.numberPlate,
-  }) : super(key: key);
+  });
 
   @override
   State<VehicleLocationScreen> createState() => _VehicleLocationScreenState();
@@ -36,12 +36,15 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
     with SingleTickerProviderStateMixin {
   MapboxMap? mapboxMap;
   String? _mapStyleUri;
-  final MqttService _mqttService = MqttService();
+  Timer? _refreshTimer;
+  bool _refreshing = false;
+  String _trackingStatus = 'Loading';
+  bool _online = false;
 
   double _bearing = 0.0;
   String speed = '0';
   String numberPlate = '';
-  double _currentZoom = 15.0;
+  final double _currentZoom = 15.0;
   Uint8List? carIcon;
 
   // Cached icons per status
@@ -52,9 +55,6 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
   // In-flight icon load, so the annotation setup can await it instead of
   // racing against it.
   Future<void>? _iconLoadFuture;
-
-  StreamSubscription? _mqttSubscription;
-  Timer? _mqttRetryTimer;
 
   PointAnnotationManager? _annotationManager;
   PointAnnotation? _vehicleAnnotation;
@@ -76,13 +76,17 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
     _animLng = widget.longitude;
     _moveController = AnimationController(vsync: this);
     _initGeofenceMonitor();
-    // Subscribe immediately — no need to wait for the icon to load first.
-    _subscribeToVehicleTopic();
+    _refreshLocation();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _refreshLocation(),
+    );
     _iconLoadFuture = _loadCarIcon();
   }
 
   Future<void> _initGeofenceMonitor() async {
     await _fetchGeofenceController.fetchGeofence(widget.numberPlate);
+    if (!mounted) return;
     _geofenceMonitor.initializeStates(
       _fetchGeofenceController.geofences,
       widget.latitude,
@@ -93,111 +97,68 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
   @override
   void dispose() {
     _moveController.dispose();
-    _mqttRetryTimer?.cancel();
-    _unsubscribeFromVehicleTopic();
-    _mqttSubscription?.cancel();
+    _refreshTimer?.cancel();
     _geofenceMonitor.reset();
     super.dispose();
   }
 
-  // ─── MQTT ─────────────────────────────────────────────────────────────────
+  // API location refresh
 
-  void _subscribeToVehicleTopic() {
-    final topic = 'orca/payload/${widget.deviceId}';
-
-    if (_mqttService.isConnected) {
-      _doMqttSubscribe(topic);
-    } else {
-      // MQTT not yet connected — retry every second until it comes up.
-      _mqttRetryTimer?.cancel();
-      _mqttRetryTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-        if (!mounted) {
-          t.cancel();
-          return;
-        }
-        if (_mqttService.isConnected) {
-          t.cancel();
-          _doMqttSubscribe(topic);
-        }
-      });
-    }
-  }
-
-  void _doMqttSubscribe(String topic) {
-    _mqttService.subscribeToTopic(topic);
-    _mqttSubscription?.cancel();
-    _mqttSubscription = _mqttService.client.updates!.listen((messages) {
-      final recMess = messages[0].payload as MqttPublishMessage;
-      final payload = MqttPublishPayload.bytesToStringAsString(
-        recMess.payload.message,
-      );
-      if (messages[0].topic == topic) {
-        _handleCarLocation(payload);
-      }
-    });
-  }
-
-  void _unsubscribeFromVehicleTopic() {
-    if (_mqttService.isConnected) {
-      _mqttService.unsubscribeFromTopic('orca/payload/${widget.deviceId}');
-    }
-  }
-
-  void _handleCarLocation(String message) {
+  Future<void> _refreshLocation() async {
+    if (_refreshing || !mounted) return;
+    _refreshing = true;
     try {
-      final data = jsonDecode(message);
-      final double lat = _convertToDecimalDegrees(
-        data['Lt'] ?? '',
-        data['NS'] ?? 'N',
-      );
-      final double lng = _convertToDecimalDegrees(
-        data['Lg'] ?? '',
-        data['EW'] ?? 'E',
-      );
-
-      if (lat == 0.0 && lng == 0.0) return;
-
-      final newSpeed = data['Spd'] ?? '0';
+      final device = await ApiService.fetchTrackingDevice(widget.serialNumber);
+      if (!mounted) return;
+      final lat = double.tryParse(device.latitude);
+      final lng = double.tryParse(device.longitude);
+      final validPosition =
+          lat != null &&
+          lng != null &&
+          lat.isFinite &&
+          lng.isFinite &&
+          lat.abs() <= 90 &&
+          lng.abs() <= 180 &&
+          (lat != 0 || lng != 0);
       setState(() {
-        numberPlate = data['Rg'] ?? numberPlate;
-        speed = newSpeed;
-        _bearing = double.tryParse(data['course']?.toString() ?? '0') ?? 0.0;
+        _online = device.isDeviceOnline;
+        _trackingStatus = !validPosition
+            ? 'No GPS'
+            : _online
+            ? 'Live'
+            : 'Offline';
+        speed = device.speed.isEmpty ? '0' : device.speed;
+        if (device.numberPlate.isNotEmpty) numberPlate = device.numberPlate;
+        final course = double.tryParse(device.course);
+        _bearing = course != null && course.isFinite ? course % 360 : 0;
       });
-
-      if (_vehicleAnnotation != null && _annotationManager != null &&
-          _cachedGreenIcon != null && _cachedBlueIcon != null && _cachedRedIcon != null) {
-        final speedVal = double.tryParse(newSpeed) ?? 0;
-        final newIcon = _iconForSpeed(speedVal);
-        if (_vehicleAnnotation!.image != newIcon) {
-          _vehicleAnnotation!.image = newIcon;
-          carIcon = newIcon;
-        }
+      if (!validPosition) return;
+      if (_vehicleAnnotation != null &&
+          _cachedGreenIcon != null &&
+          _cachedBlueIcon != null &&
+          _cachedRedIcon != null) {
+        _vehicleAnnotation!.image = _iconForSpeed(double.tryParse(speed) ?? 0);
         _vehicleAnnotation!.iconRotate = _bearing;
+        _vehicleAnnotation!.textField = numberPlate.toUpperCase();
       }
-
-      // Check vehicle position against all active geofences
       _geofenceMonitor.updateLocation(
         _fetchGeofenceController.geofences,
         lat,
         lng,
         numberPlate,
       );
-
       _animateMarkerTo(lat, lng);
-    } catch (_) {}
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _online = false;
+        _trackingStatus = 'Retrying';
+      });
+      debugPrint('Live location refresh failed: $error');
+    } finally {
+      _refreshing = false;
+    }
   }
-
-  double _convertToDecimalDegrees(String coord, String direction) {
-    if (coord.isEmpty) return 0.0;
-    final double value = double.tryParse(coord) ?? 0.0;
-    final double degrees = (value ~/ 100).toDouble();
-    final double minutes = value - (degrees * 100);
-    double decimal = degrees + (minutes / 60);
-    if (direction == 'S' || direction == 'W') decimal *= -1;
-    return decimal;
-  }
-
-  // ─── Smooth animation ─────────────────────────────────────────────────────
 
   void _animateMarkerTo(double newLat, double newLng) {
     final fromLat = _animLat;
@@ -249,17 +210,14 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
     await (_iconLoadFuture ??= _loadCarIcon());
     if (!mounted) return;
 
-    final manager =
-        await mapboxMap!.annotations.createPointAnnotationManager();
+    final manager = await mapboxMap!.annotations.createPointAnnotationManager();
     if (!mounted) return;
     _annotationManager = manager;
     final speedVal = double.tryParse(speed) ?? 0;
     final icon = _iconForSpeed(speedVal);
     final ann = await manager.create(
       PointAnnotationOptions(
-        geometry: Point(
-          coordinates: Position(_animLng, _animLat),
-        ),
+        geometry: Point(coordinates: Position(_animLng, _animLat)),
         image: icon,
         iconSize: 0.8,
         iconRotate: _bearing,
@@ -322,9 +280,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
                   _mapStyleUri ??
                   (isDark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS),
               cameraOptions: CameraOptions(
-                center: Point(
-                  coordinates: Position(widget.longitude, widget.latitude),
-                ),
+                center: Point(coordinates: Position(_animLng, _animLat)),
                 zoom: _currentZoom,
               ),
               onMapCreated: (MapboxMap map) {
@@ -396,7 +352,7 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
           const SizedBox(width: 12),
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
               decoration: BoxDecoration(
                 color: col.surface,
                 borderRadius: BorderRadius.circular(kRadiusSM),
@@ -420,17 +376,17 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(
-                      color: kSuccessGreen,
+                    decoration: BoxDecoration(
+                      color: _online ? kSuccessGreen : col.textSecondary,
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Text(
-                    'Live',
+                  Text(
+                    _trackingStatus,
                     style: TextStyle(
                       fontSize: 12,
-                      color: kSuccessGreen,
+                      color: _online ? kSuccessGreen : col.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -524,9 +480,9 @@ class _VehicleLocationScreenState extends State<VehicleLocationScreen>
           // GPS indicator
           Column(
             children: [
-              const Icon(
+              Icon(
                 Icons.gps_fixed_rounded,
-                color: kSuccessGreen,
+                color: _online ? kSuccessGreen : col.textSecondary,
                 size: 22,
               ),
               const SizedBox(height: 2),

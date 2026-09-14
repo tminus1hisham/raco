@@ -811,6 +811,7 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
       MaterialPageRoute(
         builder: (context) => VehicleLocationScreen(
           deviceId: widget.devices.deviceId,
+          serialNumber: widget.devices.serial,
           numberPlate: widget.devices.numberPlate,
           latitude: double.tryParse(widget.devices.latitude) ?? 0.0,
           longitude: double.tryParse(widget.devices.longitude) ?? 0.0,
@@ -920,15 +921,18 @@ class _SelectedCarScreenState extends State<SelectedCarScreen> {
                         VehicleQuickActionGrid(
                           actions: [
                             VehicleQuickAction(
-                              title: 'Vehicle Safety',
-                              description: 'Driving behaviour trends',
+                              title: 'Driver Behaviour',
+                              description: 'Safety reports by period',
                               icon: Icons.safety_check_outlined,
                               color: kSuccessGreen,
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => DriverBehaviour(),
+                                    builder: (context) => DriverBehaviour(
+                                      serialNo: widget.devices.serial,
+                                      vehiclePlate: widget.devices.numberPlate,
+                                    ),
                                   ),
                                 );
                               },

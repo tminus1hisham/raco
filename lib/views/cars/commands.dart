@@ -326,6 +326,7 @@ class _CommandsState extends State<Commands> {
                                 latitude: lat,
                                 longitude: lng,
                                 deviceId: widget.device.deviceId,
+                                serialNumber: widget.device.serial,
                                 numberPlate: widget.device.numberPlate,
                               ),
                             ),

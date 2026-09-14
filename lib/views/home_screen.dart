@@ -1826,12 +1826,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     final bool isOnline = device.isDeviceOnline;
     final double speedVal = double.tryParse(device.speed) ?? 0;
-    final bool isMoving =
-        isOnline && (device.ignitionStatus == 1 || speedVal > 0);
-    final String statusLabel =
-        !isOnline ? 'Offline' : (isMoving ? 'Moving' : 'Idle');
-    final Color statusColor =
-        !isOnline ? kRed : (isMoving ? kSuccessGreen : kBlue);
+    // Moving follows actual speed; ignition on with no speed is idling.
+    final bool isMoving = isOnline && speedVal > 0;
+    final bool isIdling =
+        isOnline && !isMoving && device.ignitionStatus == 1;
+    final String statusLabel = !isOnline
+        ? 'Offline'
+        : isMoving
+            ? 'Moving'
+            : (isIdling ? 'Idle' : 'Stationary');
+    final Color statusColor = !isOnline
+        ? kRed
+        : isMoving
+            ? kSuccessGreen
+            : (isIdling ? kBlue : kGrey);
 
     return Positioned(
       left: left,
@@ -1977,12 +1985,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildVehicleInfoCard(Device device) {
     final bool isOnline = device.isDeviceOnline;
     final double speedVal = double.tryParse(device.speed) ?? 0;
-    final bool isMoving =
-        isOnline && (device.ignitionStatus == 1 || speedVal > 0);
-    final String statusLabel =
-        !isOnline ? 'Offline' : (isMoving ? 'Moving' : 'Idle');
-    final Color statusColor =
-        !isOnline ? kRed : (isMoving ? kSuccessGreen : kBlue);
+    // Moving follows actual speed; ignition on with no speed is idling.
+    final bool isMoving = isOnline && speedVal > 0;
+    final bool isIdling =
+        isOnline && !isMoving && device.ignitionStatus == 1;
+    final String statusLabel = !isOnline
+        ? 'Offline'
+        : isMoving
+            ? 'Moving'
+            : (isIdling ? 'Idle' : 'Stationary');
+    final Color statusColor = !isOnline
+        ? kRed
+        : isMoving
+            ? kSuccessGreen
+            : (isIdling ? kBlue : kGrey);
     final Color speedColor = isMoving ? kSuccessGreen : context.col.textSecondary;
 
     return Container(
@@ -2248,6 +2264,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       latitude: double.tryParse(device.latitude) ?? -1.2842,
                       longitude: double.tryParse(device.longitude) ?? 36.8163,
                       deviceId: device.deviceId,
+                      serialNumber: device.serial,
                       numberPlate: device.numberPlate,
                     ),
                   ),

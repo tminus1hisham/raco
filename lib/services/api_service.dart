@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:atom/models/notification_permission.dart';
 
 import 'package:flutter/foundation.dart';
 
 import 'package:atom/config/constants.dart';
 import 'package:atom/models/geofence_model.dart';
+import 'package:atom/models/driver_behaviour_model.dart';
 import 'package:atom/models/location_model.dart';
 import 'package:atom/models/plans_model.dart';
 import 'package:atom/models/playback_model.dart';
@@ -25,6 +27,42 @@ import 'local_storage_service.dart';
 import 'mqtt_client.dart';
 
 class ApiService {
+  Future<Map<NotificationPermission, bool>> fetchNotificationPermissions() async {
+    final account = await fetchUserData();
+    if (account == null || NotificationPermission.values.any(
+      (permission) => account[permission.field] is! bool,
+    )) {
+      throw Exception('Notification settings are unavailable');
+    }
+    return {
+      for (final permission in NotificationPermission.values)
+        permission: account[permission.field] as bool,
+    };
+  }
+
+  Future<void> updateNotificationPermission(
+    NotificationPermission permission,
+    bool enabled,
+  ) async {
+    final token = await StorageService.getData('access_token');
+    final response = await http.put(
+      Uri.parse('$BASE_URL/communications/update/${permission.path}/notifications')
+          .replace(queryParameters: {'status': enabled.toString()}),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 30));
+    if (response.statusCode != 200) {
+      _handleAuthError(response.statusCode);
+      throw Exception('Unable to update notification settings');
+    }
+    final result = jsonDecode(response.body);
+    if (result is! Map || result['success'] != true) {
+      throw Exception('Unable to update notification settings');
+    }
+  }
+
   static void _handleAuthError(int statusCode) async {
     if (statusCode == 403 || statusCode == 401) {
       Get.offAll(() => LoginScreen());
@@ -91,6 +129,26 @@ class ApiService {
     } catch (e) {
       throw Exception('An error occurred when changing profile picture: $e');
     }
+  }
+
+  /// Latest telemetry from the documented Devices_GetDeviceById endpoint.
+  static Future<Device> fetchTrackingDevice(String serialNumber) async {
+    if (serialNumber.trim().isEmpty) {
+      throw ArgumentError('Vehicle serial number is missing');
+    }
+    final token = await StorageService.getData('access_token');
+    final response = await http.get(
+      Uri.parse('$base_url/devices/get/${Uri.encodeComponent(serialNumber.trim())}'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 15));
+    if (response.statusCode != 200) {
+      _handleAuthError(response.statusCode);
+      throw Exception('Unable to refresh vehicle location (${response.statusCode})');
+    }
+    return Device.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   static Future<DevicesModel> fetchDevices() async {
@@ -265,6 +323,58 @@ class ApiService {
       _handleAuthError(response.statusCode);
       throw Exception('Failed to load reports');
     }
+  }
+
+  static Future<DriverBehaviourReport> fetchDriverBehaviour({
+    required String serialNo,
+    required String reportType,
+  }) async {
+    final token = await StorageService.getData('access_token');
+    final uri = Uri.parse('$base_url/devices/get/driver/behaviour').replace(
+      queryParameters: {
+        'serialNo': serialNo.trim(),
+        'reportType': reportType,
+      },
+    );
+
+    try {
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        if (response.body.trim().isEmpty) {
+          return DriverBehaviourReport.fromJson(const <String, dynamic>{});
+        }
+        return DriverBehaviourReport.fromJson(jsonDecode(response.body));
+      }
+
+      _handleAuthError(response.statusCode);
+      throw Exception(_apiMessage(response.body) ?? 'Unable to load driver behaviour');
+    } on SocketException {
+      throw Exception('Network error, please check your connection');
+    } on FormatException {
+      throw Exception('The driver behaviour response could not be read');
+    }
+  }
+
+  static String? _apiMessage(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map) {
+        final message = decoded['message'] ?? decoded['error'] ?? decoded['title'];
+        return message?.toString();
+      }
+    } catch (_) {
+      // The server may return an empty or non-JSON error response.
+    }
+    return null;
   }
 
   Future<Map<String, dynamic>?> addGeoFence(LocationModel request) async {
@@ -887,7 +997,14 @@ class ApiService {
 
   static Future<TechnicianDevicesModel> fetchTechnicianDevices() async {
     String token = await StorageService.getData('access_token');
-    int userId = await StorageService.getData('userDbId');
+    // Auth stores userDbId as a string. Assigning that dynamic value directly
+    // to an int throws before the request is sent, leaving the technician's
+    // vehicle list empty. Accept both string and int values so existing
+    // sessions continue to work after upgrading.
+    final userId = await StorageService.getInt('userDbId');
+    if (userId == null) {
+      throw StateError('Technician user ID is missing or invalid');
+    }
 
     final response = await http.get(
       Uri.parse('$base_url/devices/get/technician/devices?id=$userId'),

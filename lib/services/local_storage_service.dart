@@ -41,6 +41,15 @@ class StorageService {
     }
   }
 
+  /// Reads an integer regardless of whether an older app version persisted it
+  /// as an int or as a numeric string.
+  static Future<int?> getInt(String key) async {
+    final value = await getData(key);
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString().trim() ?? '');
+  }
+
   static Future<void> removeData(String key) async {
     try {
       final prefs = await SharedPreferences.getInstance();

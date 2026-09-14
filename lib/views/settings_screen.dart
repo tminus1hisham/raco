@@ -1,7 +1,7 @@
 import 'package:atom/config/constants.dart';
 import 'package:atom/config/profile_palette.dart';
 import 'package:atom/controllers/auth_controller.dart';
-import 'package:atom/controllers/dashboard_controller.dart';
+import 'package:atom/views/settings/notification_permissions_screen.dart';
 import 'package:atom/controllers/theme_controller.dart';
 import 'package:atom/controllers/user_data_controller.dart';
 import 'package:atom/models/user_model.dart';
@@ -38,11 +38,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ? Get.find<UserProfileController>()
       : Get.put(UserProfileController());
 
-  DashboardController? get _dashboardControllerOrNull =>
-      Get.isRegistered<DashboardController>()
-      ? Get.find<DashboardController>()
-      : null;
-
   String? _role;
   String? _fallbackName;
   String? _phone;
@@ -71,12 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _openNotifications() {
-    final dashboard = _dashboardControllerOrNull;
-    if (dashboard != null) {
-      dashboard.setIndex(1);
-      return;
-    }
-    Navigator.of(context).pushNamed('notifications');
+    _openScreen(const NotificationPermissionsScreen());
   }
 
   void _openScreen(Widget page) {
@@ -187,7 +177,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ProfileActionTile(
                       icon: Icons.notifications_active_outlined,
                       title: 'Notifications',
-                      subtitle: 'Alerts and app sounds',
+                      subtitle: 'Choose which alerts you receive',
                       onTap: _openNotifications,
                     ),
                     ProfileActionTile(
