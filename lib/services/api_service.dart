@@ -1018,9 +1018,22 @@ class ApiService {
       'body=${response.body}',
     );
 
-    // Any non-200 (401/403/404/etc) → treat as "not registered" rather than
-    // bouncing the technician to the login screen.
-    if (response.statusCode != 200) return null;
+    // Non-200 (the per-serial endpoint 403s for technicians) → fall back to
+    // the technician's own device list rather than bouncing to login.
+    if (response.statusCode != 200) {
+      try {
+        final needle = serial.toLowerCase();
+        for (final d in (await fetchTechnicianDevices()).devices) {
+          if (d.serial.trim().toLowerCase() == needle ||
+              d.certNo.trim().toLowerCase() == needle) {
+            return d.toJson();
+          }
+        }
+      } catch (e) {
+        debugPrint('[checkDeviceRegistration] technician list fallback: $e');
+      }
+      return null;
+    }
 
     final body = response.body.trim();
     if (body.isEmpty || body == 'null') return null;

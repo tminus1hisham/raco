@@ -2831,6 +2831,44 @@ class _ConnectDeviceScreenState extends State<ConnectDeviceScreen> {
       return;
     }
 
+    // These fields are hidden from the form, so their validators are gone too.
+    // The API requires all of them (minLength 1), so check them here instead
+    // of posting a payload with blanks.
+    if (_dateController.text.trim().isEmpty) {
+      final now = DateTime.now();
+      _dateController.text =
+          '${_getMonthName(now.month)} ${now.day}, ${now.year}';
+    }
+    if (_certNoController.text.trim().isEmpty ||
+        _serialController.text.trim().isEmpty) {
+      if (_isConnected && !_awaitingOrcaId) _getDeviceId();
+      _showErrorDialog(
+        title: 'Device Not Read',
+        message:
+            'The certificate and serial number have not been read from the device yet. Keep the device connected, wait a few seconds, then tap Register again.',
+      );
+      return;
+    }
+    final missingProfile = <String>[
+      if ((int.tryParse(_technicianIdController.text.trim()) ?? 0) == 0)
+        'Technician ID',
+      if (_technicianNameController.text.trim().isEmpty) 'Technician name',
+      if (_agentController.text.trim().isEmpty) 'Agent name',
+      if (_agentIDController.text.trim().isEmpty) 'Agent ID',
+      if (_locationController.text.trim().isEmpty) 'Location',
+      if (_emailController.text.trim().isEmpty) 'Email',
+      if (_agentPhoneController.text.trim().isEmpty) 'Agent phone',
+      if (_businessRegController.text.trim().isEmpty) 'Business registration',
+    ];
+    if (missingProfile.isNotEmpty) {
+      _showErrorDialog(
+        title: 'Profile Incomplete',
+        message:
+            'Your technician account is missing: ${missingProfile.join(', ')}. Log out and back in, or ask an admin to complete your agent profile.',
+      );
+      return;
+    }
+
     try {
       // Show loading
       _showLoading('Registering device...');

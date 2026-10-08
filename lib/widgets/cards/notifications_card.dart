@@ -126,6 +126,26 @@ class NotificationCard extends StatelessWidget {
                                     : const Color(0xFF334A7A),
                               ),
                             ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.schedule_rounded,
+                                  size: 12,
+                                  color: col.textSecondary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  DateFormat('MMM d, yyyy • h:mm a')
+                                      .format(notification.createdAt.toLocal()),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: col.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -167,6 +187,14 @@ class NotificationCard extends StatelessWidget {
     final haystack = '${notification.title} ${notification.message}'
         .toLowerCase();
 
+    if (isTamperAlert(haystack)) {
+      return _NotificationVisual(
+        kind: _NotificationKind.tamper,
+        icon: Icons.cable_rounded,
+        color: const Color(0xFFB45309),
+        softColor: const Color(0xFFFFF4E5),
+      );
+    }
     if (haystack.contains('speed') || haystack.contains('overspeed')) {
       return _NotificationVisual(
         kind: _NotificationKind.speed,
@@ -227,6 +255,7 @@ class NotificationCard extends StatelessWidget {
     NotificationModel notification,
     _NotificationKind kind,
   ) {
+    if (kind == _NotificationKind.tamper) return 'Signal Wire';
     final haystack = '${notification.title} ${notification.message}';
     final speedMatch = RegExp(
       r'(\d+(?:\.\d+)?)\s*(km\/h|kmh|kph)',
@@ -256,7 +285,7 @@ class NotificationCard extends StatelessWidget {
     if (kind == _NotificationKind.battery) {
       return 'Battery status';
     }
-    return 'Fleet alert';
+    return 'Ignition alert';
   }
 
   String? _extractLocation(String message) {
@@ -274,6 +303,8 @@ class NotificationCard extends StatelessWidget {
     switch (kind) {
       case _NotificationKind.speed:
         return const Color(0xFFC92D2D);
+      case _NotificationKind.tamper:
+        return const Color(0xFFB45309);
       case _NotificationKind.geofence:
       case _NotificationKind.system:
       case _NotificationKind.alert:
@@ -296,7 +327,18 @@ class NotificationCard extends StatelessWidget {
   }
 }
 
-enum _NotificationKind { speed, geofence, battery, system, alert }
+/// Tamper alerts often mention speed, so check this before the speed match.
+bool isTamperAlert(String haystack) {
+  final text = haystack.toLowerCase();
+  return text.contains('tamper') || text.contains('wire');
+}
+
+bool isIgnitionAlert(String haystack) {
+  final text = haystack.toLowerCase();
+  return text.contains('ignition') || text.contains('engine');
+}
+
+enum _NotificationKind { tamper, speed, geofence, battery, system, alert }
 
 class _NotificationVisual {
   final _NotificationKind kind;

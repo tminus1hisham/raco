@@ -138,6 +138,24 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ),
             )
             .toList();
+      case _NotificationFilter.tamper:
+        return allItems
+            .where(
+              (notification) => _matchesCategory(
+                notification,
+                _NotificationFilter.tamper,
+              ),
+            )
+            .toList();
+      case _NotificationFilter.ignition:
+        return allItems
+            .where(
+              (notification) => _matchesCategory(
+                notification,
+                _NotificationFilter.ignition,
+              ),
+            )
+            .toList();
     }
   }
 
@@ -158,7 +176,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
         return haystack.contains('battery') ||
             haystack.contains('power') ||
             haystack.contains('charging');
+      case _NotificationFilter.tamper:
+        return isTamperAlert(haystack);
+      case _NotificationFilter.ignition:
+        return isIgnitionAlert(haystack);
       case _NotificationFilter.speed:
+        if (isTamperAlert(haystack)) return false;
         return haystack.contains('speed') ||
             haystack.contains('overspeed') ||
             haystack.contains('km/h') ||
@@ -967,6 +990,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final haystack = '${notification.title} ${notification.message}'
         .toLowerCase();
 
+    if (isTamperAlert(haystack)) {
+      return _NotificationMeta(
+        kind: _NotificationKind.tamper,
+        icon: Icons.cable_rounded,
+        color: const Color(0xFFB45309),
+        softColor: const Color(0xFFFFF4E5),
+      );
+    }
     if (haystack.contains('speed') || haystack.contains('overspeed')) {
       return _NotificationMeta(
         kind: _NotificationKind.speed,
@@ -1027,6 +1058,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     NotificationModel notification,
     _NotificationKind kind,
   ) {
+    if (kind == _NotificationKind.tamper) return 'Signal Wire';
     final haystack = '${notification.title} ${notification.message}';
     final speedMatch = RegExp(
       r'(\d+(?:\.\d+)?)\s*(km\/h|kmh|kph)',
@@ -1057,7 +1089,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       return 'Overspeed';
     }
 
-    return 'Fleet alert';
+    return 'Ignition alert';
   }
 
   String? _extractLocation(String message) {
@@ -1082,7 +1114,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 }
 
-enum _NotificationFilter { all, unread, geofence, battery, speed }
+enum _NotificationFilter {
+  all,
+  unread,
+  geofence,
+  battery,
+  speed,
+  tamper,
+  ignition,
+}
 
 extension _NotificationFilterCopy on _NotificationFilter {
   String get label {
@@ -1097,6 +1137,10 @@ extension _NotificationFilterCopy on _NotificationFilter {
         return 'Battery';
       case _NotificationFilter.speed:
         return 'Speed';
+      case _NotificationFilter.tamper:
+        return 'Tamper';
+      case _NotificationFilter.ignition:
+        return 'Ignition';
     }
   }
 
@@ -1112,6 +1156,10 @@ extension _NotificationFilterCopy on _NotificationFilter {
         return 'No battery alerts';
       case _NotificationFilter.speed:
         return 'No speed alerts';
+      case _NotificationFilter.tamper:
+        return 'No tamper alerts';
+      case _NotificationFilter.ignition:
+        return 'No ignition alerts';
     }
   }
 
@@ -1127,11 +1175,15 @@ extension _NotificationFilterCopy on _NotificationFilter {
         return 'Battery health looks stable across the fleet at the moment.';
       case _NotificationFilter.speed:
         return 'No overspeed events match the current filter.';
+      case _NotificationFilter.tamper:
+        return 'No sensor wire tampering has been reported.';
+      case _NotificationFilter.ignition:
+        return 'No engine on or off events have been reported.';
     }
   }
 }
 
-enum _NotificationKind { speed, geofence, battery, system, alert }
+enum _NotificationKind { tamper, speed, geofence, battery, system, alert }
 
 class _NotificationMeta {
   final _NotificationKind kind;

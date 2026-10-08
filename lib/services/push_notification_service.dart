@@ -62,12 +62,34 @@ class PushNotificationService {
 
   Future<String?> tokenForLogin() async {
     await initialize();
-    if (!_ready) return null;
-    try {
-      return await FirebaseMessaging.instance.getToken();
-    } catch (_) {
+    if (!_ready) {
+      debugPrint(
+        '[Push] FCM token unavailable for login because Firebase is not ready. '
+        'Last init error: $_lastInitializationError',
+      );
       return null;
     }
+
+    Object? lastError;
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      try {
+        final token = await FirebaseMessaging.instance.getToken();
+        if (token != null && token.isNotEmpty) return token;
+        debugPrint('[Push] FCM token attempt $attempt returned empty.');
+      } catch (error) {
+        lastError = error;
+        debugPrint(
+          '[Push] FCM token attempt $attempt failed: ${error.runtimeType}: $error',
+        );
+      }
+
+      if (attempt < 3) {
+        await Future.delayed(Duration(milliseconds: 500 * attempt));
+      }
+    }
+
+    debugPrint('[Push] FCM token unavailable for login. Last error: $lastError');
+    return null;
   }
 
   Future<void> enableNotifications() async {

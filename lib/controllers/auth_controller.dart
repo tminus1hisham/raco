@@ -1,6 +1,7 @@
 import 'package:atom/models/login_model.dart';
 import 'package:atom/services/push_notification_service.dart';
 import 'package:atom/models/register_model.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -60,11 +61,24 @@ class AuthController extends GetxController {
     loginError.value = '';
 
     try {
+      final firebaseToken =
+          await PushNotificationService.instance.tokenForLogin() ?? '';
+      if (kDebugMode) {
+        final tokenLogValue = firebaseToken.isEmpty ? '<empty>' : firebaseToken;
+        debugPrint('[Auth/login] FCM token: $tokenLogValue');
+      }
+
+      if (firebaseToken.isEmpty) {
+        loginError.value =
+            'Could not connect to push notifications. Please check your connection and try again.';
+        debugPrint('[Auth/login] blocked because firebaseToken is empty');
+        return false;
+      }
+
       final loginModel = LoginModel(
         phoneNumber: phoneNumber.value.trim(),
         password: password.value.trim(),
-        firebaseToken:
-            await PushNotificationService.instance.tokenForLogin() ?? '',
+        firebaseToken: firebaseToken,
         deviceModel: deviceModel.value.trim(),
         userAgent: userAgent.value.trim(),
         location: location.value.trim(),

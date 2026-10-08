@@ -2001,6 +2001,47 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             : (isIdling ? kBlue : kGrey);
     final Color speedColor = isMoving ? kSuccessGreen : context.col.textSecondary;
 
+    return Stack(
+      children: [
+        _buildVehicleSheetBody(device, statusLabel, statusColor, speedColor),
+        // Close button, pinned to the top-right corner of the sheet
+        Positioned(
+          top: 6,
+          right: 6,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              if (Get.isRegistered<DashboardController>()) {
+                Get.find<DashboardController>().isNavVisible.value = true;
+              }
+              setState(() {
+                _selectedVehiclePlate = null;
+                _bannerScreenPos = null;
+                _breathingCircle = null;
+              });
+              _updateVehicleAnnotations(_filteredDevices);
+            },
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: context.col.border,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.close_rounded, color: context.col.textPrimary, size: 20),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVehicleSheetBody(
+    Device device,
+    String statusLabel,
+    Color statusColor,
+    Color speedColor,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: context.col.surface,
@@ -2045,30 +2086,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(width: 10),
-              // Close button
-              GestureDetector(
-                onTap: () {
-                  if (Get.isRegistered<DashboardController>()) {
-                    Get.find<DashboardController>().isNavVisible.value = true;
-                  }
-                  setState(() {
-                    _selectedVehiclePlate = null;
-                    _bannerScreenPos = null;
-                    _breathingCircle = null;
-                  });
-                  _updateVehicleAnnotations(_filteredDevices);
-                },
-                child: Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    color: context.col.border.withValues(alpha: 0.5),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.close, color: context.col.textSecondary, size: 15),
-                ),
-              ),
+              // Keep clear of the corner close button
+              const SizedBox(width: 30),
             ],
           ),
           const SizedBox(height: 8),
