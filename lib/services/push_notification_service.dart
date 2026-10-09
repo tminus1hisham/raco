@@ -70,6 +70,14 @@ class PushNotificationService {
       return null;
     }
 
+    // iOS: getToken() throws apns-token-not-set until APNs has answered.
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      for (var i = 0; i < 20; i++) {
+        if (await FirebaseMessaging.instance.getAPNSToken() != null) break;
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+    }
+
     Object? lastError;
     for (var attempt = 1; attempt <= 3; attempt++) {
       try {
