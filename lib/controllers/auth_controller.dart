@@ -68,13 +68,6 @@ class AuthController extends GetxController {
         debugPrint('[Auth/login] FCM token: $tokenLogValue');
       }
 
-      if (firebaseToken.isEmpty) {
-        loginError.value =
-            'Could not connect to push notifications. Please check your connection and try again.';
-        debugPrint('[Auth/login] blocked because firebaseToken is empty');
-        return false;
-      }
-
       final loginModel = LoginModel(
         phoneNumber: phoneNumber.value.trim(),
         password: password.value.trim(),

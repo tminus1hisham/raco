@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:atom/config/constants.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CameraCaptureScreen extends StatefulWidget {
   final CameraLensDirection preferredCamera;
@@ -20,7 +23,8 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   CameraDescription? _selectedCamera;
   CameraLensDirection _currentCameraDirection = CameraLensDirection.back;
   bool _isSwitchingCamera = false;
-  double _previewAspectRatio = 1.0;
+  String? _error;
+  bool _accessDenied = false;
 
   @override
   void initState() {
@@ -32,6 +36,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   Future<void> _initializeCamera() async {
     try {
       final cameras = await availableCameras();
+      if (cameras.isEmpty) throw CameraException('NoCamera', null);
 
       _selectedCamera = cameras.firstWhere(
         (camera) => camera.lensDirection == _currentCameraDirection,
@@ -49,22 +54,38 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
         enableAudio: false,
       );
 
-      _initializeControllerFuture = _controller!.initialize().then((_) {
-        if (!mounted) return;
-        setState(() {
-          _isSwitchingCamera = false;
-          _previewAspectRatio = _controller!.value.aspectRatio;
-        });
-      });
+      _initializeControllerFuture = _controller!
+          .initialize()
+          .then((_) {
+            if (!mounted) return;
+            setState(() {
+              _isSwitchingCamera = false;
+              _error = null;
+            });
+          })
+          .catchError(_onCameraError);
 
       if (mounted) setState(() {});
     } catch (e) {
-      debugPrint("Error initializing camera: $e");
-      if (mounted)
-        setState(() {
-          _isSwitchingCamera = false;
-        });
+      _onCameraError(e);
     }
+  }
+
+  // iOS only shows the permission prompt once; after "Don't Allow" initialize
+  // fails immediately, so tell the user and point them to Settings.
+  void _onCameraError(Object e) {
+    debugPrint("Error initializing camera: $e");
+    if (!mounted) return;
+    final code = e is CameraException ? e.code : '';
+    setState(() {
+      _isSwitchingCamera = false;
+      _accessDenied = code.startsWith('CameraAccess');
+      _error = _accessDenied
+          ? 'Camera access is turned off. Allow camera access for Orca in Settings.'
+          : code == 'NoCamera'
+          ? 'No camera found on this device.'
+          : 'Could not start the camera.';
+    });
   }
 
   @override
@@ -139,27 +160,52 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       backgroundColor: kBlack,
       body: Stack(
         children: [
+          if (_error != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: kWhite, fontSize: 16),
+                    ),
+                    if (_accessDenied && Platform.isIOS)
+                      TextButton(
+                        onPressed: () => launchUrl(Uri.parse('app-settings:')),
+                        child: const Text('Open Settings'),
+                      ),
+                  ],
+                ),
+              ),
+            )
           // Centered camera preview
-          if (_controller != null && _initializeControllerFuture != null)
+          else if (_controller != null && _initializeControllerFuture != null)
             FutureBuilder<void>(
               future: _initializeControllerFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
                   if (_controller != null && _controller!.value.isInitialized) {
-                    return Center(
-                      child: AspectRatio(
-                        aspectRatio: _previewAspectRatio * 0.5,
-                        child: CameraPreview(_controller!),
-                      ),
-                    );
+                    // CameraPreview already corrects for portrait orientation.
+                    return Center(child: CameraPreview(_controller!));
                   } else {
-                    return const Center(child: Text('Camera not initialized'));
+                    return const SizedBox.shrink();
                   }
                 } else {
                   return const Center(child: CircularProgressIndicator());
                 }
               },
             ),
+
+          // Close button — iOS has no system back button.
+          SafeArea(
+            child: IconButton(
+              icon: const Icon(Icons.close, color: kWhite, size: 30),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
 
           // Camera switch button
           Positioned(
